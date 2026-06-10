@@ -235,6 +235,64 @@
     pointer-events: none; white-space: nowrap; z-index: 999;
   }
   .toast.show { opacity: 1; }
+  .btn-print { background: #2e7d5e; color: #fff; }
+
+  /* 印刷プレビュー */
+  #printPreview {
+    display: none;
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.6);
+    overflow-y: auto; padding: 16px;
+  }
+  #printPreview.show { display: block; }
+  .print-sheet {
+    background: #fff; border-radius: 12px;
+    max-width: 600px; margin: 0 auto;
+    padding: 20px 18px;
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+  }
+  .print-sheet h2 {
+    font-size: 1rem; font-weight: 700;
+    text-align: center; margin-bottom: 4px; color: #1e3045;
+  }
+  .print-sheet .print-date {
+    font-size: 0.75rem; color: #8aa4bc;
+    text-align: center; margin-bottom: 14px;
+  }
+  .print-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  .print-table th, .print-table td {
+    border: 1px solid #d8e3ec;
+    padding: 6px 8px; text-align: right;
+  }
+  .print-table th { background: #f0f4f8; text-align: left; font-weight: 700; color: #1e3045; }
+  .print-table td:first-child { text-align: left; }
+  .print-table .row-time td { background: #e8eef5; font-weight: 700; color: #1e3045; }
+  .print-table .row-sub td { background: #ddeef8; font-weight: 700; }
+  .print-table .row-day td { background: #1e3045; color: #fff; font-weight: 700; }
+  .print-table .row-grand td { background: #0f1e2e; color: #fff; font-weight: 700; }
+  .print-close-bar {
+    display: flex; gap: 8px; margin-top: 14px;
+    max-width: 600px; margin-left: auto; margin-right: auto;
+  }
+  .print-close-bar button {
+    flex: 1; padding: 12px 0; border-radius: 9px; border: none;
+    font-size: 0.9rem; font-weight: 700; cursor: pointer;
+  }
+  .btn-do-print { background: #1e3045; color: #fff; }
+  .btn-close-print { background: #fff; color: #1e3045; border: 2px solid #d8e3ec !important; }
+
+  @media print {
+    body > *:not(#printPreview) { display: none !important; }
+    #printPreview {
+      display: block !important;
+      position: static; background: none; padding: 0;
+    }
+    .print-close-bar { display: none !important; }
+    .print-sheet { box-shadow: none; border-radius: 0; }
+  }
 </style>
 </head>
 <body>
@@ -246,8 +304,9 @@
 
 <!-- 書き出し・読み込み -->
 <div class="io-bar">
-  <button class="io-btn btn-export" onclick="exportData()">📤 設定を書き出し</button>
-  <button class="io-btn btn-import" onclick="document.getElementById('fileInput').click()">📥 設定を読み込み</button>
+  <button class="io-btn btn-export" onclick="exportData()">📤 書き出し</button>
+  <button class="io-btn btn-import" onclick="document.getElementById('fileInput').click()">📥 読み込み</button>
+  <button class="io-btn btn-print" onclick="openPrint()">🖨️ 印刷</button>
   <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
 </div>
 
@@ -861,6 +920,28 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- 印刷プレビュー -->
+<div id="printPreview">
+  <div class="print-sheet">
+    <h2>🍵 トロミ茶 使用量まとめ</h2>
+    <div class="print-date" id="printDate"></div>
+    <table class="print-table">
+      <thead>
+        <tr>
+          <th style="width:34%"></th>
+          <th style="width:22%">トロミ茶</th>
+          <th style="width:22%">とろみ粉</th>
+        </tr>
+      </thead>
+      <tbody id="printBody"></tbody>
+    </table>
+  </div>
+  <div class="print-close-bar">
+    <button class="btn-do-print" onclick="window.print()">🖨️ 印刷する</button>
+    <button class="btn-close-print" onclick="closePrint()">✕ 閉じる</button>
+  </div>
+</div>
+
 <script>
 // ======== 状態管理 ========
 // floors: f2, f3
@@ -1083,6 +1164,93 @@ function showToast(msg) {
 
 // 初期計算
 calc();
+
+// ======== 印刷 ========
+// calcFloorが計算した値をDOMから読む
+function getT(id) {
+  const el = document.getElementById(id);
+  return el ? el.textContent : '—';
+}
+
+function openPrint() {
+  const now = new Date();
+  const ds = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日`;
+  document.getElementById('printDate').textContent = ds;
+
+  const floors = [
+    { id: 'f2', label: '2階フロア' },
+    { id: 'f3', label: '3階フロア' },
+  ];
+
+  let rows = '';
+  const times = [
+    { key: '0', label: '9時' },
+    { key: '1', label: '15時' },
+  ];
+  const types = [
+    { pre: 'u', label: 'うすいトロミ' },
+    { pre: 'c', label: '中間トロミ' },
+    { pre: 'k', label: '濃いトロミ' },
+  ];
+
+  // 各フロア
+  floors.forEach(fl => {
+    rows += `<tr><td colspan="3" style="background:#1e3045;color:#fff;font-weight:700;padding:7px 8px;">📍 ${fl.label}</td></tr>`;
+    times.forEach(tm => {
+      rows += `<tr class="row-time"><td colspan="3" style="background:#e8eef5;font-weight:700;padding:6px 8px;">　${tm.label}</td></tr>`;
+      types.forEach(tp => {
+        const mlVal = getT(`${fl.id}_${tp.pre}${tm.key}_sub`);
+        const pwdVal = getT(`${fl.id}_${tp.pre}${tm.key}_pwd`);
+        rows += `<tr><td>　　${tp.label}</td><td>${mlVal}</td><td>${pwdVal}</td></tr>`;
+      });
+      // 時間帯小計
+      const subMl  = getT(`${fl.id}_gt${tm.key}_all`);
+      const subPwd = getT(`${fl.id}_gt${tm.key}_pwd`);
+      rows += `<tr class="row-sub"><td>　小計</td><td>${subMl}</td><td>${subPwd}</td></tr>`;
+    });
+    // フロア1日合計
+    const dayMl  = getT(`${fl.id}_day_all`);
+    const dayPwd = getT(`${fl.id}_day_pwd`);
+    rows += `<tr class="row-day"><td>　${fl.label} 1日合計</td><td>${dayMl}</td><td>${dayPwd}</td></tr>`;
+  });
+
+  // 2階＋3階 総合計
+  function sumMl(a, b) {
+    const va = parseInt((a||'0').replace(/[^0-9]/g,'')) || 0;
+    const vb = parseInt((b||'0').replace(/[^0-9]/g,'')) || 0;
+    return (va + vb).toLocaleString() + ' ml';
+  }
+  function sumG(a, b) {
+    const va = parseFloat((a||'0').replace(/[^0-9.]/g,'')) || 0;
+    const vb = parseFloat((b||'0').replace(/[^0-9.]/g,'')) || 0;
+    return (va + vb).toFixed(1) + ' g';
+  }
+
+  rows += `<tr><td colspan="3" style="background:#0f1e2e;color:#fff;font-weight:700;padding:7px 8px;">🏢 2階＋3階 総合計</td></tr>`;
+  times.forEach(tm => {
+    rows += `<tr class="row-time"><td colspan="3" style="background:#e8eef5;font-weight:700;padding:6px 8px;">　${tm.label}</td></tr>`;
+    types.forEach(tp => {
+      const ml2 = getT(`f2_${tp.pre}${tm.key}_sub`);
+      const ml3 = getT(`f3_${tp.pre}${tm.key}_sub`);
+      const p2  = getT(`f2_${tp.pre}${tm.key}_pwd`);
+      const p3  = getT(`f3_${tp.pre}${tm.key}_pwd`);
+      rows += `<tr><td>　　${tp.label}</td><td>${sumMl(ml2,ml3)}</td><td>${sumG(p2,p3)}</td></tr>`;
+    });
+    const sm2 = getT(`f2_gt${tm.key}_all`), sm3 = getT(`f3_gt${tm.key}_all`);
+    const sp2 = getT(`f2_gt${tm.key}_pwd`), sp3 = getT(`f3_gt${tm.key}_pwd`);
+    rows += `<tr class="row-sub"><td>　小計</td><td>${sumMl(sm2,sm3)}</td><td>${sumG(sp2,sp3)}</td></tr>`;
+  });
+  const d2ml = getT('f2_day_all'), d3ml = getT('f3_day_all');
+  const d2pw = getT('f2_day_pwd'), d3pw = getT('f3_day_pwd');
+  rows += `<tr class="row-grand"><td>　総合計</td><td>${sumMl(d2ml,d3ml)}</td><td>${sumG(d2pw,d3pw)}</td></tr>`;
+
+  document.getElementById('printBody').innerHTML = rows;
+  document.getElementById('printPreview').classList.add('show');
+}
+
+function closePrint() {
+  document.getElementById('printPreview').classList.remove('show');
+}
 </script>
 </body>
 </html>
