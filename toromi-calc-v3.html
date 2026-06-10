@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>トロミ茶 分量計算</title>
+<style>
+  :root {
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --border: #d8e3ec;
+    --label: #5a7a96;
+    --text: #1e3045;
+    --muted: #8aa4bc;
+    --usui: #5ba8d4;
+    --usui-bg: #eaf4fb;
+    --usui-border: #aed6ef;
+    --chukan: #4caf86;
+    --chukan-bg: #e8f7f1;
+    --chukan-border: #9dd9bf;
+    --koi: #e07b3f;
+    --koi-bg: #fdf0e6;
+    --koi-border: #f0bc92;
+    --shadow: 0 2px 8px rgba(30,48,69,0.10);
+    --floor2: #7c5cbf;
+    --floor2-bg: #f0ebfa;
+    --floor3: #c0823a;
+    --floor3-bg: #fdf3e6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 14px;
+  }
+  header { text-align: center; margin-bottom: 16px; }
+  header h1 { font-size: 1.2rem; font-weight: 700; letter-spacing: 0.05em; }
+  header p { font-size: 0.75rem; color: var(--muted); margin-top: 3px; }
+
+  /* フロアタブ */
+  .floor-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .floor-tab {
+    flex: 1;
+    padding: 10px 0;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    border: 2px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .floor-tab.f2.active { background: var(--floor2); color: #fff; border-color: var(--floor2); }
+  .floor-tab.f3.active { background: var(--floor3); color: #fff; border-color: var(--floor3); }
+
+  /* 時間タブ */
+  .time-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .time-tab {
+    flex: 1;
+    padding: 8px 0;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    border: 2px solid var(--border);
+    background: var(--card);
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .time-tab.active { background: #1e3045; color: #fff; border-color: #1e3045; }
+
+  .floor-section { display: none; }
+  .floor-section.active { display: block; }
+  .time-section { display: none; }
+  .time-section.active { display: flex; flex-direction: column; gap: 11px; }
+
+  /* フロアバナー */
+  .floor-banner {
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    letter-spacing: 0.04em;
+  }
+  .floor-banner.f2 { background: var(--floor2-bg); color: var(--floor2); }
+  .floor-banner.f3 { background: var(--floor3-bg); color: var(--floor3); }
+
+  /* トロミカード */
+  .toro-card {
+    background: var(--card);
+    border-radius: 13px;
+    padding: 13px 14px;
+    box-shadow: var(--shadow);
+    border-left: 5px solid var(--border);
+  }
+  .toro-card.usui  { border-left-color: var(--usui); }
+  .toro-card.chukan{ border-left-color: var(--chukan); }
+  .toro-card.koi   { border-left-color: var(--koi); }
+
+  .toro-header { display: flex; align-items: center; gap: 8px; margin-bottom: 11px; }
+  .badge {
+    font-size: 0.7rem; font-weight: 700;
+    padding: 3px 9px; border-radius: 20px; letter-spacing: 0.05em;
+  }
+  .usui  .badge { background: var(--usui-bg);   color: var(--usui);   border: 1px solid var(--usui-border); }
+  .chukan .badge{ background: var(--chukan-bg); color: var(--chukan); border: 1px solid var(--chukan-border); }
+  .koi   .badge { background: var(--koi-bg);   color: var(--koi);    border: 1px solid var(--koi-border); }
+  .toro-title { font-size: 0.95rem; font-weight: 700; }
+
+  .use-rows { display: flex; flex-direction: column; gap: 7px; }
+  .use-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto auto;
+    align-items: center;
+    gap: 5px;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 7px 9px;
+  }
+  .use-label { font-size: 0.78rem; color: var(--label); font-weight: 600; }
+  .qty-control { display: flex; align-items: center; gap: 3px; }
+  .qty-btn {
+    width: 25px; height: 25px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--card); color: var(--text);
+    font-size: 1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; line-height: 1;
+  }
+  .qty-btn:active { background: var(--border); }
+  .qty-num { width: 20px; text-align: center; font-size: 0.88rem; font-weight: 700; }
+  .ml-input {
+    width: 60px; padding: 4px 5px;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 0.8rem; text-align: right;
+    background: var(--card); color: var(--text);
+  }
+  .ml-unit { font-size: 0.75rem; color: var(--muted); }
+  .row-total { font-size: 0.8rem; font-weight: 700; min-width: 50px; text-align: right; }
+
+  .sub-total {
+    margin-top: 9px; padding: 7px 9px; border-radius: 7px 7px 0 0;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.82rem; font-weight: 700;
+  }
+  .usui  .sub-total { background: var(--usui-bg);   color: var(--usui); }
+  .chukan .sub-total{ background: var(--chukan-bg); color: var(--chukan); }
+  .koi   .sub-total { background: var(--koi-bg);   color: var(--koi); }
+
+  .powder-row {
+    padding: 5px 9px 7px; border-radius: 0 0 7px 7px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 0.78rem; font-weight: 600;
+  }
+  .usui  .powder-row { background: var(--usui-bg);   color: var(--usui); border-top: 1px solid var(--usui-border); }
+  .chukan .powder-row{ background: var(--chukan-bg); color: var(--chukan); border-top: 1px solid var(--chukan-border); }
+  .koi   .powder-row { background: var(--koi-bg);   color: var(--koi);   border-top: 1px solid var(--koi-border); }
+  .powder-row .pdr-label { opacity: 0.8; }
+  .powder-row .pdr-val   { font-size: 0.9rem; font-weight: 700; }
+
+  /* 合計バー */
+  .grand-total-bar {
+    background: #1e3045; border-radius: 13px;
+    padding: 14px; box-shadow: var(--shadow);
+  }
+  .grand-total-bar h3 { font-size: 0.72rem; color: #8aa4bc; letter-spacing: 0.08em; margin-bottom: 9px; }
+  .grand-rows { display: flex; flex-direction: column; gap: 5px; }
+  .grand-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: #b8d0e8; }
+  .grand-row .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+  .grand-row .val { font-weight: 700; color: #fff; }
+  .grand-total-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 9px; padding-top: 9px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    font-size: 0.95rem; font-weight: 700; color: #fff;
+  }
+  .grand-total-row .big { font-size: 1.3rem; letter-spacing: -0.02em; }
+
+  /* 1日合計 */
+  .both-total {
+    background: var(--card); border-radius: 13px;
+    padding: 14px; box-shadow: var(--shadow); border: 2px solid #1e3045;
+  }
+  .both-total h3 { font-size: 0.78rem; font-weight: 700; margin-bottom: 10px; }
+  .both-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem;
+  }
+  .both-row:last-of-type { border-bottom: none; }
+  .both-row .name { color: var(--label); font-weight: 600; }
+  .both-row .val  { font-weight: 700; }
+  .both-grand {
+    display: flex; justify-content: space-between;
+    margin-top: 10px; padding-top: 8px;
+    border-top: 2px solid #1e3045;
+    font-weight: 700; font-size: 0.95rem;
+  }
+  .both-grand .big { font-size: 1.2rem; }
+
+  /* 書き出し・読み込みバー */
+  .io-bar {
+    display: flex; gap: 8px; margin-bottom: 14px; align-items: center;
+  }
+  .io-btn {
+    flex: 1; padding: 10px 0;
+    border-radius: 9px; border: none;
+    font-size: 0.85rem; font-weight: 700; cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .io-btn:active { opacity: 0.75; }
+  .btn-export { background: #1e3045; color: #fff; }
+  .btn-import { background: var(--card); color: var(--text); border: 2px solid var(--border); }
+  #fileInput { display: none; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1e3045; color: #fff;
+    padding: 10px 22px; border-radius: 30px;
+    font-size: 0.85rem; font-weight: 700;
+    opacity: 0; transition: opacity 0.3s;
+    pointer-events: none; white-space: nowrap; z-index: 999;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🍵 トロミ茶 分量計算</h1>
+  <p>フロア別・時間帯別に自動計算します</p>
+</header>
+
+<!-- 書き出し・読み込み -->
+<div class="io-bar">
+  <button class="io-btn btn-export" onclick="exportData()">📤 設定を書き出し</button>
+  <button class="io-btn btn-import" onclick="document.getElementById('fileInput').click()">📥 設定を読み込み</button>
+  <input type="file" id="fileInput" accept=".json" onchange="importData(event)">
+</div>
+
+<!-- フロアタブ -->
+<div class="floor-tabs">
+  <div class="floor-tab f2 active" onclick="switchFloor(2)">🏢 2階</div>
+  <div class="floor-tab f3" onclick="switchFloor(3)">🏢 3階</div>
+</div>
+
+<!-- ===== 2階 ===== -->
+<div class="floor-section active" id="floor2">
+  <div class="floor-banner f2">2階フロア</div>
+  <div class="time-tabs">
+    <div class="time-tab active" onclick="switchTime(2,0)">9時（朝・昼）</div>
+    <div class="time-tab" onclick="switchTime(2,1)">15時（補充・夕食）</div>
+    <div class="time-tab" onclick="switchTime(2,2)">1日合計</div>
+  </div>
+
+  <!-- 2F 9時 -->
+  <div class="time-section active" id="f2_t0">
+    <div class="toro-card usui">
+      <div class="toro-header"><span class="badge">うすい</span><span class="toro-title">うすいトロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">朝の居室置き</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','u0','asa',-1)">−</button>
+            <span class="qty-num" id="f2_u0_asa_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','u0','asa',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_u0_asa_ml" value="300" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_u0_asa_t">300 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">昼食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','u0','hiru',-1)">−</button>
+            <span class="qty-num" id="f2_u0_hiru_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','u0','hiru',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_u0_hiru_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_u0_hiru_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','u0','ko',-1)">−</button>
+            <span class="qty-num" id="f2_u0_ko_n">2</span>
+            <button class="qty-btn" onclick="chg('f2','u0','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_u0_ko_ml" value="100" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_u0_ko_t">200 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>うすい 9時 小計</span><span id="f2_u0_sub">650 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f2_u0_pwd">6.5 g</span></div>
+    </div>
+
+    <div class="toro-card chukan">
+      <div class="toro-header"><span class="badge">中間</span><span class="toro-title">中間トロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">朝の居室置き</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','c0','asa',-1)">−</button>
+            <span class="qty-num" id="f2_c0_asa_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','c0','asa',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_c0_asa_ml" value="300" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_c0_asa_t">300 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">昼食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','c0','hiru',-1)">−</button>
+            <span class="qty-num" id="f2_c0_hiru_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','c0','hiru',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_c0_hiru_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_c0_hiru_t">150 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>中間 9時 小計</span><span id="f2_c0_sub">450 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f2_c0_pwd">9.0 g</span></div>
+    </div>
+
+    <div class="toro-card koi">
+      <div class="toro-header"><span class="badge">濃い</span><span class="toro-title">濃いトロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">朝の居室置き</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','k0','asa',-1)">−</button>
+            <span class="qty-num" id="f2_k0_asa_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','k0','asa',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_k0_asa_ml" value="300" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_k0_asa_t">300 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">昼食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','k0','hiru',-1)">−</button>
+            <span class="qty-num" id="f2_k0_hiru_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','k0','hiru',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_k0_hiru_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_k0_hiru_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','k0','ko',-1)">−</button>
+            <span class="qty-num" id="f2_k0_ko_n">2</span>
+            <button class="qty-btn" onclick="chg('f2','k0','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_k0_ko_ml" value="100" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_k0_ko_t">200 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>濃い 9時 小計</span><span id="f2_k0_sub">650 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f2_k0_pwd">19.5 g</span></div>
+    </div>
+
+    <div class="grand-total-bar">
+      <h3>2階 / 9時 合計</h3>
+      <div class="grand-rows">
+        <div class="grand-row"><span><span class="dot" style="background:#5ba8d4"></span>うすい</span><span class="val" id="f2_gt0_u">650 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#4caf86"></span>中間</span><span class="val" id="f2_gt0_c">450 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#e07b3f"></span>濃い</span><span class="val" id="f2_gt0_k">650 ml</span></div>
+      </div>
+      <div class="grand-total-row"><span>合計</span><span class="big" id="f2_gt0_all">1,750 ml</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;color:#b8d0e8;">
+        <span>🥄 とろみ粉 合計</span><span style="font-weight:700;color:#fff;" id="f2_gt0_pwd">35.0 g</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2F 15時 -->
+  <div class="time-section" id="f2_t1">
+    <div class="toro-card usui">
+      <div class="toro-header"><span class="badge">うすい</span><span class="toro-title">うすいトロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">補充分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','u1','ho',-1)">−</button>
+            <span class="qty-num" id="f2_u1_ho_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','u1','ho',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_u1_ho_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_u1_ho_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">夕食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','u1','yu',-1)">−</button>
+            <span class="qty-num" id="f2_u1_yu_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','u1','yu',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_u1_yu_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_u1_yu_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','u1','ko',-1)">−</button>
+            <span class="qty-num" id="f2_u1_ko_n">2</span>
+            <button class="qty-btn" onclick="chg('f2','u1','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_u1_ko_ml" value="100" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_u1_ko_t">200 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>うすい 15時 小計</span><span id="f2_u1_sub">500 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f2_u1_pwd">5.0 g</span></div>
+    </div>
+
+    <div class="toro-card chukan">
+      <div class="toro-header"><span class="badge">中間</span><span class="toro-title">中間トロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">補充分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','c1','ho',-1)">−</button>
+            <span class="qty-num" id="f2_c1_ho_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','c1','ho',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_c1_ho_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_c1_ho_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">夕食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','c1','yu',-1)">−</button>
+            <span class="qty-num" id="f2_c1_yu_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','c1','yu',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_c1_yu_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_c1_yu_t">150 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>中間 15時 小計</span><span id="f2_c1_sub">300 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f2_c1_pwd">6.0 g</span></div>
+    </div>
+
+    <div class="toro-card koi">
+      <div class="toro-header"><span class="badge">濃い</span><span class="toro-title">濃いトロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">補充分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','k1','ho',-1)">−</button>
+            <span class="qty-num" id="f2_k1_ho_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','k1','ho',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_k1_ho_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_k1_ho_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">夕食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','k1','yu',-1)">−</button>
+            <span class="qty-num" id="f2_k1_yu_n">1</span>
+            <button class="qty-btn" onclick="chg('f2','k1','yu',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_k1_yu_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_k1_yu_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','k1','ko',-1)">−</button>
+            <span class="qty-num" id="f2_k1_ko_n">2</span>
+            <button class="qty-btn" onclick="chg('f2','k1','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_k1_ko_ml" value="100" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_k1_ko_t">200 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>濃い 15時 小計</span><span id="f2_k1_sub">500 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f2_k1_pwd">15.0 g</span></div>
+    </div>
+
+    <div class="grand-total-bar">
+      <h3>2階 / 15時 合計</h3>
+      <div class="grand-rows">
+        <div class="grand-row"><span><span class="dot" style="background:#5ba8d4"></span>うすい</span><span class="val" id="f2_gt1_u">500 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#4caf86"></span>中間</span><span class="val" id="f2_gt1_c">300 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#e07b3f"></span>濃い</span><span class="val" id="f2_gt1_k">500 ml</span></div>
+      </div>
+      <div class="grand-total-row"><span>合計</span><span class="big" id="f2_gt1_all">1,300 ml</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;color:#b8d0e8;">
+        <span>🥄 とろみ粉 合計</span><span style="font-weight:700;color:#fff;" id="f2_gt1_pwd">26.0 g</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2F 1日合計 -->
+  <div class="time-section" id="f2_t2">
+    <div class="both-total">
+      <h3>📊 2階 1日合計（9時＋15時）</h3>
+      <div class="both-row"><span class="name">うすいトロミ</span><span class="val" id="f2_day_u">1,150 ml</span></div>
+      <div class="both-row"><span class="name">中間トロミ</span><span class="val" id="f2_day_c">750 ml</span></div>
+      <div class="both-row"><span class="name">濃いトロミ</span><span class="val" id="f2_day_k">1,150 ml</span></div>
+      <div class="both-grand"><span>1日総計</span><span class="big" id="f2_day_all">3,050 ml</span></div>
+      <div style="margin-top:10px;padding-top:8px;border-top:2px solid #1e3045;display:flex;justify-content:space-between;font-weight:700;font-size:0.9rem;">
+        <span>🥄 とろみ粉 1日合計</span><span id="f2_day_pwd">61.0 g</span>
+      </div>
+    </div>
+    <div class="grand-total-bar">
+      <h3>9時 内訳</h3>
+      <div class="grand-rows">
+        <div class="grand-row"><span><span class="dot" style="background:#5ba8d4"></span>うすい</span><span class="val" id="f2_s0_u">650 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#4caf86"></span>中間</span><span class="val" id="f2_s0_c">450 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#e07b3f"></span>濃い</span><span class="val" id="f2_s0_k">650 ml</span></div>
+      </div>
+      <div class="grand-total-row"><span>9時 合計</span><span class="big" id="f2_s0_all">1,750 ml</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;color:#b8d0e8;">
+        <span>🥄 とろみ粉 合計</span><span style="font-weight:700;color:#fff;" id="f2_s0_pwd">35.0 g</span>
+      </div>
+    </div>
+    <div class="grand-total-bar" style="background:#2d4a6a;">
+      <h3>15時 内訳</h3>
+      <div class="grand-rows">
+        <div class="grand-row"><span><span class="dot" style="background:#5ba8d4"></span>うすい</span><span class="val" id="f2_s1_u">500 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#4caf86"></span>中間</span><span class="val" id="f2_s1_c">300 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#e07b3f"></span>濃い</span><span class="val" id="f2_s1_k">500 ml</span></div>
+      </div>
+      <div class="grand-total-row"><span>15時 合計</span><span class="big" id="f2_s1_all">1,300 ml</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;color:#b8d0e8;">
+        <span>🥄 とろみ粉 合計</span><span style="font-weight:700;color:#fff;" id="f2_s1_pwd">26.0 g</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 3階 ===== -->
+<div class="floor-section" id="floor3">
+  <div class="floor-banner f3">3階フロア</div>
+  <div class="time-tabs">
+    <div class="time-tab active" onclick="switchTime(3,0)">9時（朝・昼）</div>
+    <div class="time-tab" onclick="switchTime(3,1)">15時（補充・夕食）</div>
+    <div class="time-tab" onclick="switchTime(3,2)">1日合計</div>
+  </div>
+
+  <!-- 3F 9時 -->
+  <div class="time-section active" id="f3_t0">
+    <div class="toro-card usui">
+      <div class="toro-header"><span class="badge">うすい</span><span class="toro-title">うすいトロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">朝の居室置き</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','u0','asa',-1)">−</button>
+            <span class="qty-num" id="f3_u0_asa_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','u0','asa',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_u0_asa_ml" value="300" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_u0_asa_t">300 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">昼食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','u0','hiru',-1)">−</button>
+            <span class="qty-num" id="f3_u0_hiru_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','u0','hiru',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_u0_hiru_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_u0_hiru_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','u0','ko',-1)">−</button>
+            <span class="qty-num" id="f3_u0_ko_n">2</span>
+            <button class="qty-btn" onclick="chg('f3','u0','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_u0_ko_ml" value="100" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_u0_ko_t">200 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>うすい 9時 小計</span><span id="f3_u0_sub">650 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f3_u0_pwd">6.5 g</span></div>
+    </div>
+    <div class="toro-card chukan">
+      <div class="toro-header"><span class="badge">中間</span><span class="toro-title">中間トロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">朝の居室置き</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','c0','asa',-1)">−</button>
+            <span class="qty-num" id="f3_c0_asa_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','c0','asa',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_c0_asa_ml" value="300" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_c0_asa_t">300 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">昼食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','c0','hiru',-1)">−</button>
+            <span class="qty-num" id="f3_c0_hiru_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','c0','hiru',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_c0_hiru_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_c0_hiru_t">150 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>中間 9時 小計</span><span id="f3_c0_sub">450 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f3_c0_pwd">9.0 g</span></div>
+    </div>
+    <div class="toro-card koi">
+      <div class="toro-header"><span class="badge">濃い</span><span class="toro-title">濃いトロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">朝の居室置き</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','k0','asa',-1)">−</button>
+            <span class="qty-num" id="f3_k0_asa_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','k0','asa',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_k0_asa_ml" value="300" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_k0_asa_t">300 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">昼食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','k0','hiru',-1)">−</button>
+            <span class="qty-num" id="f3_k0_hiru_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','k0','hiru',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_k0_hiru_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_k0_hiru_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','k0','ko',-1)">−</button>
+            <span class="qty-num" id="f3_k0_ko_n">2</span>
+            <button class="qty-btn" onclick="chg('f3','k0','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_k0_ko_ml" value="100" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_k0_ko_t">200 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>濃い 9時 小計</span><span id="f3_k0_sub">650 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f3_k0_pwd">19.5 g</span></div>
+    </div>
+    <div class="grand-total-bar">
+      <h3>3階 / 9時 合計</h3>
+      <div class="grand-rows">
+        <div class="grand-row"><span><span class="dot" style="background:#5ba8d4"></span>うすい</span><span class="val" id="f3_gt0_u">650 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#4caf86"></span>中間</span><span class="val" id="f3_gt0_c">450 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#e07b3f"></span>濃い</span><span class="val" id="f3_gt0_k">650 ml</span></div>
+      </div>
+      <div class="grand-total-row"><span>合計</span><span class="big" id="f3_gt0_all">1,750 ml</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;color:#b8d0e8;">
+        <span>🥄 とろみ粉 合計</span><span style="font-weight:700;color:#fff;" id="f3_gt0_pwd">35.0 g</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3F 15時 -->
+  <div class="time-section" id="f3_t1">
+    <div class="toro-card usui">
+      <div class="toro-header"><span class="badge">うすい</span><span class="toro-title">うすいトロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">補充分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','u1','ho',-1)">−</button>
+            <span class="qty-num" id="f3_u1_ho_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','u1','ho',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_u1_ho_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_u1_ho_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">夕食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','u1','yu',-1)">−</button>
+            <span class="qty-num" id="f3_u1_yu_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','u1','yu',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_u1_yu_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_u1_yu_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','u1','ko',-1)">−</button>
+            <span class="qty-num" id="f3_u1_ko_n">2</span>
+            <button class="qty-btn" onclick="chg('f3','u1','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_u1_ko_ml" value="100" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_u1_ko_t">200 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>うすい 15時 小計</span><span id="f3_u1_sub">500 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f3_u1_pwd">5.0 g</span></div>
+    </div>
+    <div class="toro-card chukan">
+      <div class="toro-header"><span class="badge">中間</span><span class="toro-title">中間トロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">補充分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','c1','ho',-1)">−</button>
+            <span class="qty-num" id="f3_c1_ho_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','c1','ho',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_c1_ho_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_c1_ho_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">夕食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','c1','yu',-1)">−</button>
+            <span class="qty-num" id="f3_c1_yu_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','c1','yu',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_c1_yu_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_c1_yu_t">150 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>中間 15時 小計</span><span id="f3_c1_sub">300 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f3_c1_pwd">6.0 g</span></div>
+    </div>
+    <div class="toro-card koi">
+      <div class="toro-header"><span class="badge">濃い</span><span class="toro-title">濃いトロミ</span></div>
+      <div class="use-rows">
+        <div class="use-row">
+          <span class="use-label">補充分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','k1','ho',-1)">−</button>
+            <span class="qty-num" id="f3_k1_ho_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','k1','ho',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_k1_ho_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_k1_ho_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">夕食分</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','k1','yu',-1)">−</button>
+            <span class="qty-num" id="f3_k1_yu_n">1</span>
+            <button class="qty-btn" onclick="chg('f3','k1','yu',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_k1_yu_ml" value="150" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_k1_yu_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','k1','ko',-1)">−</button>
+            <span class="qty-num" id="f3_k1_ko_n">2</span>
+            <button class="qty-btn" onclick="chg('f3','k1','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_k1_ko_ml" value="100" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_k1_ko_t">200 ml</span>
+        </div>
+      </div>
+      <div class="sub-total"><span>濃い 15時 小計</span><span id="f3_k1_sub">500 ml</span></div>
+      <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f3_k1_pwd">15.0 g</span></div>
+    </div>
+    <div class="grand-total-bar">
+      <h3>3階 / 15時 合計</h3>
+      <div class="grand-rows">
+        <div class="grand-row"><span><span class="dot" style="background:#5ba8d4"></span>うすい</span><span class="val" id="f3_gt1_u">500 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#4caf86"></span>中間</span><span class="val" id="f3_gt1_c">300 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#e07b3f"></span>濃い</span><span class="val" id="f3_gt1_k">500 ml</span></div>
+      </div>
+      <div class="grand-total-row"><span>合計</span><span class="big" id="f3_gt1_all">1,300 ml</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;color:#b8d0e8;">
+        <span>🥄 とろみ粉 合計</span><span style="font-weight:700;color:#fff;" id="f3_gt1_pwd">26.0 g</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3F 1日合計 -->
+  <div class="time-section" id="f3_t2">
+    <div class="both-total">
+      <h3>📊 3階 1日合計（9時＋15時）</h3>
+      <div class="both-row"><span class="name">うすいトロミ</span><span class="val" id="f3_day_u">1,150 ml</span></div>
+      <div class="both-row"><span class="name">中間トロミ</span><span class="val" id="f3_day_c">750 ml</span></div>
+      <div class="both-row"><span class="name">濃いトロミ</span><span class="val" id="f3_day_k">1,150 ml</span></div>
+      <div class="both-grand"><span>1日総計</span><span class="big" id="f3_day_all">3,050 ml</span></div>
+      <div style="margin-top:10px;padding-top:8px;border-top:2px solid #1e3045;display:flex;justify-content:space-between;font-weight:700;font-size:0.9rem;">
+        <span>🥄 とろみ粉 1日合計</span><span id="f3_day_pwd">61.0 g</span>
+      </div>
+    </div>
+    <div class="grand-total-bar">
+      <h3>9時 内訳</h3>
+      <div class="grand-rows">
+        <div class="grand-row"><span><span class="dot" style="background:#5ba8d4"></span>うすい</span><span class="val" id="f3_s0_u">650 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#4caf86"></span>中間</span><span class="val" id="f3_s0_c">450 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#e07b3f"></span>濃い</span><span class="val" id="f3_s0_k">650 ml</span></div>
+      </div>
+      <div class="grand-total-row"><span>9時 合計</span><span class="big" id="f3_s0_all">1,750 ml</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;color:#b8d0e8;">
+        <span>🥄 とろみ粉 合計</span><span style="font-weight:700;color:#fff;" id="f3_s0_pwd">35.0 g</span>
+      </div>
+    </div>
+    <div class="grand-total-bar" style="background:#2d4a6a;">
+      <h3>15時 内訳</h3>
+      <div class="grand-rows">
+        <div class="grand-row"><span><span class="dot" style="background:#5ba8d4"></span>うすい</span><span class="val" id="f3_s1_u">500 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#4caf86"></span>中間</span><span class="val" id="f3_s1_c">300 ml</span></div>
+        <div class="grand-row"><span><span class="dot" style="background:#e07b3f"></span>濃い</span><span class="val" id="f3_s1_k">500 ml</span></div>
+      </div>
+      <div class="grand-total-row"><span>15時 合計</span><span class="big" id="f3_s1_all">1,300 ml</span></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.15);display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;color:#b8d0e8;">
+        <span>🥄 とろみ粉 合計</span><span style="font-weight:700;color:#fff;" id="f3_s1_pwd">26.0 g</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ======== 状態管理 ========
+// floors: f2, f3
+// groups: u0(うすい9時), c0(中間9時), k0(濃い9時), u1(うすい15時), c1(中間15時), k1(濃い15時)
+// keys: asa(朝居室), hiru(昼), ko(口腔), ho(補充), yu(夕食)
+
+const state = {
+  f2: {
+    u0: { asa:1, hiru:1, ko:2 },
+    c0: { asa:1, hiru:1 },
+    k0: { asa:1, hiru:1, ko:2 },
+    u1: { ho:1, yu:1, ko:2 },
+    c1: { ho:1, yu:1 },
+    k1: { ho:1, yu:1, ko:2 },
+  },
+  f3: {
+    u0: { asa:1, hiru:1, ko:2 },
+    c0: { asa:1, hiru:1 },
+    k0: { asa:1, hiru:1, ko:2 },
+    u1: { ho:1, yu:1, ko:2 },
+    c1: { ho:1, yu:1 },
+    k1: { ho:1, yu:1, ko:2 },
+  }
+};
+
+// 現在のフロア・時間タブ状態
+const tabState = { floor: 'f2', f2time: 0, f3time: 0 };
+
+function chg(floor, group, key, delta) {
+  const cur = state[floor][group][key];
+  const next = Math.max(0, cur + delta);
+  state[floor][group][key] = next;
+  document.getElementById(`${floor}_${group}_${key}_n`).textContent = next;
+  calc();
+}
+
+function ml(v) { return v.toLocaleString() + ' ml'; }
+function gv(v) { return v % 1 === 0 ? v.toFixed(1) : v.toFixed(1); } // 粉量 g表示
+function pwd(ml, rate) { return ml * rate / 100; } // rate: g per 100ml
+function gml(id) { return parseInt(document.getElementById(id)?.value) || 0; }
+function set(id, v) { const el = document.getElementById(id); if(el) el.textContent = v; }
+function setg(id, v) { const el = document.getElementById(id); if(el) el.textContent = v.toFixed(1) + ' g'; }
+
+function calcFloor(f) {
+  const s = state[f];
+  // 9時
+  const u0_asa  = s.u0.asa  * gml(`${f}_u0_asa_ml`);
+  const u0_hiru = s.u0.hiru * gml(`${f}_u0_hiru_ml`);
+  const u0_ko   = s.u0.ko   * gml(`${f}_u0_ko_ml`);
+  const u0_sub  = u0_asa + u0_hiru + u0_ko;
+
+  const c0_asa  = s.c0.asa  * gml(`${f}_c0_asa_ml`);
+  const c0_hiru = s.c0.hiru * gml(`${f}_c0_hiru_ml`);
+  const c0_sub  = c0_asa + c0_hiru;
+
+  const k0_asa  = s.k0.asa  * gml(`${f}_k0_asa_ml`);
+  const k0_hiru = s.k0.hiru * gml(`${f}_k0_hiru_ml`);
+  const k0_ko   = s.k0.ko   * gml(`${f}_k0_ko_ml`);
+  const k0_sub  = k0_asa + k0_hiru + k0_ko;
+
+  // 15時
+  const u1_ho  = s.u1.ho * gml(`${f}_u1_ho_ml`);
+  const u1_yu  = s.u1.yu * gml(`${f}_u1_yu_ml`);
+  const u1_ko  = s.u1.ko * gml(`${f}_u1_ko_ml`);
+  const u1_sub = u1_ho + u1_yu + u1_ko;
+
+  const c1_ho  = s.c1.ho * gml(`${f}_c1_ho_ml`);
+  const c1_yu  = s.c1.yu * gml(`${f}_c1_yu_ml`);
+  const c1_sub = c1_ho + c1_yu;
+
+  const k1_ho  = s.k1.ho * gml(`${f}_k1_ho_ml`);
+  const k1_yu  = s.k1.yu * gml(`${f}_k1_yu_ml`);
+  const k1_ko  = s.k1.ko * gml(`${f}_k1_ko_ml`);
+  const k1_sub = k1_ho + k1_yu + k1_ko;
+
+  // 行合計
+  set(`${f}_u0_asa_t`,  ml(u0_asa));  set(`${f}_u0_hiru_t`, ml(u0_hiru));
+  set(`${f}_u0_ko_t`,   ml(u0_ko));   set(`${f}_u0_sub`,    ml(u0_sub));
+  set(`${f}_c0_asa_t`,  ml(c0_asa));  set(`${f}_c0_hiru_t`, ml(c0_hiru));
+  set(`${f}_c0_sub`,    ml(c0_sub));
+  set(`${f}_k0_asa_t`,  ml(k0_asa));  set(`${f}_k0_hiru_t`, ml(k0_hiru));
+  set(`${f}_k0_ko_t`,   ml(k0_ko));   set(`${f}_k0_sub`,    ml(k0_sub));
+
+  set(`${f}_u1_ho_t`,   ml(u1_ho));   set(`${f}_u1_yu_t`,   ml(u1_yu));
+  set(`${f}_u1_ko_t`,   ml(u1_ko));   set(`${f}_u1_sub`,    ml(u1_sub));
+  set(`${f}_c1_ho_t`,   ml(c1_ho));   set(`${f}_c1_yu_t`,   ml(c1_yu));
+  set(`${f}_c1_sub`,    ml(c1_sub));
+  set(`${f}_k1_ho_t`,   ml(k1_ho));   set(`${f}_k1_yu_t`,   ml(k1_yu));
+  set(`${f}_k1_ko_t`,   ml(k1_ko));   set(`${f}_k1_sub`,    ml(k1_sub));
+
+  // 粉量計算 (うすい:1g/100ml, 中間:2g/100ml, 濃い:3g/100ml)
+  const p_u0 = pwd(u0_sub, 1), p_c0 = pwd(c0_sub, 2), p_k0 = pwd(k0_sub, 3);
+  const p_u1 = pwd(u1_sub, 1), p_c1 = pwd(c1_sub, 2), p_k1 = pwd(k1_sub, 3);
+  setg(`${f}_u0_pwd`, p_u0); setg(`${f}_c0_pwd`, p_c0); setg(`${f}_k0_pwd`, p_k0);
+  setg(`${f}_u1_pwd`, p_u1); setg(`${f}_c1_pwd`, p_c1); setg(`${f}_k1_pwd`, p_k1);
+
+  // 9時合計
+  const t0 = u0_sub + c0_sub + k0_sub;
+  set(`${f}_gt0_u`, ml(u0_sub)); set(`${f}_gt0_c`, ml(c0_sub));
+  set(`${f}_gt0_k`, ml(k0_sub)); set(`${f}_gt0_all`, ml(t0));
+  setg(`${f}_gt0_pwd`, p_u0 + p_c0 + p_k0);
+
+  // 15時合計
+  const t1 = u1_sub + c1_sub + k1_sub;
+  set(`${f}_gt1_u`, ml(u1_sub)); set(`${f}_gt1_c`, ml(c1_sub));
+  set(`${f}_gt1_k`, ml(k1_sub)); set(`${f}_gt1_all`, ml(t1));
+  setg(`${f}_gt1_pwd`, p_u1 + p_c1 + p_k1);
+
+  // 1日
+  const du = u0_sub + u1_sub, dc = c0_sub + c1_sub, dk = k0_sub + k1_sub;
+  set(`${f}_day_u`, ml(du)); set(`${f}_day_c`, ml(dc));
+  set(`${f}_day_k`, ml(dk)); set(`${f}_day_all`, ml(du+dc+dk));
+  setg(`${f}_day_pwd`, p_u0+p_c0+p_k0+p_u1+p_c1+p_k1);
+  set(`${f}_s0_u`, ml(u0_sub)); set(`${f}_s0_c`, ml(c0_sub));
+  set(`${f}_s0_k`, ml(k0_sub)); set(`${f}_s0_all`, ml(t0));
+  setg(`${f}_s0_pwd`, p_u0+p_c0+p_k0);
+  set(`${f}_s1_u`, ml(u1_sub)); set(`${f}_s1_c`, ml(c1_sub));
+  set(`${f}_s1_k`, ml(k1_sub)); set(`${f}_s1_all`, ml(t1));
+  setg(`${f}_s1_pwd`, p_u1+p_c1+p_k1);
+}
+
+function calc() {
+  calcFloor('f2');
+  calcFloor('f3');
+}
+
+// ======== タブ切り替え ========
+function switchFloor(n) {
+  const f = 'f' + n;
+  tabState.floor = f;
+  document.querySelectorAll('.floor-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.floor-section').forEach(s => s.classList.remove('active'));
+  document.querySelector(`.floor-tab.f${n}`).classList.add('active');
+  document.getElementById(`floor${n}`).classList.add('active');
+}
+
+function switchTime(floor, idx) {
+  const fid = `floor${floor}`;
+  const fsec = document.getElementById(fid);
+  fsec.querySelectorAll('.time-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  fsec.querySelectorAll('.time-section').forEach((s,i) => s.classList.toggle('active', i===idx));
+}
+
+// ======== 書き出し・読み込み ========
+function collectData() {
+  const mlVals = {};
+  document.querySelectorAll('.ml-input').forEach(el => {
+    mlVals[el.id] = parseInt(el.value) || 0;
+  });
+  return { version: 1, state, mlVals };
+}
+
+function exportData() {
+  const data = JSON.stringify(collectData(), null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  const now  = new Date();
+  const ts   = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  a.href     = url;
+  a.download = `toromi_${ts}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('設定を書き出しました ✓');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.state || !data.mlVals) throw new Error('形式が不正です');
+
+      // state 復元
+      ['f2','f3'].forEach(f => {
+        if (!data.state[f]) return;
+        Object.keys(state[f]).forEach(grp => {
+          if (!data.state[f][grp]) return;
+          Object.keys(state[f][grp]).forEach(key => {
+            if (data.state[f][grp][key] !== undefined)
+              state[f][grp][key] = data.state[f][grp][key];
+          });
+        });
+      });
+
+      // 人数表示更新
+      ['f2','f3'].forEach(f => {
+        const s = state[f];
+        Object.keys(s).forEach(grp => {
+          Object.keys(s[grp]).forEach(key => {
+            const el = document.getElementById(`${f}_${grp}_${key}_n`);
+            if (el) el.textContent = s[f]?.[grp]?.[key] ?? s[grp][key];
+          });
+        });
+      });
+      // ml値 復元
+      Object.entries(data.mlVals).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val;
+      });
+
+      calc();
+      showToast('設定を読み込みました ✓');
+    } catch(err) {
+      showToast('読み込み失敗：' + err.message);
+    }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// 初期計算
+calc();
+</script>
+</body>
+</html>
