@@ -79,6 +79,7 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 .day .r2{display:flex; align-items:center; gap:8px; margin-top:8px;
   padding-top:8px; border-top:1px dashed var(--line);}
 .day .r2 label{font-size:12px; color:var(--sub);}
+.day .r2 .sep{font-size:12px; color:var(--sub); padding:0 1px;}
 .day input[type=time]{
   border:1.5px solid var(--line); border-radius:9px; padding:5px 6px;
   font-size:15px; background:#fff; font-family:inherit;
@@ -284,8 +285,8 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
     <div class="sec-title">残業履歴</div>
     <div id="historyWrap"></div>
 
-    <div class="sec-title" style="margin-top:22px;">シフト表の画像取込</div>
-    <p class="hint">シフトカレンダーのスクリーンショットを読み込むと、日付ごとのシフトを自動入力します。未登録のシフト名は対応表に追加されるので、あとから定時を設定してください。<br>※画像取込はClaude上で開いている時のみ使えます（公開ページでは手入力をご利用ください）。</p>
+    <div class="sec-title" style="margin-top:22px;">シフト表・タイムカードの画像取込</div>
+    <p class="hint">シフトカレンダー → 日付ごとのシフトを自動入力。タイムカードの写真 → 定時退の打刻を終了時刻に、時間外の打刻を早出欄に自動入力します。<br>※画像取込はClaude上で開いている時のみ使えます（公開ページではClaudeに写真を貼ってJSON化→読み込みをご利用ください）。</p>
     <input type="file" id="imgFile" accept="image/*" class="hidden">
     <button class="big-btn" id="imgBtn">📷 画像を選んで取り込む</button>
     <div class="status" id="imgStatus"></div>
@@ -319,37 +320,40 @@ const store={
 /* ---------- state ---------- */
 const defaultMaster=[
   /* ── 日勤系 ── */
-  {label:"2A'",   end:"17:00", color:"#2e5cb8", noWork:false},
-  {label:"3A'",   end:"17:00", color:"#2e5cb8", noWork:false},
-  {label:"2A",    end:"17:00", color:"#2e7d2e", noWork:false},
-  {label:"3A",    end:"17:00", color:"#2e7d2e", noWork:false},
-  {label:"2B",    end:"16:00", color:"#d8432f", noWork:false},
-  {label:"3B",    end:"16:00", color:"#d8432f", noWork:false},
-  {label:"2BM",   end:"12:00", color:"#d8432f", noWork:false},
-  {label:"2AM",   end:"13:00", color:"#2e7d2e", noWork:false},
-  {label:"3AM",   end:"13:00", color:"#2e7d2e", noWork:false},
-  {label:"2PM'",  end:"17:00", color:"#2e5cb8", noWork:false},
-  {label:"3PM'",  end:"17:00", color:"#2e5cb8", noWork:false},
-  {label:"PM",    end:"17:00", color:"#d8432f", noWork:false},
-  {label:"シフト",end:"18:00", color:"#d8432f", noWork:false},
-  {label:"16",    end:"22:00", color:"#8b0000", noWork:false},
-  {label:"研修",  end:"17:00", color:"#1b2733", noWork:false},
+  {label:"2A'",   start:"08:00", end:"17:00", color:"#2e5cb8", noWork:false},
+  {label:"3A'",   start:"08:00", end:"17:00", color:"#2e5cb8", noWork:false},
+  {label:"2A",    start:"08:00", end:"17:00", color:"#2e7d2e", noWork:false},
+  {label:"3A",    start:"08:00", end:"17:00", color:"#2e7d2e", noWork:false},
+  {label:"2B",    start:"07:30", end:"16:00", color:"#d8432f", noWork:false},
+  {label:"3B",    start:"07:30", end:"16:00", color:"#d8432f", noWork:false},
+  {label:"2BM",   start:"07:30", end:"12:00", color:"#d8432f", noWork:false},
+  {label:"2AM",   start:"08:30", end:"13:00", color:"#2e7d2e", noWork:false},
+  {label:"3AM",   start:"08:30", end:"13:00", color:"#2e7d2e", noWork:false},
+  {label:"2PM'",  start:"13:00", end:"17:00", color:"#2e5cb8", noWork:false},
+  {label:"3PM'",  start:"13:00", end:"17:00", color:"#2e5cb8", noWork:false},
+  {label:"PM",    start:"13:00", end:"17:00", color:"#d8432f", noWork:false},
+  {label:"シフト",start:"10:00", end:"18:00", color:"#d8432f", noWork:false},
+  {label:"16",    start:"16:00", end:"22:00", color:"#8b0000", noWork:false},
+  {label:"研修",  start:"09:00", end:"17:00", color:"#1b2733", noWork:false},
   /* ── 特殊時刻名 ── */
-  {label:"17:00", end:"18:20", color:"#3f3da8", noWork:false},
-  {label:"7:30",  end:"09:00", color:"#d8432f", noWork:false},
+  {label:"17:00", start:"17:00", end:"18:20", color:"#3f3da8", noWork:false},
+  {label:"7:30",  start:"07:30", end:"09:00", color:"#d8432f", noWork:false},
   /* ── 夜勤系 ── */
-  {label:"2当",   end:"00:00", color:"#d8432f", noWork:false, night:true},
-  {label:"3当",   end:"00:00", color:"#d8432f", noWork:false, night:true},
-  {label:"明け",  end:"09:00", color:"#dd9c00", noWork:false},
-  {label:"明けA'",end:"17:00", color:"#2e5cb8", noWork:false},
+  {label:"2当",   start:"16:30", end:"00:00", color:"#d8432f", noWork:false, night:true},
+  {label:"3当",   start:"16:30", end:"00:00", color:"#d8432f", noWork:false, night:true},
+  {label:"明け",  start:"00:00", end:"09:00", color:"#dd9c00", noWork:false},
+  {label:"明けA'",start:"17:00", end:"17:00", color:"#2e5cb8", noWork:false},
   /* ── 休日 ── */
-  {label:"休み",  end:"",      color:"#94ad28", noWork:true},
+  {label:"休み",  start:"",      end:"",      color:"#94ad28", noWork:true},
 ];
 let state=store.load()||{};
 if(!state.master||state.master.length===0) state.master=structuredClone(defaultMaster);
 if(!state.days) state.days={};
-/* 旧データ補完: 夜勤フラグ */
-state.master.forEach(m=>{ if(m.night===undefined) m.night=/当/.test(m.label)&&!/明/.test(m.label); });
+/* 旧データ補完: 夜勤フラグ・開始時刻 */
+state.master.forEach(m=>{
+  if(m.night===undefined) m.night=/当/.test(m.label)&&!/明/.test(m.label);
+  if(m.start===undefined) m.start="";
+});
 
 /* 期間: closeY/closeM = 締め月（前月16日〜当月15日） */
 const today=new Date();
@@ -375,12 +379,30 @@ function masterOf(label){ return state.master.find(m=>m.label===label); }
 
 /* その日の自動計算残業（分） null=計算不可 */
 function autoOT(day){
-  if(!day||!day.shift||!day.endActual) return null;
+  if(!day||!day.shift) return null;
   const m=masterOf(day.shift);
-  if(!m||m.noWork||!m.end) return null;
-  let diff=toMin(day.endActual)-toMin(m.end);
-  if(diff<0) diff=0;
-  return floor5(diff);
+  if(!m||m.noWork) return null;
+  let late=0, early=0;
+  /* 退勤残業 */
+  if(day.endActual && m.end){
+    const d=toMin(day.endActual)-toMin(m.end);
+    if(d>0) late=d;
+  }
+  /* 早出残業:
+       startEnd あり → startEnd - startActual（PM・夜勤の午前作業など）
+       startEnd なし → m.start - startActual（定時より早く出勤した分）
+  */
+  if(day.startActual){
+    const until = day.startEnd
+      ? toMin(day.startEnd)
+      : (m.start ? toMin(m.start) : null);
+    if(until != null){
+      const d = until - toMin(day.startActual);
+      if(d>0) early=d;
+    }
+  }
+  if(late===0&&early===0&&!day.endActual&&!day.startActual) return null;
+  return floor5(late+early);
 }
 function effOT(day){
   if(!day) return null;
@@ -415,7 +437,7 @@ function renderDays(){
     el.className="day"+(wd===0?" sun":wd===6?" sat":"");
     const m=day.shift?masterOf(day.shift):null;
     const teijiHtml = m
-      ? (m.noWork?`<span class="none">勤務なし</span>`:(m.end?`定時 <b class="num">${m.end}</b>`:`<span class="none">定時未設定</span>`))
+      ? (m.noWork?`<span class="none">勤務なし</span>`:(m.end||m.start?`定時 <b class="num">${m.start||"?"} 〜 ${m.end||"?"}</b>`:`<span class="none">定時未設定</span>`))
       : `<span class="none">—</span>`;
 
     const opts=['<option value="">--</option>']
@@ -424,6 +446,9 @@ function renderDays(){
     const a=autoOT(day);
     const eff=effOT(day);
     const isOv=day.otOverride!=null;
+    /* 早出欄: 勤務なし以外は常に表示 */
+    const showEarly = m && !m.noWork;
+    const earlyEndPh = (m&&m.start) ? m.start : "";  /* 終了欄のプレースホルダ = 定時開始 */
 
     el.innerHTML=`
       <div class="r1">
@@ -432,6 +457,12 @@ function renderDays(){
         <div class="teiji">${teijiHtml}</div>
       </div>
       <div class="r2 ${m&&!m.noWork?"":"hidden"}">
+        ${showEarly?`
+        <label>早出</label>
+        <input type="time" class="startA num" data-k="${k}" value="${day.startActual||""}" style="width:94px;">
+        <span class="sep">〜</span>
+        <input type="time" class="startE num" data-k="${k}" value="${day.startEnd||""}" placeholder="${earlyEndPh}" style="width:94px;">
+        `:``}
         <label>終了</label>
         <input type="time" class="endA num" data-k="${k}" value="${day.endActual||""}">
         <div class="ot-wrap">
@@ -451,6 +482,18 @@ function renderDays(){
     const v=e.target.value;
     if(!state.days[k]) state.days[k]={};
     state.days[k].shift=v||undefined;
+    saveRender();
+  }));
+  sec.querySelectorAll("input.startA").forEach(i=>i.addEventListener("change",e=>{
+    const k=e.target.dataset.k;
+    if(!state.days[k]) state.days[k]={};
+    state.days[k].startActual=e.target.value||undefined;
+    saveRender();
+  }));
+  sec.querySelectorAll("input.startE").forEach(i=>i.addEventListener("change",e=>{
+    const k=e.target.dataset.k;
+    if(!state.days[k]) state.days[k]={};
+    state.days[k].startEnd=e.target.value||undefined;
     saveRender();
   }));
   sec.querySelectorAll("input.endA").forEach(i=>i.addEventListener("change",e=>{
@@ -512,7 +555,9 @@ function renderMaster(){
     row.innerHTML=`
       <input type="color" value="${m.color||"#15426b"}" data-i="${i}" class="mc">
       <input type="text" value="${esc(m.label)}" data-i="${i}" class="ml" placeholder="シフト名">
-      <input type="time" value="${m.end||""}" data-i="${i}" class="me num" ${m.noWork?"disabled":""}>
+      <input type="time" value="${m.start||""}" data-i="${i}" class="ms num" ${m.noWork?"disabled":""} title="定時開始">
+      <span style="color:var(--sub);font-size:12px;">〜</span>
+      <input type="time" value="${m.end||""}" data-i="${i}" class="me num" ${m.noWork?"disabled":""} title="定時終了">
       <label class="nowork"><input type="checkbox" ${m.night?"checked":""} data-i="${i}" class="mg">夜勤</label>
       <label class="nowork"><input type="checkbox" ${m.noWork?"checked":""} data-i="${i}" class="mn">勤務なし</label>
       <button class="del" data-i="${i}">✕</button>`;
@@ -523,6 +568,9 @@ function renderMaster(){
     state.master[idx].label=nv;
     for(const k in state.days){ if(state.days[k].shift===old) state.days[k].shift=nv; }
     saveRender();
+  }));
+  wrap.querySelectorAll(".ms").forEach(i=>i.addEventListener("change",e=>{
+    state.master[+e.target.dataset.i].start=e.target.value; saveRender();
   }));
   wrap.querySelectorAll(".me").forEach(i=>i.addEventListener("change",e=>{
     state.master[+e.target.dataset.i].end=e.target.value; saveRender();
@@ -563,13 +611,21 @@ document.getElementById("imgFile").addEventListener("change",async e=>{
       r.onerror=()=>rej(new Error("画像の読み込みに失敗しました"));
       r.readAsDataURL(file);
     });
-    const prompt=`これは勤務シフトカレンダーのスクリーンショットです。
-1. ヘッダーから年と月を読み取る（例: 2026年6月）。
-2. その月の各日付に表示されているシフト名ラベル（例: 2A, 2A', 3A', 2当, 3当, 明け, 休み など）を読み取る。
-3. 前月・翌月のグレー表示の日付は無視する。
-4. 以下のJSON形式のみで回答する。前置き・説明・コードブロック記号は一切不要:
-{"year":2026,"month":6,"days":{"1":"2A'","2":"3A'", ...}}
-ラベルが無い日は days に含めない。`;
+    const prompt=`これは介護施設の勤務記録の画像です。「シフトカレンダー」か「タイムカード」のどちらかです。
+
+【タイムカードの場合】（紙のタイムカード。日付ごとに打刻時刻が並ぶ）
+- ヘッダーの「R○年○月分」から年月を読む（R8=2026年。「○月分」は締め月で、日付16〜31はその前月、1〜15は締め月の日付）
+- 4列目「定時退」の打刻時刻を end として読む（1列目の定時出は不要）
+- 5列目・6列目（時間外の出・退）に打刻があれば otStart / otEnd として読む
+- 以下のJSON形式のみで回答:
+{"type":"timecard","closeYear":2026,"closeMonth":6,"days":{"16":{"end":"17:15"},"25":{"end":"18:02"},"9":{"end":"18:24","otStart":"9:00","otEnd":"11:00"}}}
+
+【シフトカレンダーの場合】（月間カレンダーにシフト名ラベル）
+- ヘッダーから年月、各日付のシフト名（2A, 3A', 2当, 明け, 休み 等）を読む。前後月のグレー日付は無視
+- 以下のJSON形式のみで回答:
+{"type":"shift","year":2026,"month":6,"days":{"1":"2A'","2":"3A'"}}
+
+打刻・ラベルが無い日は days に含めない。前置き・説明・コードブロック記号は一切不要。`;
     const resp=await fetch("https://api.anthropic.com/v1/messages",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
@@ -587,6 +643,29 @@ document.getElementById("imgFile").addEventListener("change",async e=>{
     const text=(data.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n");
     const clean=text.replace(/```json|```/g,"").trim();
     const parsed=JSON.parse(clean);
+
+    if(parsed.type==="timecard"){
+      /* ── タイムカード: 終了時刻・時間外をマージ ── */
+      if(!parsed.closeYear||!parsed.closeMonth||!parsed.days) throw new Error("読み取り結果の形式が不正です");
+      const norm=t=>{ if(!t) return undefined; const[a,b]=String(t).split(":"); return pad(parseInt(a,10))+":"+pad(parseInt(b,10)); };
+      let applied=0;
+      for(const dStr in parsed.days){
+        const day=parseInt(dStr,10);
+        let y=parsed.closeYear, mo=parsed.closeMonth;
+        if(day>=16){ mo--; if(mo<1){mo=12; y--;} }   /* 16日以降は前月 */
+        const k=`${y}-${pad(mo)}-${pad(day)}`;
+        const v=parsed.days[dStr]||{};
+        if(!state.days[k]) state.days[k]={};
+        if(v.end)     state.days[k].endActual  = norm(v.end);
+        if(v.otStart) state.days[k].startActual= norm(v.otStart);
+        if(v.otEnd)   state.days[k].startEnd   = norm(v.otEnd);
+        applied++;
+      }
+      saveRender();
+      st.textContent=`✅ タイムカード（${parsed.closeYear}年${parsed.closeMonth}月締め）：${applied}日分の打刻を取り込みました。残業は自動計算されています。`;
+      return;
+    }
+
     if(!parsed.year||!parsed.month||!parsed.days) throw new Error("読み取り結果の形式が不正です");
 
     let applied=0; const newLabels=new Set();
