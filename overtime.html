@@ -300,7 +300,12 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
     <button class="big-btn" id="imgBtn">📷 画像を選んで取り込む</button>
     <div class="status" id="imgStatus"></div>
 
-    <div class="sec-title">バックアップ</div>
+    <div class="sec-title" style="margin-top:22px;">カレンダー連携</div>
+    <p class="hint">登録済みのシフトをiPhoneのカレンダーアプリに取り込みます。カレンダー側で通知を設定すると、当日の朝にシフトをお知らせできます。</p>
+    <button class="big-btn sub" id="icsBtn">📅 カレンダーに書き出す（.ics）</button>
+    <div class="status" id="icsStatus"></div>
+
+    <div class="sec-title" style="margin-top:22px;">バックアップ</div>
     <p class="hint">
       <b>シフト取込（日付→JSON）</b>：Claude上でシフト画像を貼ると日付データのJSONを作ってもらえます。そのJSONを読み込むと既存の残業記録・対応表はそのままでシフトだけ追加されます。<br>
       <b>フルバックアップ</b>：書き出しで全データを保存。読み込むと全データを上書き復元します。
@@ -796,6 +801,80 @@ document.getElementById("clearBtn").addEventListener("click",()=>{
     saveRender();
     document.getElementById("dataStatus").textContent="🗑 消去しました。";
   }
+});
+
+/* ---------- ICS書き出し ---------- */
+function makeICS(){
+  const crlf="\r\n";
+  const tz=[
+    "BEGIN:VTIMEZONE","TZID:Asia/Tokyo",
+    "BEGIN:STANDARD","DTSTART:19700101T000000",
+    "TZOFFSETFROM:+0900","TZOFFSETTO:+0900","TZNAME:JST",
+    "END:STANDARD","END:VTIMEZONE"
+  ].join(crlf);
+
+  const evts=[];
+  const keys=Object.keys(state.days).sort();
+  for(const k of keys){
+    const day=state.days[k];
+    if(!day.shift) continue;
+    const m=masterOf(day.shift);
+    if(!m) continue;
+    const [y,mo,d]=k.split("-").map(Number);
+    const ds=`${y}${pad(mo)}${pad(d)}`;
+    const uid=`zangyo-${k}@overtime-app`;
+    const lines=["BEGIN:VEVENT"];
+
+    if(m.noWork||!m.start||!m.end){
+      /* 終日イベント（休み・定時未設定） */
+      const nd=new Date(y,mo-1,d+1);
+      const nds=`${nd.getFullYear()}${pad(nd.getMonth()+1)}${pad(nd.getDate())}`;
+      lines.push(`DTSTART;VALUE=DATE:${ds}`);
+      lines.push(`DTEND;VALUE=DATE:${nds}`);
+      lines.push(`SUMMARY:${day.shift}`);
+    } else {
+      const [sh,sm]=m.start.split(":").map(Number);
+      const [eh,em]=m.end.split(":").map(Number);
+      lines.push(`DTSTART;TZID=Asia/Tokyo:${ds}T${pad(sh)}${pad(sm)}00`);
+      /* 終了00:00は翌日扱い */
+      let eStr;
+      if(eh===0&&em===0){
+        const nd=new Date(y,mo-1,d+1);
+        eStr=`${nd.getFullYear()}${pad(nd.getMonth()+1)}${pad(nd.getDate())}T000000`;
+      } else {
+        eStr=`${ds}T${pad(eh)}${pad(em)}00`;
+      }
+      lines.push(`DTEND;TZID=Asia/Tokyo:${eStr}`);
+      lines.push(`SUMMARY:${day.shift}（${m.start}〜${m.end}）`);
+      /* 通知: シフト開始1時間前（最低でも06:00より前には出さない） */
+      lines.push("BEGIN:VALARM");
+      lines.push("TRIGGER:-PT60M");
+      lines.push("ACTION:DISPLAY");
+      lines.push(`DESCRIPTION:本日のシフト：${day.shift}（${m.start}〜${m.end}）`);
+      lines.push("END:VALARM");
+    }
+    lines.push(`UID:${uid}`);
+    lines.push("END:VEVENT");
+    evts.push(lines.join(crlf));
+  }
+  if(!evts.length) return null;
+  return ["BEGIN:VCALENDAR","VERSION:2.0",
+    "PRODID:-//残業メモ//JP","CALSCALE:GREGORIAN","METHOD:PUBLISH",
+    tz,...evts,"END:VCALENDAR"].join(crlf);
+}
+
+document.getElementById("icsBtn").addEventListener("click",()=>{
+  const st=document.getElementById("icsStatus");
+  const ics=makeICS();
+  if(!ics){ st.className="status err"; st.textContent="⚠️ 書き出せるシフトがありません。先にシフトを登録してください。"; return; }
+  const blob=new Blob([ics],{type:"text/calendar;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="shift-schedule.ics";
+  a.click();
+  URL.revokeObjectURL(a.href);
+  st.className="status";
+  st.textContent="✅ 書き出しました。ファイルを開くとカレンダーアプリに追加できます。";
 });
 
 /* ---------- tabs / nav ---------- */
