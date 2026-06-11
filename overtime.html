@@ -76,8 +76,9 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 .day .teiji{margin-left:auto; font-size:12px; color:var(--sub); text-align:right;}
 .day .teiji b{font-size:14px; color:var(--ink);}
 .day .teiji .none{color:#b6bec9;}
-.day .r2{display:flex; align-items:center; gap:8px; margin-top:8px;
+.day .r2{display:flex; flex-direction:column; gap:8px; margin-top:8px;
   padding-top:8px; border-top:1px dashed var(--line);}
+.day .r2-row{display:flex; align-items:center; gap:6px;}
 .day .r2 label{font-size:12px; color:var(--sub);}
 .day .r2 .sep{font-size:12px; color:var(--sub); padding:0 1px;}
 .day input[type=time]{
@@ -94,10 +95,18 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 .ot-wrap input.override{border-color:#c98a12; color:#a06b00; background:#fff9ec;}
 .ot-wrap .unit{font-size:12px; color:var(--sub);}
 .ot-wrap .reset{
-  border:none; background:none; color:#c98a12; font-size:15px; padding:2px;
-  display:none;
+  border:none; background:#fff3da; border-radius:8px; color:#c98a12;
+  font-size:16px; padding:6px 10px; min-width:34px; min-height:34px;
+  display:none; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation; line-height:1;
 }
 .ot-wrap .reset.show{display:block;}
+.r2 .tdef{
+  border:1.5px solid var(--accent); background:#fff; color:var(--accent);
+  border-radius:9px; font-size:12px; font-weight:700; padding:6px 8px;
+  cursor:pointer; -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+  line-height:1; white-space:nowrap;
+}
 
 /* ===== master table ===== */
 .m-row{
@@ -377,6 +386,44 @@ function floor5(m){ return Math.floor(m/5)*5; }
 
 function masterOf(label){ return state.master.find(m=>m.label===label); }
 
+/* リセットボタン: イベント委譲＋pointerdownで、再描画やinputのblurに影響されず確実に発火させる */
+function resetOT(k){
+  if(state.days[k]) state.days[k].otOverride=null;
+  saveRender();
+}
+/* 定時ボタン: A/A'系→17:00, 明け→09:00, その他→00:00 を終了欄に入れる */
+function shiftDefaultEnd(shift){
+  if(!shift) return "00:00";
+  if(/A'?$/.test(shift) && !/[AP]M/.test(shift)) return "17:00"; /* 2A 3A 2A' 3A' 明けA' */
+  if(shift==="明け") return "09:00";
+  return "00:00";
+}
+function setDefaultEnd(k){
+  if(!state.days[k]) state.days[k]={};
+  state.days[k].endActual=shiftDefaultEnd(state.days[k].shift);
+  saveRender();
+}
+document.addEventListener("pointerdown", e=>{
+  const b=e.target.closest("button.reset");
+  if(b && b.dataset.k){
+    e.preventDefault();
+    resetOT(b.dataset.k);
+  }
+  const t=e.target.closest("button.tdef");
+  if(t && t.dataset.k){
+    e.preventDefault();
+    setDefaultEnd(t.dataset.k);
+  }
+}, true);
+/* pointerdown非対応環境のフォールバック */
+document.addEventListener("click", e=>{
+  if("PointerEvent" in window) return;
+  const b=e.target.closest("button.reset");
+  if(b && b.dataset.k) resetOT(b.dataset.k);
+  const t=e.target.closest("button.tdef");
+  if(t && t.dataset.k) setDefaultEnd(t.dataset.k);
+}, true);
+
 /* その日の自動計算残業（分） null=計算不可 */
 function autoOT(day){
   if(!day||!day.shift) return null;
@@ -458,20 +505,25 @@ function renderDays(){
       </div>
       <div class="r2 ${m&&!m.noWork?"":"hidden"}">
         ${showEarly?`
-        <label>早出</label>
-        <input type="time" class="startA num" data-k="${k}" value="${day.startActual||""}" style="width:94px;">
-        <span class="sep">〜</span>
-        <input type="time" class="startE num" data-k="${k}" value="${day.startEnd||""}" placeholder="${earlyEndPh}" style="width:94px;">
+        <div class="r2-row">
+          <label>早出</label>
+          <input type="time" class="startA num" data-k="${k}" value="${day.startActual||""}">
+          <span class="sep">〜</span>
+          <input type="time" class="startE num" data-k="${k}" value="${day.startEnd||""}" placeholder="${earlyEndPh}">
+        </div>
         `:``}
-        <label>終了</label>
-        <input type="time" class="endA num" data-k="${k}" value="${day.endActual||""}">
-        <div class="ot-wrap">
-          <label>残業</label>
-          <input type="number" class="ot num ${eff?"has-ot":""} ${isOv?"override":""}" data-k="${k}"
-            inputmode="numeric" min="0" step="5"
-            value="${eff!=null?eff:""}" placeholder="${a!=null?a:"--"}">
-          <span class="unit">分</span>
-          <button class="reset num ${isOv?"show":""}" data-k="${k}" title="自動計算に戻す">↺</button>
+        <div class="r2-row">
+          <label>終了</label>
+          <input type="time" class="endA num" data-k="${k}" value="${day.endActual||""}">
+          <button type="button" class="tdef" data-k="${k}" title="定時を入力">定時</button>
+          <div class="ot-wrap">
+            <label>残業</label>
+            <input type="number" class="ot num ${eff?"has-ot":""} ${isOv?"override":""}" data-k="${k}"
+              inputmode="numeric" min="0" step="5"
+              value="${eff!=null?eff:""}" placeholder="${a!=null?a:"--"}">
+            <span class="unit">分</span>
+            <button type="button" class="reset num ${isOv?"show":""}" data-k="${k}" title="自動計算に戻す">↺</button>
+          </div>
         </div>
       </div>`;
     sec.appendChild(el);
@@ -484,25 +536,34 @@ function renderDays(){
     state.days[k].shift=v||undefined;
     saveRender();
   }));
-  sec.querySelectorAll("input.startA").forEach(i=>i.addEventListener("change",e=>{
-    const k=e.target.dataset.k;
-    if(!state.days[k]) state.days[k]={};
-    state.days[k].startActual=e.target.value||undefined;
-    saveRender();
-  }));
-  sec.querySelectorAll("input.startE").forEach(i=>i.addEventListener("change",e=>{
-    const k=e.target.dataset.k;
-    if(!state.days[k]) state.days[k]={};
-    state.days[k].startEnd=e.target.value||undefined;
-    saveRender();
-  }));
-  sec.querySelectorAll("input.endA").forEach(i=>i.addEventListener("change",e=>{
-    const k=e.target.dataset.k;
-    if(!state.days[k]) state.days[k]={};
-    state.days[k].endActual=e.target.value||undefined;
-    saveRender();
-  }));
+  /* 時刻入力: iOSのピッカーは「リセット」でchangeが飛ばないことがあるため
+     input+change両方で状態を保存し、再描画はピッカーを閉じた後（blur）に行う */
+
+  function bindTime(cls, field, getDefault){
+    sec.querySelectorAll("input."+cls).forEach(i=>{
+      const apply=e=>{
+        const k=e.target.dataset.k;
+        if(!state.days[k]) state.days[k]={};
+        let v=e.target.value;
+        if(!v && getDefault){
+          v=getDefault(k);
+          e.target.value=v;    /* ピッカーにも反映 */
+        }
+        state.days[k][field]=v||undefined;
+        store.save(state);
+        renderHeader();
+      };
+      i.addEventListener("input", apply);
+      i.addEventListener("change", apply);
+      /* iOSのリセットはイベントを発火しないことがあるため、blur時にも必ず値を反映 */
+      i.addEventListener("blur", e=>{ apply(e); saveRender(); });
+    });
+  }
+  bindTime("startA","startActual");
+  bindTime("startE","startEnd");
+  bindTime("endA","endActual", k=>shiftDefaultEnd(state.days[k]&&state.days[k].shift));
   sec.querySelectorAll("input.ot").forEach(i=>i.addEventListener("change",e=>{
+    if(!e.target.isConnected) return; /* 再描画で消えた要素からの遅延発火を無視 */
     const k=e.target.dataset.k;
     if(!state.days[k]) state.days[k]={};
     const v=e.target.value;
@@ -513,12 +574,6 @@ function renderDays(){
     }
     saveRender();
   }));
-  sec.querySelectorAll("button.reset").forEach(b=>b.addEventListener("click",e=>{
-    const k=e.target.dataset.k;
-    if(state.days[k]) state.days[k].otOverride=null;
-    saveRender();
-  }));
-
   /* 期間の夜勤カウント */
   const counts={wk:0,sat:0,sun:0};
   for(const d of arr){
