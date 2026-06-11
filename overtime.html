@@ -294,17 +294,8 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
     <div class="sec-title">残業履歴</div>
     <div id="historyWrap"></div>
 
-    <div class="sec-title" style="margin-top:22px;">シフト表・タイムカードの画像取込</div>
-    <p class="hint">シフトカレンダー → 日付ごとのシフトを自動入力。複数人の勤務表は行番号を指定してください。タイムカードの写真 → 定時退の打刻を終了時刻に、時間外の打刻を早出欄に自動入力します。<br>※画像取込はClaude上で開いている時のみ使えます。</p>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-      <label style="font-size:13px;color:var(--sub);white-space:nowrap;">勤務表の行番号</label>
-      <input type="number" id="imgRow" min="1" max="20" placeholder="例: 2（複数人表の場合）"
-        style="flex:1;border:1.5px solid var(--line);border-radius:9px;padding:6px 10px;font-size:14px;">
-      <span style="font-size:13px;color:var(--sub);white-space:nowrap;">行目</span>
-    </div>
-    <input type="file" id="imgFile" accept="image/*" class="hidden">
-    <button class="big-btn" id="imgBtn">📷 画像を選んで取り込む</button>
-    <div class="status" id="imgStatus"></div>
+    <div class="sec-title" style="margin-top:22px;">シフト取込・タイムカード取込</div>
+    <p class="hint">勤務表やタイムカードの写真は、Claudeのチャット画面に画像を貼って「○行目を取り込んで」と伝えるとJSONファイルに変換してもらえます。そのJSONをこちらの「JSONを読み込む」で取り込んでください。</p>
 
     <div class="sec-title" style="margin-top:22px;">カレンダー連携</div>
     <p class="hint">登録済みのシフトをiPhoneのカレンダーアプリに取り込みます。カレンダー側で通知を設定すると、当日の朝にシフトをお知らせできます。</p>
@@ -672,117 +663,6 @@ function renderMaster(){
 document.getElementById("addMaster").addEventListener("click",()=>{
   state.master.push({label:"", end:"", color:"#15426b", noWork:false});
   saveRender();
-});
-
-/* ---------- 画像取込 ---------- */
-document.getElementById("imgBtn").addEventListener("click",()=>document.getElementById("imgFile").click());
-document.getElementById("imgFile").addEventListener("change",async e=>{
-  const file=e.target.files[0]; e.target.value="";
-  if(!file) return;
-  const st=document.getElementById("imgStatus");
-  st.className="status";
-  st.innerHTML='<span class="spin">⏳</span> 画像を読み取り中…';
-  try{
-    const b64=await new Promise((res,rej)=>{
-      const r=new FileReader();
-      r.onload=()=>res(r.result.split(",")[1]);
-      r.onerror=()=>rej(new Error("画像の読み込みに失敗しました"));
-      r.readAsDataURL(file);
-    });
-    const rowNum = parseInt(document.getElementById("imgRow").value, 10);
-    const rowInstruction = rowNum >= 1
-      ? `この表は複数人の勤務表です。上から${rowNum}行目（データ行のみカウント、ヘッダー行は除く）のシフトを読み取ってください。`
-      : ``;
-
-    const prompt=`これは介護施設の勤務記録の画像です。「シフトカレンダー」「複数人の勤務表」「タイムカード」のいずれかです。${rowInstruction}
-
-【複数人の勤務表の場合】（横に日付、縦に人員が並ぶ表）
-- ヘッダーから年月を読む
-- 指定行のシフトを各日付ごとに読む（×や/や空欄は休みとして "休み" と出力）
-- 以下のJSON形式のみで回答:
-{"type":"shift","year":2026,"month":6,"days":{"1":"2A'","2":"3A'",...}}
-
-【シフトカレンダーの場合】（月間カレンダーにシフト名ラベル）
-- ヘッダーから年月、各日付のシフト名を読む。前後月のグレー日付は無視
-- 以下のJSON形式のみで回答:
-{"type":"shift","year":2026,"month":6,"days":{"1":"2A'","2":"3A'"}}
-
-【タイムカードの場合】（紙のタイムカード。日付ごとに打刻時刻が並ぶ）
-- ヘッダーの「R○年○月分」から年月を読む（R8=2026年。16〜31は前月、1〜15は締め月）
-- 4列目「定時退」の打刻時刻を end として読む
-- 5・6列目（時間外の出・退）に打刻があれば otStart / otEnd として読む
-- 以下のJSON形式のみで回答:
-{"type":"timecard","closeYear":2026,"closeMonth":6,"days":{"16":{"end":"17:15"},"25":{"end":"18:02"}}}
-
-打刻・ラベルが無い日は days に含めない。前置き・説明・コードブロック記号は一切不要。`;
-    const resp=await fetch("https://api.anthropic.com/v1/messages",{
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        model:"claude-sonnet-4-20250514",
-        max_tokens:1000,
-        system:"JSONのみを出力してください。説明文・前置き・コードブロック記号は一切含めず、JSONオブジェクトだけを返してください。",
-        messages:[{role:"user",content:[
-          {type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:b64}},
-          {type:"text",text:prompt}
-        ]}]
-      })
-    });
-    if(!resp.ok) throw new Error("API応答エラー（"+resp.status+"）");
-    const data=await resp.json();
-    const text=(data.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n");
-    /* コードブロック除去→JSON部分を正規表現で抽出 */
-    const clean=text.replace(/```json|```/g,"").trim();
-    const jsonMatch=clean.match(/\{[\s\S]*\}/);
-    if(!jsonMatch) throw new Error("JSONを抽出できませんでした（応答: "+clean.slice(0,80)+"）");
-    const parsed=JSON.parse(jsonMatch[0]);
-
-    if(parsed.type==="timecard"){
-      /* ── タイムカード: 終了時刻・時間外をマージ ── */
-      if(!parsed.closeYear||!parsed.closeMonth||!parsed.days) throw new Error("読み取り結果の形式が不正です");
-      const norm=t=>{ if(!t) return undefined; const[a,b]=String(t).split(":"); return pad(parseInt(a,10))+":"+pad(parseInt(b,10)); };
-      let applied=0;
-      for(const dStr in parsed.days){
-        const day=parseInt(dStr,10);
-        let y=parsed.closeYear, mo=parsed.closeMonth;
-        if(day>=16){ mo--; if(mo<1){mo=12; y--;} }   /* 16日以降は前月 */
-        const k=`${y}-${pad(mo)}-${pad(day)}`;
-        const v=parsed.days[dStr]||{};
-        if(!state.days[k]) state.days[k]={};
-        if(v.end)     state.days[k].endActual  = norm(v.end);
-        if(v.otStart) state.days[k].startActual= norm(v.otStart);
-        if(v.otEnd)   state.days[k].startEnd   = norm(v.otEnd);
-        applied++;
-      }
-      saveRender();
-      st.textContent=`✅ タイムカード（${parsed.closeYear}年${parsed.closeMonth}月締め）：${applied}日分の打刻を取り込みました。残業は自動計算されています。`;
-      return;
-    }
-
-    if(!parsed.year||!parsed.month||!parsed.days) throw new Error("読み取り結果の形式が不正です");
-
-    let applied=0; const newLabels=new Set();
-    for(const dStr in parsed.days){
-      const day=parseInt(dStr,10);
-      const label=String(parsed.days[dStr]).trim();
-      if(!label) continue;
-      const k=`${parsed.year}-${pad(parsed.month)}-${pad(day)}`;
-      if(!state.days[k]) state.days[k]={};
-      state.days[k].shift=label;
-      applied++;
-      if(!masterOf(label)){
-        state.master.push({label, end:"", color:"#15426b", noWork:/休/.test(label)});
-        newLabels.add(label);
-      }
-    }
-    saveRender();
-    let msg=`✅ ${parsed.year}年${parsed.month}月：${applied}日分のシフトを取り込みました。`;
-    if(newLabels.size) msg+=`\n🆕 新しいシフト「${[...newLabels].join("・")}」を対応表に追加しました。定時を設定してください。`;
-    st.textContent=msg;
-  }catch(err){
-    st.className="status err";
-    st.textContent="❌ 取り込みできませんでした。"+err.message;
-  }
 });
 
 /* ---------- 書き出し / 読み込み ---------- */
