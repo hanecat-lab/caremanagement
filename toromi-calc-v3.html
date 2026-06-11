@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>トロミ茶 分量計算</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="トロミ茶">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
   :root {
     --bg: #f0f4f8;
@@ -264,15 +269,15 @@
     font-size: 0.82rem;
   }
   .print-table th, .print-table td {
-    border: 1px solid #d8e3ec;
-    padding: 6px 8px; text-align: right;
+    border: 1px solid #999;
+    padding: 5px 7px; text-align: right;
   }
-  .print-table th { background: #f0f4f8; text-align: left; font-weight: 700; color: #1e3045; }
+  .print-table th { text-align: left; font-weight: 700; }
   .print-table td:first-child { text-align: left; }
-  .print-table .row-time td { background: #e8eef5; font-weight: 700; color: #1e3045; }
-  .print-table .row-sub td { background: #ddeef8; font-weight: 700; }
-  .print-table .row-day td { background: #1e3045; color: #fff; font-weight: 700; }
-  .print-table .row-grand td { background: #0f1e2e; color: #fff; font-weight: 700; }
+  .print-table .row-time td { font-weight: 700; border-top: 2px solid #333; }
+  .print-table .row-sub td { font-weight: 700; border-top: 1px solid #999; }
+  .print-table .row-day td { font-weight: 700; border-top: 2px solid #333; border-bottom: 2px solid #333; }
+  .print-table .row-grand td { font-weight: 700; border-top: 2px solid #000; border-bottom: 2px solid #000; }
   .print-close-bar {
     display: flex; gap: 8px; margin-top: 14px;
     max-width: 600px; margin-left: auto; margin-right: auto;
@@ -1195,9 +1200,9 @@ function openPrint() {
 
   // 各フロア
   floors.forEach(fl => {
-    rows += `<tr><td colspan="3" style="background:#1e3045;color:#fff;font-weight:700;padding:7px 8px;">📍 ${fl.label}</td></tr>`;
+    rows += `<tr><td colspan="3" style="font-weight:700;padding:7px 8px;border-top:2px solid #333;">📍 ${fl.label}</td></tr>`;
     times.forEach(tm => {
-      rows += `<tr class="row-time"><td colspan="3" style="background:#e8eef5;font-weight:700;padding:6px 8px;">　${tm.label}</td></tr>`;
+      rows += `<tr class="row-time"><td colspan="3" style="font-weight:700;padding:5px 8px;">　${tm.label}</td></tr>`;
       types.forEach(tp => {
         const mlVal = getT(`${fl.id}_${tp.pre}${tm.key}_sub`);
         const pwdVal = getT(`${fl.id}_${tp.pre}${tm.key}_pwd`);
@@ -1226,9 +1231,9 @@ function openPrint() {
     return (va + vb).toFixed(1) + ' g';
   }
 
-  rows += `<tr><td colspan="3" style="background:#0f1e2e;color:#fff;font-weight:700;padding:7px 8px;">🏢 2階＋3階 総合計</td></tr>`;
+  rows += `<tr><td colspan="3" style="font-weight:700;padding:7px 8px;border-top:2px solid #333;">🏢 2階＋3階 総合計</td></tr>`;
   times.forEach(tm => {
-    rows += `<tr class="row-time"><td colspan="3" style="background:#e8eef5;font-weight:700;padding:6px 8px;">　${tm.label}</td></tr>`;
+    rows += `<tr class="row-time"><td colspan="3" style="font-weight:700;padding:5px 8px;">　${tm.label}</td></tr>`;
     types.forEach(tp => {
       const ml2 = getT(`f2_${tp.pre}${tm.key}_sub`);
       const ml3 = getT(`f3_${tp.pre}${tm.key}_sub`);
