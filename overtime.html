@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>残業メモ</title>
+<style>
+:root{
+  --bg:#f1f3f6; --card:#ffffff; --ink:#1b2733; --sub:#6b7787;
+  --line:#e3e7ee; --accent:#15426b; --accent2:#0d2c49;
+  --red:#d8432f; --blue:#2f6fd8; --ok:#2e8b57;
+  --radius:14px;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; background:var(--bg); color:var(--ink);
+  font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  font-size:15px;}
+.num{font-variant-numeric:tabular-nums; font-feature-settings:"tnum";}
+
+/* ===== header ===== */
+header{
+  background:linear-gradient(160deg,var(--accent) 0%,var(--accent2) 100%);
+  color:#fff; padding:calc(env(safe-area-inset-top) + 14px) 16px 18px;
+  border-radius:0 0 22px 22px;
+}
+.period-nav{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+.period-nav button{
+  background:rgba(255,255,255,.14); border:none; color:#fff; font-size:20px;
+  width:40px; height:40px; border-radius:12px;
+}
+.period-title{text-align:center;}
+.period-title .m{font-size:20px; font-weight:700;}
+.period-title .range{font-size:12px; opacity:.75; margin-top:2px;}
+.total-card{
+  margin-top:6px; text-align:center;
+}
+.total-card .label{font-size:12px; letter-spacing:.2em; opacity:.7;}
+.total-card .val{
+  font-size:44px; font-weight:700; letter-spacing:.02em; line-height:1.1;
+  font-family:"SF Mono",ui-monospace,Menlo,monospace;
+}
+.total-card .val small{font-size:18px; font-weight:600; margin:0 2px 0 4px;}
+.total-card .mins{font-size:12px; opacity:.7; margin-top:2px;}
+
+/* ===== tabs ===== */
+nav.tabs{
+  display:flex; gap:6px; padding:12px 14px 4px;
+}
+nav.tabs button{
+  flex:1; border:none; background:#e6eaf0; color:var(--sub);
+  padding:9px 0; border-radius:10px; font-size:14px; font-weight:600;
+}
+nav.tabs button.on{background:var(--ink); color:#fff;}
+
+main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
+
+/* ===== day list ===== */
+.day{
+  background:var(--card); border-radius:var(--radius); padding:10px 12px;
+  margin-bottom:8px; box-shadow:0 1px 2px rgba(20,40,70,.05);
+}
+.day .r1{display:flex; align-items:center; gap:10px;}
+.day .date{width:64px; font-weight:700; font-size:15px;}
+.day .date .wd{font-size:11px; color:var(--sub); font-weight:600;}
+.day.sun .date, .day.sun .date .wd{color:var(--red);}
+.day.sat .date, .day.sat .date .wd{color:var(--blue);}
+.day select.shift{
+  border:1.5px solid var(--line); border-radius:9px; padding:5px 8px;
+  font-size:14px; font-weight:700; background:#fff; min-width:84px;
+  appearance:none; -webkit-appearance:none; text-align:center;
+}
+.day .teiji{margin-left:auto; font-size:12px; color:var(--sub); text-align:right;}
+.day .teiji b{font-size:14px; color:var(--ink);}
+.day .teiji .none{color:#b6bec9;}
+.day .r2{display:flex; align-items:center; gap:8px; margin-top:8px;
+  padding-top:8px; border-top:1px dashed var(--line);}
+.day .r2 label{font-size:12px; color:var(--sub);}
+.day input[type=time]{
+  border:1.5px solid var(--line); border-radius:9px; padding:5px 6px;
+  font-size:15px; background:#fff; font-family:inherit;
+}
+.ot-wrap{margin-left:auto; display:flex; align-items:center; gap:4px;}
+.ot-wrap input{
+  width:64px; border:1.5px solid var(--line); border-radius:9px;
+  padding:5px 6px; font-size:16px; font-weight:700; text-align:right;
+  background:#fff; color:var(--ink);
+}
+.ot-wrap input.has-ot{border-color:var(--accent); color:var(--accent);}
+.ot-wrap input.override{border-color:#c98a12; color:#a06b00; background:#fff9ec;}
+.ot-wrap .unit{font-size:12px; color:var(--sub);}
+.ot-wrap .reset{
+  border:none; background:none; color:#c98a12; font-size:15px; padding:2px;
+  display:none;
+}
+.ot-wrap .reset.show{display:block;}
+
+/* ===== master table ===== */
+.m-row{
+  background:var(--card); border-radius:var(--radius); padding:10px 12px;
+  margin-bottom:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+}
+.m-row input[type=text]{
+  width:72px; border:1.5px solid var(--line); border-radius:9px;
+  padding:7px 8px; font-size:15px; font-weight:700;
+}
+.m-row input[type=time]{
+  border:1.5px solid var(--line); border-radius:9px; padding:6px 6px; font-size:15px;
+  background:#fff;
+}
+.m-row input[type=color]{
+  width:34px; height:34px; border:none; padding:0; background:none; border-radius:8px;
+}
+.m-row .nowork{display:flex; align-items:center; gap:4px; font-size:12px; color:var(--sub);}
+.m-row .del{
+  margin-left:auto; border:none; background:#fdecea; color:var(--red);
+  width:32px; height:32px; border-radius:9px; font-size:15px;
+}
+.add-btn, .big-btn{
+  width:100%; border:none; border-radius:12px; padding:13px;
+  font-size:15px; font-weight:700; margin-top:4px;
+}
+.add-btn{background:#e6eaf0; color:var(--ink);}
+.big-btn{background:var(--accent); color:#fff; margin-bottom:8px;}
+.big-btn.sub{background:#e6eaf0; color:var(--ink);}
+.big-btn.danger{background:#fdecea; color:var(--red);}
+.hint{font-size:12px; color:var(--sub); line-height:1.7; margin:6px 2px 14px;}
+.status{font-size:13px; line-height:1.7; margin:8px 2px; color:var(--accent); white-space:pre-wrap;}
+.status.err{color:var(--red);}
+.sec-title{font-size:13px; font-weight:700; color:var(--sub); margin:18px 2px 8px; letter-spacing:.08em;}
+.hidden{display:none;}
+.spin{display:inline-block; animation:sp 1s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+
+/* ===== history ===== */
+.hist-year{
+  background:var(--card); border-radius:var(--radius);
+  margin-bottom:8px; overflow:hidden;
+  box-shadow:0 1px 2px rgba(20,40,70,.05);
+}
+.hist-year>summary{
+  list-style:none; display:flex; align-items:center;
+  padding:12px 14px; cursor:pointer; user-select:none;
+  background:var(--ink); color:#fff; border-radius:var(--radius);
+  gap:6px;
+}
+.hist-year[open]>summary{border-radius:var(--radius) var(--radius) 0 0;}
+.hist-year>summary::-webkit-details-marker{display:none;}
+.hy-chev{font-size:13px; transition:transform .2s;}
+.hist-year[open] .hy-chev{transform:rotate(90deg);}
+.hy-title{font-size:16px; font-weight:700;}
+.hy-total{margin-left:auto; font-size:13px; opacity:.8;}
+
+.hist-period{border-bottom:1px solid var(--line);}
+.hist-period:last-child{border-bottom:none;}
+.hist-period>summary{
+  list-style:none; display:flex; align-items:center;
+  padding:10px 14px; cursor:pointer; user-select:none;
+  gap:6px; background:#f7f9fc;
+}
+.hist-period>summary::-webkit-details-marker{display:none;}
+.hp-chev{font-size:12px; color:var(--sub); transition:transform .2s;}
+.hist-period[open] .hp-chev{transform:rotate(90deg);}
+.hp-title{font-size:14px; font-weight:700; color:var(--ink);}
+.hp-title small{font-size:11px; color:var(--sub); font-weight:400; margin-left:4px;}
+.hp-total{margin-left:auto; font-size:15px; font-weight:700; color:var(--accent);}
+.hp-total.zero{color:var(--sub); font-weight:400; font-size:13px;}
+
+.hist-months{padding:4px 0;}
+.hist-month-row{
+  display:flex; align-items:center; padding:11px 16px;
+  border-bottom:1px solid var(--line);
+}
+.hist-month-row:last-child{border-bottom:none;}
+.hm-title{font-size:14px; font-weight:600; color:var(--ink);}
+.hm-title small{font-size:11px; color:var(--sub); font-weight:400; margin-left:6px;}
+.hm-total{margin-left:auto; font-size:16px; font-weight:700; color:var(--accent);}
+.hm-total.zero{color:var(--sub); font-weight:400; font-size:13px;}
+.hist-empty{font-size:13px; color:var(--sub); padding:20px 4px; text-align:center;}
+
+/* ===== calendar ===== */
+.cal-nav{display:flex; align-items:center; justify-content:space-between; margin:4px 2px 10px;}
+.cal-nav button{
+  background:#e6eaf0; border:none; color:var(--ink); font-size:18px;
+  width:38px; height:38px; border-radius:11px;
+}
+.cal-nav .cal-title{font-size:17px; font-weight:700;}
+.cal{
+  background:var(--card); border-radius:var(--radius); overflow:hidden;
+  box-shadow:0 1px 2px rgba(20,40,70,.05); padding:6px 4px 8px;
+}
+.cal-head{display:grid; grid-template-columns:repeat(7,1fr); margin-bottom:4px;}
+.cal-head span{text-align:center; font-size:11px; font-weight:700; color:var(--sub); padding:4px 0;}
+.cal-head span.sun{color:var(--red);} .cal-head span.sat{color:var(--blue);}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:2px;}
+.cal-cell{
+  min-height:54px; border-radius:8px; padding:3px 2px;
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  background:#fafbfd;
+}
+.cal-cell.blank{background:none;}
+.cal-cell .d{font-size:12px; font-weight:700; color:var(--ink); line-height:1.2;}
+.cal-cell.sun .d, .cal-cell.hol .d{color:var(--red);}
+.cal-cell.sat .d{color:var(--blue);}
+.cal-cell .hmark{font-size:8px; color:var(--red); line-height:1;}
+.cal-cell .sh{font-size:11px; font-weight:700; line-height:1.2; text-align:center; word-break:break-all;}
+.cal-cell.today{outline:2px solid var(--accent); outline-offset:-2px;}
+
+/* ===== night count ===== */
+.night-card{
+  background:var(--card); border-radius:var(--radius); margin-top:10px;
+  padding:14px; box-shadow:0 1px 2px rgba(20,40,70,.05);
+}
+.night-card .nc-head{display:flex; align-items:baseline; gap:8px; margin-bottom:10px;}
+.night-card .nc-title{font-size:14px; font-weight:700;}
+.night-card .nc-total{margin-left:auto; font-size:20px; font-weight:700; color:var(--accent);}
+.night-card .nc-total small{font-size:12px; font-weight:600; color:var(--sub);}
+.nc-rows{display:flex; flex-direction:column; gap:6px;}
+.nc-row{display:flex; align-items:center; font-size:14px;}
+.nc-row .tag{
+  font-size:11px; font-weight:700; border-radius:6px; padding:3px 8px; margin-right:8px;
+}
+.nc-row.wk .tag{background:#e8eef5; color:var(--accent);}
+.nc-row.sat .tag{background:#e6f0fb; color:var(--blue);}
+.nc-row.sun .tag{background:#fdecea; color:var(--red);}
+.nc-row .cnt{margin-left:auto; font-size:16px; font-weight:700;}
+.nc-row .cnt small{font-size:11px; font-weight:400; color:var(--sub);}
+.nc-note{font-size:11px; color:var(--sub); margin-top:10px; line-height:1.6;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="period-nav">
+    <button id="prevP" aria-label="前の期間">‹</button>
+    <div class="period-title">
+      <div class="m" id="pTitle"></div>
+      <div class="range" id="pRange"></div>
+    </div>
+    <button id="nextP" aria-label="次の期間">›</button>
+  </div>
+  <div class="total-card">
+    <div class="label">残業合計</div>
+    <div class="val num" id="totalVal">0<small>時間</small>00<small>分</small></div>
+    <div class="mins num" id="totalMins"></div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button id="tabCal" class="on">カレンダー</button>
+  <button id="tabDays">記録</button>
+  <button id="tabMaster">対応表</button>
+  <button id="tabData">データ</button>
+</nav>
+
+<main>
+  <section id="secCal">
+    <div class="cal-nav">
+      <button id="calPrev" aria-label="前の月">‹</button>
+      <div class="cal-title num" id="calTitle"></div>
+      <button id="calNext" aria-label="次の月">›</button>
+    </div>
+    <div class="cal">
+      <div class="cal-head">
+        <span class="sun">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="sat">土</span>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+    <div class="night-card" id="nightCard"></div>
+  </section>
+
+  <section id="secDays" class="hidden"></section>
+
+  <section id="secMaster" class="hidden">
+    <p class="hint">シフト名ごとの定時（勤務終了時刻）を設定します。「休み」など勤務がない区分は「勤務なし」にチェックしてください。</p>
+    <div id="masterRows"></div>
+    <button class="add-btn" id="addMaster">＋ シフトを追加</button>
+  </section>
+
+  <section id="secData" class="hidden">
+    <div class="sec-title">残業履歴</div>
+    <div id="historyWrap"></div>
+
+    <div class="sec-title" style="margin-top:22px;">シフト表の画像取込</div>
+    <p class="hint">シフトカレンダーのスクリーンショットを読み込むと、日付ごとのシフトを自動入力します。未登録のシフト名は対応表に追加されるので、あとから定時を設定してください。<br>※画像取込はClaude上で開いている時のみ使えます（公開ページでは手入力をご利用ください）。</p>
+    <input type="file" id="imgFile" accept="image/*" class="hidden">
+    <button class="big-btn" id="imgBtn">📷 画像を選んで取り込む</button>
+    <div class="status" id="imgStatus"></div>
+
+    <div class="sec-title">バックアップ</div>
+    <p class="hint">
+      <b>シフト取込（日付→JSON）</b>：Claude上でシフト画像を貼ると日付データのJSONを作ってもらえます。そのJSONを読み込むと既存の残業記録・対応表はそのままでシフトだけ追加されます。<br>
+      <b>フルバックアップ</b>：書き出しで全データを保存。読み込むと全データを上書き復元します。
+    </p>
+    <button class="big-btn sub" id="exportBtn">⬇️ 書き出す（JSON）</button>
+    <input type="file" id="jsonFile" accept=".json,application/json" class="hidden">
+    <button class="big-btn sub" id="importBtn">⬆️ 読み込む（JSON）</button>
+    <div class="status" id="dataStatus"></div>
+
+    <div class="sec-title">リセット</div>
+    <button class="big-btn danger" id="clearBtn">🗑 全データを消去</button>
+  </section>
+</main>
+
+<script>
+"use strict";
+const KEY="overtime-app-v2";
+
+/* ---------- storage (localStorage + メモリfallback) ---------- */
+let memStore=null;
+const store={
+  load(){ try{const v=localStorage.getItem(KEY); return v?JSON.parse(v):memStore;}catch(e){return memStore;} },
+  save(v){ memStore=v; try{localStorage.setItem(KEY,JSON.stringify(v));}catch(e){} }
+};
+
+/* ---------- state ---------- */
+const defaultMaster=[
+  /* ── 日勤系 ── */
+  {label:"2A'",   end:"18:30", color:"#2e5cb8", noWork:false},
+  {label:"3A'",   end:"18:30", color:"#2e5cb8", noWork:false},
+  {label:"2A",    end:"17:00", color:"#2e7d2e", noWork:false},
+  {label:"3A",    end:"17:00", color:"#2e7d2e", noWork:false},
+  {label:"2B",    end:"16:00", color:"#d8432f", noWork:false},
+  {label:"3B",    end:"16:00", color:"#d8432f", noWork:false},
+  {label:"2BM",   end:"12:00", color:"#d8432f", noWork:false},
+  {label:"2AM",   end:"13:00", color:"#2e7d2e", noWork:false},
+  {label:"3AM",   end:"13:00", color:"#2e7d2e", noWork:false},
+  {label:"2PM'",  end:"18:30", color:"#2e5cb8", noWork:false},
+  {label:"3PM'",  end:"18:30", color:"#2e5cb8", noWork:false},
+  {label:"PM",    end:"17:00", color:"#d8432f", noWork:false},
+  {label:"シフト",end:"18:00", color:"#d8432f", noWork:false},
+  {label:"16",    end:"22:00", color:"#8b0000", noWork:false},
+  {label:"研修",  end:"17:00", color:"#1b2733", noWork:false},
+  /* ── 特殊時刻名 ── */
+  {label:"17:00", end:"18:20", color:"#3f3da8", noWork:false},
+  {label:"7:30",  end:"09:00", color:"#d8432f", noWork:false},
+  /* ── 夜勤系 ── */
+  {label:"2当",   end:"00:00", color:"#d8432f", noWork:false, night:true},
+  {label:"3当",   end:"00:00", color:"#d8432f", noWork:false, night:true},
+  {label:"明け",  end:"09:00", color:"#dd9c00", noWork:false},
+  {label:"明けA'",end:"18:20", color:"#2e5cb8", noWork:false},
+  /* ── 休日 ── */
+  {label:"休み",  end:"",      color:"#94ad28", noWork:true},
+];
+let state=store.load()||{};
+if(!state.master||state.master.length===0) state.master=structuredClone(defaultMaster);
+if(!state.days) state.days={};
+/* 旧データ補完: 夜勤フラグ */
+state.master.forEach(m=>{ if(m.night===undefined) m.night=/当/.test(m.label)&&!/明/.test(m.label); });
+
+/* 期間: closeY/closeM = 締め月（前月16日〜当月15日） */
+const today=new Date();
+let closeY=today.getFullYear(), closeM=today.getMonth()+1;
+if(today.getDate()>=16){ closeM++; if(closeM>12){closeM=1; closeY++;} }
+
+const WD=["日","月","火","水","木","金","土"];
+const pad=n=>String(n).padStart(2,"0");
+const keyOf=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+function periodDates(){
+  const start=new Date(closeY,closeM-2,16);
+  const end=new Date(closeY,closeM-1,15);
+  const arr=[]; const d=new Date(start);
+  while(d<=end){ arr.push(new Date(d)); d.setDate(d.getDate()+1); }
+  return {start,end,arr};
+}
+
+function toMin(t){ if(!t) return null; const[a,b]=t.split(":").map(Number); return a*60+b; }
+function floor5(m){ return Math.floor(m/5)*5; }
+
+function masterOf(label){ return state.master.find(m=>m.label===label); }
+
+/* その日の自動計算残業（分） null=計算不可 */
+function autoOT(day){
+  if(!day||!day.shift||!day.endActual) return null;
+  const m=masterOf(day.shift);
+  if(!m||m.noWork||!m.end) return null;
+  let diff=toMin(day.endActual)-toMin(m.end);
+  if(diff<0) diff=0;
+  return floor5(diff);
+}
+function effOT(day){
+  if(!day) return null;
+  if(day.otOverride!=null) return day.otOverride;
+  return autoOT(day);
+}
+
+/* ---------- render: header ---------- */
+function renderHeader(){
+  const {start,end,arr}=periodDates();
+  document.getElementById("pTitle").textContent=`${closeY}年${closeM}月締め`;
+  document.getElementById("pRange").textContent=
+    `${start.getMonth()+1}/${start.getDate()} 〜 ${end.getMonth()+1}/${end.getDate()}`;
+  let total=0;
+  for(const d of arr){ const v=effOT(state.days[keyOf(d)]); if(v) total+=v; }
+  const h=Math.floor(total/60), mm=total%60;
+  document.getElementById("totalVal").innerHTML=
+    `${h}<small>時間</small>${pad(mm)}<small>分</small>`;
+  document.getElementById("totalMins").textContent= total>0?`（${total}分）`:"";
+}
+
+/* ---------- render: day list ---------- */
+function renderDays(){
+  const sec=document.getElementById("secDays");
+  sec.innerHTML="";
+  const {arr}=periodDates();
+  for(const d of arr){
+    const k=keyOf(d);
+    const day=state.days[k]||{};
+    const wd=d.getDay();
+    const el=document.createElement("div");
+    el.className="day"+(wd===0?" sun":wd===6?" sat":"");
+    const m=day.shift?masterOf(day.shift):null;
+    const teijiHtml = m
+      ? (m.noWork?`<span class="none">勤務なし</span>`:(m.end?`定時 <b class="num">${m.end}</b>`:`<span class="none">定時未設定</span>`))
+      : `<span class="none">—</span>`;
+
+    const opts=['<option value="">--</option>']
+      .concat(state.master.map(s=>`<option value="${esc(s.label)}"${s.label===day.shift?" selected":""}>${esc(s.label)}</option>`))
+      .join("");
+    const a=autoOT(day);
+    const eff=effOT(day);
+    const isOv=day.otOverride!=null;
+
+    el.innerHTML=`
+      <div class="r1">
+        <div class="date num">${d.getMonth()+1}/${d.getDate()} <span class="wd">${WD[wd]}</span></div>
+        <select class="shift" data-k="${k}" style="${m&&m.color?`color:${m.color};border-color:${m.color}55;`:""}">${opts}</select>
+        <div class="teiji">${teijiHtml}</div>
+      </div>
+      <div class="r2 ${m&&!m.noWork?"":"hidden"}">
+        <label>終了</label>
+        <input type="time" class="endA num" data-k="${k}" value="${day.endActual||""}">
+        <div class="ot-wrap">
+          <label>残業</label>
+          <input type="number" class="ot num ${eff?"has-ot":""} ${isOv?"override":""}" data-k="${k}"
+            inputmode="numeric" min="0" step="5"
+            value="${eff!=null?eff:""}" placeholder="${a!=null?a:"--"}">
+          <span class="unit">分</span>
+          <button class="reset num ${isOv?"show":""}" data-k="${k}" title="自動計算に戻す">↺</button>
+        </div>
+      </div>`;
+    sec.appendChild(el);
+  }
+
+  sec.querySelectorAll("select.shift").forEach(s=>s.addEventListener("change",e=>{
+    const k=e.target.dataset.k;
+    const v=e.target.value;
+    if(!state.days[k]) state.days[k]={};
+    state.days[k].shift=v||undefined;
+    saveRender();
+  }));
+  sec.querySelectorAll("input.endA").forEach(i=>i.addEventListener("change",e=>{
+    const k=e.target.dataset.k;
+    if(!state.days[k]) state.days[k]={};
+    state.days[k].endActual=e.target.value||undefined;
+    saveRender();
+  }));
+  sec.querySelectorAll("input.ot").forEach(i=>i.addEventListener("change",e=>{
+    const k=e.target.dataset.k;
+    if(!state.days[k]) state.days[k]={};
+    const v=e.target.value;
+    if(v===""){ state.days[k].otOverride=null; }
+    else{
+      const n=Math.max(0,parseInt(v,10)||0);
+      state.days[k].otOverride=(n===autoOT(state.days[k]))?null:n;
+    }
+    saveRender();
+  }));
+  sec.querySelectorAll("button.reset").forEach(b=>b.addEventListener("click",e=>{
+    const k=e.target.dataset.k;
+    if(state.days[k]) state.days[k].otOverride=null;
+    saveRender();
+  }));
+}
+
+/* ---------- render: master ---------- */
+function renderMaster(){
+  const wrap=document.getElementById("masterRows");
+  wrap.innerHTML="";
+  state.master.forEach((m,i)=>{
+    const row=document.createElement("div");
+    row.className="m-row";
+    row.innerHTML=`
+      <input type="color" value="${m.color||"#15426b"}" data-i="${i}" class="mc">
+      <input type="text" value="${esc(m.label)}" data-i="${i}" class="ml" placeholder="シフト名">
+      <input type="time" value="${m.end||""}" data-i="${i}" class="me num" ${m.noWork?"disabled":""}>
+      <label class="nowork"><input type="checkbox" ${m.night?"checked":""} data-i="${i}" class="mg">夜勤</label>
+      <label class="nowork"><input type="checkbox" ${m.noWork?"checked":""} data-i="${i}" class="mn">勤務なし</label>
+      <button class="del" data-i="${i}">✕</button>`;
+    wrap.appendChild(row);
+  });
+  wrap.querySelectorAll(".ml").forEach(i=>i.addEventListener("change",e=>{
+    const idx=+e.target.dataset.i; const old=state.master[idx].label; const nv=e.target.value.trim();
+    state.master[idx].label=nv;
+    for(const k in state.days){ if(state.days[k].shift===old) state.days[k].shift=nv; }
+    saveRender();
+  }));
+  wrap.querySelectorAll(".me").forEach(i=>i.addEventListener("change",e=>{
+    state.master[+e.target.dataset.i].end=e.target.value; saveRender();
+  }));
+  wrap.querySelectorAll(".mc").forEach(i=>i.addEventListener("change",e=>{
+    state.master[+e.target.dataset.i].color=e.target.value; saveRender();
+  }));
+  wrap.querySelectorAll(".mn").forEach(i=>i.addEventListener("change",e=>{
+    state.master[+e.target.dataset.i].noWork=e.target.checked; saveRender();
+  }));
+  wrap.querySelectorAll(".mg").forEach(i=>i.addEventListener("change",e=>{
+    state.master[+e.target.dataset.i].night=e.target.checked; saveRender();
+  }));
+  wrap.querySelectorAll(".del").forEach(b=>b.addEventListener("click",e=>{
+    const idx=+e.target.dataset.i;
+    if(confirm(`「${state.master[idx].label}」を削除しますか？`)){
+      state.master.splice(idx,1); saveRender();
+    }
+  }));
+}
+document.getElementById("addMaster").addEventListener("click",()=>{
+  state.master.push({label:"", end:"", color:"#15426b", noWork:false});
+  saveRender();
+});
+
+/* ---------- 画像取込 ---------- */
+document.getElementById("imgBtn").addEventListener("click",()=>document.getElementById("imgFile").click());
+document.getElementById("imgFile").addEventListener("change",async e=>{
+  const file=e.target.files[0]; e.target.value="";
+  if(!file) return;
+  const st=document.getElementById("imgStatus");
+  st.className="status";
+  st.innerHTML='<span class="spin">⏳</span> 画像を読み取り中…';
+  try{
+    const b64=await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result.split(",")[1]);
+      r.onerror=()=>rej(new Error("画像の読み込みに失敗しました"));
+      r.readAsDataURL(file);
+    });
+    const prompt=`これは勤務シフトカレンダーのスクリーンショットです。
+1. ヘッダーから年と月を読み取る（例: 2026年6月）。
+2. その月の各日付に表示されているシフト名ラベル（例: 2A, 2A', 3A', 2当, 3当, 明け, 休み など）を読み取る。
+3. 前月・翌月のグレー表示の日付は無視する。
+4. 以下のJSON形式のみで回答する。前置き・説明・コードブロック記号は一切不要:
+{"year":2026,"month":6,"days":{"1":"2A'","2":"3A'", ...}}
+ラベルが無い日は days に含めない。`;
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1000,
+        messages:[{role:"user",content:[
+          {type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:b64}},
+          {type:"text",text:prompt}
+        ]}]
+      })
+    });
+    if(!resp.ok) throw new Error("API応答エラー（"+resp.status+"）");
+    const data=await resp.json();
+    const text=(data.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n");
+    const clean=text.replace(/```json|```/g,"").trim();
+    const parsed=JSON.parse(clean);
+    if(!parsed.year||!parsed.month||!parsed.days) throw new Error("読み取り結果の形式が不正です");
+
+    let applied=0; const newLabels=new Set();
+    for(const dStr in parsed.days){
+      const day=parseInt(dStr,10);
+      const label=String(parsed.days[dStr]).trim();
+      if(!label) continue;
+      const k=`${parsed.year}-${pad(parsed.month)}-${pad(day)}`;
+      if(!state.days[k]) state.days[k]={};
+      state.days[k].shift=label;
+      applied++;
+      if(!masterOf(label)){
+        state.master.push({label, end:"", color:"#15426b", noWork:/休/.test(label)});
+        newLabels.add(label);
+      }
+    }
+    saveRender();
+    let msg=`✅ ${parsed.year}年${parsed.month}月：${applied}日分のシフトを取り込みました。`;
+    if(newLabels.size) msg+=`\n🆕 新しいシフト「${[...newLabels].join("・")}」を対応表に追加しました。定時を設定してください。`;
+    st.textContent=msg;
+  }catch(err){
+    st.className="status err";
+    st.textContent="❌ 取り込みできませんでした。\n"+err.message+
+      "\n（公開ページ上ではこの機能は使えません。Claude上で開くか、手入力をご利用ください）";
+  }
+});
+
+/* ---------- 書き出し / 読み込み ---------- */
+document.getElementById("exportBtn").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(state,null,1)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`zangyo-${closeY}${pad(closeM)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  document.getElementById("dataStatus").textContent="✅ 書き出しました。";
+});
+document.getElementById("importBtn").addEventListener("click",()=>document.getElementById("jsonFile").click());
+document.getElementById("jsonFile").addEventListener("change",e=>{
+  const file=e.target.files[0]; e.target.value="";
+  if(!file) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const v=JSON.parse(r.result);
+      if(v.days && !v.master){
+        /* シフト取込モード：daysだけマージ */
+        let added=0, updated=0;
+        for(const k in v.days){
+          const alreadyHas=!!state.days[k];
+          state.days[k]={...( state.days[k]||{} ), ...v.days[k]};
+          alreadyHas ? updated++ : added++;
+        }
+        saveRender();
+        document.getElementById("dataStatus").textContent=
+          `✅ シフト取込完了：新規 ${added}日 ／ 上書き ${updated}日`;
+      } else if(v.master && v.days){
+        /* フルバックアップ復元 */
+        state=v; saveRender();
+        document.getElementById("dataStatus").textContent="✅ バックアップを復元しました。";
+      } else {
+        throw new Error("形式が違います");
+      }
+    }catch(err){
+      document.getElementById("dataStatus").textContent="❌ 読み込めませんでした："+err.message;
+    }
+  };
+  r.readAsText(file);
+});
+document.getElementById("clearBtn").addEventListener("click",()=>{
+  if(confirm("全データ（対応表・記録）を消去します。よろしいですか？")){
+    state={master:structuredClone(defaultMaster), days:{}};
+    saveRender();
+    document.getElementById("dataStatus").textContent="🗑 消去しました。";
+  }
+});
+
+/* ---------- tabs / nav ---------- */
+const tabs={tabCal:"secCal", tabDays:"secDays", tabMaster:"secMaster", tabData:"secData"};
+for(const t in tabs){
+  document.getElementById(t).addEventListener("click",()=>{
+    for(const u in tabs){
+      document.getElementById(u).classList.toggle("on",u===t);
+      document.getElementById(tabs[u]).classList.toggle("hidden",u!==t);
+    }
+  });
+}
+document.getElementById("prevP").addEventListener("click",()=>{ closeM--; if(closeM<1){closeM=12;closeY--;} renderAll(); });
+document.getElementById("nextP").addEventListener("click",()=>{ closeM++; if(closeM>12){closeM=1;closeY++;} renderAll(); });
+
+/* ---------- util / boot ---------- */
+function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function dateToPeriod(dateStr){
+  const d=new Date(dateStr+"T00:00:00");
+  let y=d.getFullYear(), m=d.getMonth()+1;
+  if(d.getDate()>=16){ m++; if(m>12){m=1;y++;} }
+  return `${y}-${pad(m)}`;
+}
+function fmtMin(m){
+  if(!m) return "0分";
+  const h=Math.floor(m/60), mm=m%60;
+  return h===0 ? `${mm}分` : mm===0 ? `${h}時間` : `${h}時間${pad(mm)}分`;
+}
+
+/* ---------- render: history ---------- */
+function renderHistory(){
+  const wrap=document.getElementById("historyWrap");
+
+  // 期間ごとに残業合計を集計
+  const periods={};
+  for(const k in state.days){
+    const day=state.days[k];
+    if(!day.shift) continue;
+    const pk=dateToPeriod(k);
+    if(!periods[pk]) periods[pk]=0;
+    const v=effOT(day); if(v) periods[pk]+=v;
+  }
+
+  const pKeys=Object.keys(periods).sort().reverse();
+  if(pKeys.length===0){
+    wrap.innerHTML='<p class="hist-empty">まだ記録がありません。<br>記録タブでシフトを入力してください。</p>';
+    return;
+  }
+
+  // 年ごとにまとめる
+  const years={};
+  for(const pk of pKeys){
+    const [y]=pk.split("-");
+    if(!years[y]) years[y]=[];
+    years[y].push(pk);
+  }
+
+  let html="";
+  for(const y of Object.keys(years).sort().reverse()){
+    let yearTotal=0;
+    for(const pk of years[y]) yearTotal+=periods[pk];
+
+    html+=`<details class="hist-year" open>
+      <summary>
+        <span class="hy-chev">▶</span>
+        <span class="hy-title">${y}年</span>
+        <span class="hy-total num">${fmtMin(yearTotal)}</span>
+      </summary>
+      <div class="hist-months">`;
+
+    for(const pk of years[y]){
+      const [py,pm]=pk.split("-").map(Number);
+      const sm=pm===1?12:pm-1, sy=pm===1?py-1:py;
+      const range=`${sy!==py?sy+"/":""}${sm}/16〜${pm}/15`;
+      const t=periods[pk];
+      html+=`<div class="hist-month-row">
+        <span class="hm-title">${pm}月締め<small>${range}</small></span>
+        <span class="hm-total num ${t===0?"zero":""}">${fmtMin(t)}</span>
+      </div>`;
+    }
+    html+=`</div></details>`;
+  }
+  wrap.innerHTML=html;
+}
+
+/* ---------- 祝日（日本） ---------- */
+const holidayCache={};
+function holidaysOf(y){
+  if(holidayCache[y]) return holidayCache[y];
+  const set=new Set();
+  const add=(m,d)=>set.add(m+"-"+d);
+  const nthMon=(m,n)=>{const f=new Date(y,m-1,1).getDay(); return 1+((8-f)%7)+(n-1)*7;};
+  add(1,1); add(1,nthMon(1,2)); add(2,11); add(2,23);
+  add(3, Math.floor(20.8431+0.242194*(y-1980))-Math.floor((y-1980)/4)); /* 春分 */
+  add(4,29); add(5,3); add(5,4); add(5,5);
+  add(7,nthMon(7,3)); add(8,11); add(9,nthMon(9,3));
+  add(9, Math.floor(23.2488+0.242194*(y-1980))-Math.floor((y-1980)/4)); /* 秋分 */
+  add(10,nthMon(10,2)); add(11,3); add(11,23);
+  /* 国民の休日（祝日に挟まれた平日） */
+  for(let m=1;m<=12;m++){
+    const dim=new Date(y,m,0).getDate();
+    for(let d=2;d<dim;d++){
+      if(set.has(m+"-"+(d-1))&&set.has(m+"-"+(d+1))&&!set.has(m+"-"+d)
+        &&new Date(y,m-1,d).getDay()!==0) set.add(m+"-"+d);
+    }
+  }
+  /* 振替休日（日曜の祝日→直後の平日） */
+  const adds=[];
+  set.forEach(k=>{
+    const [m,d]=k.split("-").map(Number);
+    const dt=new Date(y,m-1,d);
+    if(dt.getDay()===0){
+      const nd=new Date(dt);
+      do{ nd.setDate(nd.getDate()+1); }while(set.has((nd.getMonth()+1)+"-"+nd.getDate()));
+      adds.push((nd.getMonth()+1)+"-"+nd.getDate());
+    }
+  });
+  adds.forEach(k=>set.add(k));
+  holidayCache[y]=set;
+  return set;
+}
+function isHoliday(d){ return holidaysOf(d.getFullYear()).has((d.getMonth()+1)+"-"+d.getDate()); }
+
+/* 夜勤の区分: sun=日曜・祝日 / sat=土曜・祝前日 / wk=平日 */
+function nightCat(d){
+  if(d.getDay()===0||isHoliday(d)) return "sun";
+  const next=new Date(d); next.setDate(next.getDate()+1);
+  if(d.getDay()===6||isHoliday(next)) return "sat";
+  return "wk";
+}
+
+/* ---------- render: calendar ---------- */
+let calY=today.getFullYear(), calM=today.getMonth()+1;
+
+function renderCal(){
+  document.getElementById("calTitle").textContent=`${calY}年${calM}月`;
+  const grid=document.getElementById("calGrid");
+  grid.innerHTML="";
+  const first=new Date(calY,calM-1,1);
+  const dim=new Date(calY,calM,0).getDate();
+  const todayKey=keyOf(new Date());
+
+  for(let i=0;i<first.getDay();i++){
+    const b=document.createElement("div"); b.className="cal-cell blank"; grid.appendChild(b);
+  }
+  const counts={wk:0,sat:0,sun:0};
+  for(let d=1;d<=dim;d++){
+    const dt=new Date(calY,calM-1,d);
+    const k=keyOf(dt);
+    const day=state.days[k];
+    const wd=dt.getDay();
+    const hol=isHoliday(dt);
+    const m=day&&day.shift?masterOf(day.shift):null;
+
+    if(m&&m.night) counts[nightCat(dt)]++;
+
+    const cell=document.createElement("div");
+    cell.className="cal-cell"+(wd===0?" sun":wd===6?" sat":"")+(hol?" hol":"")+(k===todayKey?" today":"");
+    cell.innerHTML=`
+      <span class="d num">${d}</span>
+      ${hol?'<span class="hmark">祝</span>':""}
+      ${day&&day.shift?`<span class="sh" style="color:${m&&m.color?m.color:"#6b7787"}">${esc(day.shift)}</span>`:""}`;
+    grid.appendChild(cell);
+  }
+
+  const total=counts.wk+counts.sat+counts.sun;
+  document.getElementById("nightCard").innerHTML=`
+    <div class="nc-head">
+      <span class="nc-title">夜勤回数（${calM}月）</span>
+      <span class="nc-total num">${total}<small> 回</small></span>
+    </div>
+    <div class="nc-rows">
+      <div class="nc-row wk"><span class="tag">平日</span><span class="cnt num">${counts.wk}<small> 回</small></span></div>
+      <div class="nc-row sat"><span class="tag">土曜・祝前日</span><span class="cnt num">${counts.sat}<small> 回</small></span></div>
+      <div class="nc-row sun"><span class="tag">日曜・祝日</span><span class="cnt num">${counts.sun}<small> 回</small></span></div>
+    </div>
+    <div class="nc-note">対応表で「夜勤」にチェックしたシフトを、入りの日付で数えています。</div>`;
+}
+document.getElementById("calPrev").addEventListener("click",()=>{ calM--; if(calM<1){calM=12;calY--;} renderCal(); });
+document.getElementById("calNext").addEventListener("click",()=>{ calM++; if(calM>12){calM=1;calY++;} renderCal(); });
+
+function saveRender(){ store.save(state); renderAll(); }
+function renderAll(){ renderHeader(); renderDays(); renderMaster(); renderHistory(); renderCal(); }
+renderAll();
+</script>
+</body>
+</html>
