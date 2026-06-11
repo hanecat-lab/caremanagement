@@ -316,7 +316,6 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
     <div class="status" id="dataStatus"></div>
 
     <div class="sec-title">リセット</div>
-    <button class="big-btn sub" id="resetMasterBtn">🔄 対応表を初期順に戻す（記録は保持）</button>
     <button class="big-btn danger" id="clearBtn">🗑 全データを消去</button>
   </section>
 </main>
@@ -807,13 +806,6 @@ document.getElementById("jsonFile").addEventListener("change",e=>{
     }
   };
   r.readAsText(file);
-});
-document.getElementById("resetMasterBtn").addEventListener("click",()=>{
-  if(confirm("対応表を初期値・初期順に戻します。記録データはそのまま保持されます。よろしいですか？")){
-    state.master=structuredClone(defaultMaster);
-    saveRender();
-    document.getElementById("dataStatus").textContent="✅ 対応表を初期値に戻しました。";
-  }
 });
 document.getElementById("clearBtn").addEventListener("click",()=>{
   if(confirm("全データ（対応表・記録）を消去します。よろしいですか？")){
