@@ -1,0 +1,2231 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ケアプラン書類管理</title>
+<link rel="apple-touch-icon" href="IMG_4603.png">
+<link rel="icon" href="IMG_4603.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ケアプラン">
+<meta name="theme-color" content="#3d6b8a">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;600&display=swap');
+
+  :root {
+    --bg: #f0ede8;
+    --surface: #faf9f7;
+    --surface2: #ffffff;
+    --border: #ddd9d0;
+    --text: #2c2a26;
+    --text-sub: #7a7568;
+    --accent: #3d6b8a;
+    --accent-light: #e8f0f5;
+    --green: #5a8a5a;
+    --green-light: #eaf3ea;
+    --red: #a03030;
+    --radius: 8px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* iOS入力時の自動ズーム防止：全入力欄を16px以上に */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+
+  .app-header {
+    background: var(--accent);
+    color: #fff;
+    padding: 12px 16px 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .app-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .app-header h1 {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-align: center;
+  }
+
+  .app-header-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .header-btns { display: flex; gap: 6px; }
+
+  .btn-header {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+    border-radius: 16px;
+    padding: 5px 11px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .btn-add {
+    background: #fff;
+    color: var(--accent);
+    border: none;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .main { padding: 16px; max-width: 680px; margin: 0 auto; }
+
+  .stats-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+
+  .alert-bar {
+    background: #fdeaea;
+    border: 1px solid #e8a0a0;
+    color: #a03030;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .alert-bar:active { opacity: 0.8; }
+
+  .alert-bar .arrow { margin-left: auto; color: #a03030; }
+
+  .wareki-select {
+    display: flex;
+    gap: 4px;
+    margin-top: 5px;
+    flex-wrap: wrap;
+  }
+
+  .wareki-input {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 4px 6px;
+    outline: none;
+    -webkit-appearance: none;
+  }
+
+  .wareki-input:focus { border-color: var(--accent); }
+
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    text-align: center;
+  }
+
+  .stat-num { font-size: 22px; font-weight: 700; color: var(--accent); line-height: 1; margin-bottom: 2px; }
+  .stat-label { font-size: 11px; color: var(--text-sub); }
+
+  .resident-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    cursor: pointer;
+    background: var(--surface);
+    border-bottom: 1px solid transparent;
+  }
+
+  .card-header.open { border-bottom-color: var(--border); }
+  .card-header-left { display: flex; align-items: center; gap: 10px; }
+
+  .bed-badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    min-width: 64px;
+    text-align: center;
+  }
+
+  .card-meta { font-size: 12px; color: var(--text-sub); }
+  .card-meta strong { color: var(--text); font-size: 13px; }
+
+  .status-dots { display: flex; gap: 4px; align-items: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
+  .dot.done { background: var(--green); }
+
+  .card-body { padding: 14px; display: none; }
+  .card-body.open { display: block; }
+
+  /* 開始回数 */
+  .offset-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--text-sub);
+  }
+
+  /* 長期目標 */
+  .goals-section {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  .goal-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+
+  .goal-tag {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .goal-tag.long { background: var(--accent-light); color: var(--accent); }
+  .goal-tag.short { background: var(--green-light); color: var(--green); }
+
+  .goal-col { display: flex; flex-direction: column; gap: 5px; flex: 1; }
+  .goal-dates { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .goal-dates span { font-size: 12px; color: var(--text-sub); }
+
+  input[type="date"], input[type="text"], input[type="number"] {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    outline: none;
+  }
+
+  input:focus { border-color: var(--accent); background: #fff; }
+  input[type="date"].small, input[type="number"].small { font-size: 12px; padding: 5px 6px; }
+  input[type="number"].small { width: 64px; text-align: center; }
+  input[type="text"].full { width: 100%; }
+
+  textarea {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 8px;
+    outline: none;
+    resize: vertical;
+    width: 100%;
+    line-height: 1.6;
+    min-height: 52px;
+  }
+
+  textarea:focus { border-color: var(--accent); background: #fff; }
+
+  /* 会議カード */
+  .meetings-section { margin-bottom: 8px; }
+
+  .meeting-item {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: box-shadow 0.15s;
+  }
+
+  .meeting-item.latest {
+    border-color: var(--accent);
+    box-shadow: 0 2px 8px rgba(61,107,138,0.12);
+  }
+
+  .meeting-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--bg);
+    cursor: pointer;
+  }
+
+  .meeting-item.latest .meeting-item-header {
+    background: var(--accent-light);
+    padding: 11px 14px;
+  }
+
+  .meeting-num {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .meeting-item.latest .meeting-num { font-size: 16px; }
+
+  .latest-badge {
+    font-size: 10px;
+    background: var(--accent);
+    color: #fff;
+    padding: 1px 7px;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+
+  .meeting-header-right { display: flex; align-items: center; gap: 8px; }
+  .meeting-date-label { font-size: 12px; color: var(--text-sub); }
+  .meeting-item.latest .meeting-date-label { font-size: 13px; font-weight: 500; color: var(--text); }
+
+  .meeting-dots { display: flex; gap: 3px; }
+  .meeting-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+  .meeting-item.latest .meeting-dot { width: 9px; height: 9px; }
+  .meeting-dot.done { background: var(--green); }
+
+  .meeting-item-body {
+    padding: 10px 12px;
+    display: none;
+    border-top: 1px solid var(--border);
+  }
+
+  .meeting-item.latest .meeting-item-body { padding: 14px; }
+  .meeting-item-body.open { display: block; }
+
+  .meeting-date-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .meeting-date-row label { font-size: 12px; color: var(--text-sub); flex-shrink: 0; }
+
+  /* 会議内の短期目標 */
+  .short-goal-box {
+    background: var(--green-light);
+    border: 1px solid #b8d9b8;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+
+  .short-goal-box .sg-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .short-goal-box .sg-dates {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+
+  .short-goal-box .sg-dates span { font-size: 12px; color: var(--text-sub); }
+
+  /* 書類テーブル */
+  .docs-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .docs-table { width: 100%; border-collapse: collapse; }
+
+  .docs-table th {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-align: left;
+    padding: 4px 6px;
+    letter-spacing: 0.04em;
+  }
+
+  .docs-table td { padding: 5px 6px; vertical-align: middle; }
+  .docs-table tr + tr td { border-top: 1px solid var(--border); }
+  .doc-name { font-size: 13px; font-weight: 500; white-space: nowrap; }
+
+  .doc-date-input {
+    width: 100%;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 5px 6px;
+    outline: none;
+  }
+
+  .doc-date-input:focus { border-color: var(--accent); background: #fff; }
+
+  .print-check { display: flex; align-items: center; justify-content: center; }
+
+  .print-toggle {
+    width: 36px; height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+    border: none;
+    flex-shrink: 0;
+  }
+
+  .print-toggle.on { background: var(--green); }
+  .created-toggle.on { background: var(--accent); }
+
+  .print-toggle::after {
+    content: '';
+    position: absolute;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: left 0.2s;
+  }
+
+  .print-toggle.on::after { left: 18px; }
+
+  .meeting-footer { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+  .btn-del-meeting {
+    background: transparent;
+    color: var(--red);
+    border: none;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 0;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .btn-add-meeting {
+    width: 100%;
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1px dashed var(--accent);
+    border-radius: 6px;
+    padding: 8px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-bottom: 12px;
+  }
+
+  .card-actions { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+  .btn-save {
+    flex: 1;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .btn-delete {
+    background: transparent;
+    color: var(--text-sub);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #fff;
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .modal h2 { font-size: 15px; font-weight: 700; margin-bottom: 16px; color: var(--accent); }
+  .modal-field { margin-bottom: 12px; }
+
+  .modal-field label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-sub);
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+
+  .modal-field input { width: 100%; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; }
+
+  .btn-primary {
+    flex: 1;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .btn-cancel {
+    background: transparent;
+    color: var(--text-sub);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: #2c2a26;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    z-index: 300;
+    transition: transform 0.3s;
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .empty-state { text-align: center; padding: 48px 20px; color: var(--text-sub); font-size: 14px; }
+  .empty-state p { margin-top: 8px; font-size: 12px; }
+  /* 判定所見 */
+  .assessment-box {
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .bed-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .info-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .info-field {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .info-label {
+    font-size: 12px;
+    color: var(--text-sub);
+    font-weight: 500;
+  }
+
+  .info-input {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    outline: none;
+    -webkit-appearance: none;
+    width: 100%;
+  }
+
+  .info-input:focus { border-color: var(--accent); background: #fff; }
+
+  .bed-edit-input {
+    flex: 1;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    outline: none;
+  }
+
+  .bed-edit-input:focus { border-color: var(--accent); background: #fff; }
+
+  .assessment-box textarea {
+    min-height: 36px;
+  }
+
+  .field-block {
+    margin-top: 10px;
+    margin-bottom: 4px;
+  }
+
+  .field-block textarea {
+    min-height: 36px;
+  }
+
+  /* 部屋フォルダー */
+  .room-folder {
+    margin-bottom: 14px;
+  }
+
+  .room-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--accent);
+    border-radius: var(--radius);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+
+  .room-header:hover { background: #2d5570; }
+
+  .room-header.open {
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .room-icon {
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    transition: transform 0.2s;
+    flex-shrink: 0;
+  }
+
+  .room-header.open .room-icon { transform: rotate(90deg); }
+
+  .room-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.03em;
+    flex: 1;
+  }
+
+  .room-count {
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    background: rgba(0,0,0,0.15);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+
+  .room-body {
+    display: none;
+    border: 1px solid var(--accent);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    overflow: hidden;
+  }
+
+  .room-body.open { display: block; }
+
+  .room-body .resident-card {
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    margin-bottom: 0;
+  }
+
+  .room-body .resident-card:last-child {
+    border-bottom: none;
+  }
+
+  #file-input { display: none; }
+  #file-input-backup { display: none; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+  /* 確認モーダル */
+  .confirm-modal {
+    background: #fff;
+    border-radius: 14px;
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 300px;
+    text-align: center;
+  }
+
+  .confirm-modal p {
+    font-size: 15px;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+
+  .confirm-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-confirm-cancel {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .btn-confirm-ok {
+    flex: 1;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .backup-modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px 20px 28px;
+    width: 100%;
+    max-width: 360px;
+    position: relative;
+  }
+
+  .backup-modal h2 {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .backup-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: var(--text-sub);
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .backup-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .backup-stat {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+
+  .backup-stat-num {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .backup-stat-label { font-size: 12px; color: var(--text-sub); }
+
+  .backup-section-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-sub);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-backup-action {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .btn-backup-import {
+    width: 100%;
+    background: transparent;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-sub);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .backup-steps {
+    font-size: 12px;
+    color: var(--text-sub);
+    line-height: 1.9;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="app-header-top">
+    <h1>ケアプラン書類管理</h1>
+  </div>
+  <div class="app-header-bottom">
+    <button class="btn-add" onclick="openModal()">＋ 新規</button>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
+      <button class="btn-header" onclick="openBulkMeetingModal()">📅 一括会議</button>
+      <button class="btn-header" id="group-toggle-btn" onclick="toggleGroupMode()">🏠 部屋別</button>
+      <button class="btn-header" onclick="openBackupModal()">💾 引き継ぎ</button>
+    </div>
+    <input type="file" id="file-input-backup" accept=".json" onchange="importData(event)">
+  </div>
+</div>
+
+<div class="main">
+  <div class="stats-bar">
+    <div class="stat-card">
+      <div class="stat-num" id="stat-total">0</div>
+      <div class="stat-label">登録人数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-created">0</div>
+      <div class="stat-label">作成残件数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="stat-printed">0</div>
+      <div class="stat-label">印刷残件数</div>
+    </div>
+  </div>
+
+  <div id="alert-bar" class="alert-bar" style="display:none;" onclick="openAlertModal()"></div>
+
+  <div id="resident-list">
+    <div class="empty-state">
+      利用者が登録されていません<br>
+      <p>右上の「＋ 追加」から追加してください</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>新規登録</h2>
+    <div class="modal-field">
+      <label>ベッド位置（管理番号）</label>
+      <input type="text" id="modal-bed" placeholder="例：201-1">
+      <div style="font-size:11px;color:var(--text-sub);margin-top:4px;">複数人まとめて追加する場合は、カンマ・ピリオド・空白・改行のいずれかで区切って入力（例：201-1, 201-2 202.203）</div>
+    </div>
+    <div class="modal-field">
+      <label>性別・要介護度（任意・全員共通）</label>
+      <div style="display:flex;gap:8px;">
+        <select id="modal-gender" class="info-input">
+          <option value="">性別 ―</option>
+          <option value="女性">女性</option>
+          <option value="男性">男性</option>
+        </select>
+        <select id="modal-carelevel" class="info-input">
+          <option value="">要介護度 ―</option>
+          <option value="要支援1">要支援1</option>
+          <option value="要支援2">要支援2</option>
+          <option value="要介護1">要介護1</option>
+          <option value="要介護2">要介護2</option>
+          <option value="要介護3">要介護3</option>
+          <option value="要介護4">要介護4</option>
+          <option value="要介護5">要介護5</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-field">
+      <label>メモ（任意・全員共通）</label>
+      <input type="text" id="modal-memo" placeholder="自由記入">
+    </div>
+    <div class="modal-field">
+      <label>開始回数（すでに何回か終わっている場合）</label>
+      <input type="number" id="modal-offset" value="1" min="1" max="99">
+    </div>
+    <div class="modal-field">
+      <label>担当者会議日（任意・全員共通）</label>
+      <input type="date" id="modal-meeting-date">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      <button class="btn-primary" onclick="addResident()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- 一括会議追加モーダル -->
+<div class="modal-overlay" id="bulk-meeting-modal">
+  <div class="modal">
+    <h2>📅 一括で会議を追加</h2>
+    <div class="modal-field">
+      <label>会議日</label>
+      <input type="date" id="bulk-meeting-date">
+    </div>
+    <div class="modal-field">
+      <label>対象の利用者を選択</label>
+      <div id="bulk-resident-list" style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;margin-top:4px;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeBulkMeetingModal()">キャンセル</button>
+      <button class="btn-primary" onclick="applyBulkMeeting()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- アラート一覧モーダル -->
+<div class="modal-overlay" id="alert-modal">
+  <div class="modal">
+    <h2>⚠️ ケアプラン印刷の期限超過</h2>
+    <p style="font-size:12px;color:var(--text-sub);margin-bottom:12px;">最新の担当者会議から7日が過ぎても、ケアプランが印刷されていない利用者です。</p>
+    <div id="alert-list" style="max-height:320px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="closeAlertModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 確認モーダル -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="confirm-modal">
+    <p id="confirm-msg"></p>
+    <div class="confirm-actions">
+      <button class="btn-confirm-cancel" onclick="confirmCancel()">キャンセル</button>
+      <button class="btn-confirm-ok" onclick="confirmOk()">削除</button>
+    </div>
+  </div>
+</div>
+
+<!-- バックアップモーダル -->
+<div class="modal-overlay" id="backup-modal">
+  <div class="backup-modal">
+    <button class="backup-close" onclick="closeBackupModal()">×</button>
+    <h2>💾 データの引き継ぎ</h2>
+    <div class="backup-stats">
+      <div class="backup-stat">
+        <div class="backup-stat-num" id="backup-stat-residents">0</div>
+        <div class="backup-stat-label">件の記録</div>
+      </div>
+      <div class="backup-stat">
+        <div class="backup-stat-num" id="backup-stat-rooms">0</div>
+        <div class="backup-stat-label">フォルダー</div>
+      </div>
+    </div>
+
+    <div class="backup-section-label">📤 バックアップ</div>
+    <button class="btn-backup-action" onclick="exportData()">
+      💾 JSONファイルに保存
+    </button>
+
+    <div class="backup-section-label">📥 復元・インポート</div>
+    <button class="btn-backup-import" onclick="document.getElementById('file-input-backup').click()">
+      📂 バックアップファイルを選択
+    </button>
+
+    <div class="backup-steps">
+      ① 今の端末で「JSONファイルに保存」<br>
+      ② 新しい端末でこのアプリを開く<br>
+      ③「バックアップファイルを選択」で読み込む
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const DOCS = ["ケアプラン", "担当者会議議事録", "チェックリスト", "支援経過"];
+const STORAGE_KEY = "careplan_manager_v3";
+
+let residents = [];
+let openCards = new Set();
+let openMeetings = {};
+
+// 開始日から3ヶ月後の月末を返す
+// YYYY-MM-DD を ローカル日付として安全にフォーマット
+// 和暦年号定義（開始年）
+const ERAS = [
+  { name: '令和', code: 'R', start: 2019 },
+  { name: '平成', code: 'H', start: 1989 },
+  { name: '昭和', code: 'S', start: 1926 },
+];
+
+// 西暦 → 和暦 {era, year}
+function toWareki(seireki) {
+  for (const e of ERAS) {
+    if (seireki >= e.start) {
+      return { era: e.name, year: seireki - e.start + 1 };
+    }
+  }
+  return null;
+}
+
+// 和暦 → 西暦
+function fromWareki(eraName, waYear) {
+  const e = ERAS.find(x => x.name === eraName);
+  if (!e) return null;
+  return e.start + waYear - 1;
+}
+
+// 和暦プルダウンHTML生成。targetId = 対応する西暦date inputのid、kind = 'lg-start','lg-end','sg-start' など
+function warekiSelectHtml(targetId, dateVal) {
+  let selEra = '令和', selYear = '', selMonth = '', selDay = '';
+  if (dateVal) {
+    const [y, m, d] = dateVal.split('-').map(Number);
+    const w = toWareki(y);
+    if (w) { selEra = w.era; selYear = w.year; }
+    selMonth = m; selDay = d;
+  }
+  const eraOpts = ERAS.map(e => `<option value="${e.name}"${e.name === selEra ? ' selected' : ''}>${e.name}</option>`).join('');
+  const yearOpts = ['<option value="">年</option>'].concat(
+    Array.from({length: 50}, (_, i) => i + 1).map(n => `<option value="${n}"${n === selYear ? ' selected' : ''}>${n}</option>`)
+  ).join('');
+  const monthOpts = ['<option value="">月</option>'].concat(
+    Array.from({length: 12}, (_, i) => i + 1).map(n => `<option value="${n}"${n === selMonth ? ' selected' : ''}>${n}</option>`)
+  ).join('');
+  const dayOpts = ['<option value="">日</option>'].concat(
+    Array.from({length: 31}, (_, i) => i + 1).map(n => `<option value="${n}"${n === selDay ? ' selected' : ''}>${n}</option>`)
+  ).join('');
+
+  const grp = `wareki-${targetId}`;
+  return `
+    <div class="wareki-select" data-target="${targetId}">
+      <select class="wareki-input" id="${grp}-era" onchange="onWarekiChange('${targetId}')">${eraOpts}</select>
+      <select class="wareki-input" id="${grp}-year" onchange="onWarekiChange('${targetId}')">${yearOpts}</select>
+      <select class="wareki-input" id="${grp}-month" onchange="onWarekiChange('${targetId}')">${monthOpts}</select>
+      <select class="wareki-input" id="${grp}-day" onchange="onWarekiChange('${targetId}')">${dayOpts}</select>
+    </div>
+  `;
+}
+
+// 和暦プルダウン変更時 → 西暦date inputに反映＋既存のonchangeを発火
+function onWarekiChange(targetId) {
+  const grp = `wareki-${targetId}`;
+  const era = document.getElementById(`${grp}-era`).value;
+  const year = parseInt(document.getElementById(`${grp}-year`).value);
+  const month = parseInt(document.getElementById(`${grp}-month`).value);
+  const day = parseInt(document.getElementById(`${grp}-day`).value);
+  if (!year || !month || !day) return;
+  const seireki = fromWareki(era, year);
+  if (!seireki) return;
+  const ymd = toYMD(seireki, month - 1, day);
+  const dateEl = document.getElementById(targetId);
+  if (dateEl) {
+    dateEl.value = ymd;
+    // 既存のonchange（短期目標の自動計算など）を発火
+    dateEl.dispatchEvent(new Event('change'));
+  }
+}
+
+function toYMD(y, m, d) {
+  const mm = String(m + 1).padStart(2, '0');
+  const dd = String(d).padStart(2, '0');
+  return `${y}-${mm}-${dd}`;
+}
+
+// "YYYY-MM-DD" を [年, 月index, 日] に分解
+function parseYMD(str) {
+  const [y, m, d] = str.split('-').map(Number);
+  return [y, m - 1, d];
+}
+
+// 開始日をその月の1日に補正
+function monthStart(dateStr) {
+  if (!dateStr) return '';
+  const [y, m] = parseYMD(dateStr);
+  return toYMD(y, m, 1);
+}
+
+// 開始月から3ヶ月分の期間の末日（2/1なら4/30）
+function threeMonthEnd(startStr) {
+  if (!startStr) return '';
+  const [y, m] = parseYMD(startStr);
+  // 開始月+3ヶ月目の0日 = 開始月+2ヶ月の末日
+  const end = new Date(y, m + 3, 0);
+  return toYMD(end.getFullYear(), end.getMonth(), end.getDate());
+}
+
+// 終了日の翌日をYYYY-MM-DD で返す
+function nextDay(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = parseYMD(dateStr);
+  const nd = new Date(y, m, d + 1);
+  return toYMD(nd.getFullYear(), nd.getMonth(), nd.getDate());
+}
+
+// 会議日の翌月1日を返す（2/15 → 3/1）
+function nextMonthFirst(dateStr) {
+  if (!dateStr) return '';
+  const [y, m] = parseYMD(dateStr);
+  const nd = new Date(y, m + 1, 1);
+  return toYMD(nd.getFullYear(), nd.getMonth(), 1);
+}
+
+function newMeeting(prevEndDate) {
+  const start = prevEndDate ? nextDay(prevEndDate) : '';
+  const end = start ? threeMonthEnd(start) : '';
+  return {
+    id: Date.now().toString() + Math.random().toString(36).slice(2),
+    date: '',
+    shortGoalStart: start,
+    shortGoalEnd: end,
+    docs: DOCS.map(name => ({ name, createdDate: '', created: false, printed: false }))
+  };
+}
+
+// 既存会議に「チェックリスト」書類が無ければ支援経過の前に挿入
+function ensureChecklistDoc(m) {
+  if (!m.docs) return;
+  if (m.docs.some(d => d.name === 'チェックリスト')) return;
+  const newDoc = { name: 'チェックリスト', createdDate: '', created: false, printed: false };
+  const idx = m.docs.findIndex(d => d.name === '支援経過');
+  if (idx >= 0) m.docs.splice(idx, 0, newDoc);
+  else m.docs.push(newDoc);
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    // 旧バージョンのキーも試みる
+    const rawOld = raw || localStorage.getItem("careplan_manager_v2");
+    if (rawOld) residents = JSON.parse(rawOld);
+    residents.forEach(r => {
+      if (!r.meetings) r.meetings = [];
+      if (!r.longGoalStart) r.longGoalStart = '';
+      if (!r.longGoalEnd) r.longGoalEnd = '';
+      if (!r.meetingOffset) r.meetingOffset = 1;
+      if (r.assessment === undefined) r.assessment = '';
+      if (r.gender === undefined) r.gender = '';
+      if (r.careLevel === undefined) r.careLevel = '';
+      if (r.memo === undefined) r.memo = '';
+      // 旧データの短期目標をカードレベルから除去（会議レベルへ移行）
+      r.meetings.forEach(m => {
+        if (!m.shortGoalStart) m.shortGoalStart = '';
+        if (!m.shortGoalEnd) m.shortGoalEnd = '';
+        if (m.assessment === undefined) m.assessment = '';
+        m.docs.forEach(d => { if (d.created === undefined) d.created = false; });
+        ensureChecklistDoc(m);
+      });
+    });
+  } catch(e) { residents = []; }
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(residents));
+}
+
+function exportData() {
+  const json = JSON.stringify(residents, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `careplan_data_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  closeBackupModal();
+  showToast('データを書き出しました');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error();
+      if (!confirm(`${data.length}件のデータを読み込みます。現在のデータは上書きされます。よろしいですか？`)) return;
+      residents = data;
+      residents.forEach(r => {
+        if (!r.meetings) r.meetings = [];
+        if (!r.longGoalStart) r.longGoalStart = '';
+        if (!r.longGoalEnd) r.longGoalEnd = '';
+        if (!r.meetingOffset) r.meetingOffset = 1;
+        if (r.assessment === undefined) r.assessment = '';
+        if (r.gender === undefined) r.gender = '';
+        if (r.careLevel === undefined) r.careLevel = '';
+        if (r.memo === undefined) r.memo = '';
+        r.meetings.forEach(m => {
+          if (!m.shortGoalStart) m.shortGoalStart = '';
+          if (!m.shortGoalEnd) m.shortGoalEnd = '';
+          if (m.assessment === undefined) m.assessment = '';
+          m.docs.forEach(d => { if (d.created === undefined) d.created = false; });
+          ensureChecklistDoc(m);
+        });
+      });
+      save();
+      openCards = new Set();
+      openMeetings = {};
+      render();
+      closeBackupModal();
+      showToast(`${data.length}件を読み込みました`);
+    } catch(e) {
+      alert('データの読み込みに失敗しました。');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function openBackupModal() {
+  const monthKeys = new Set();
+  residents.forEach(r => getMonthKeys(r).forEach(k => monthKeys.add(k)));
+  document.getElementById('backup-stat-residents').textContent = residents.length;
+  document.getElementById('backup-stat-rooms').textContent = monthKeys.size;
+  document.getElementById('backup-modal').classList.add('open');
+}
+
+function closeBackupModal() {
+  document.getElementById('backup-modal').classList.remove('open');
+}
+
+function openModal() {
+  document.getElementById('modal-bed').value = '';
+  document.getElementById('modal-memo').value = '';
+  document.getElementById('modal-gender').value = '';
+  document.getElementById('modal-carelevel').value = '';
+  document.getElementById('modal-offset').value = '1';
+  document.getElementById('modal-meeting-date').value = '';
+  document.getElementById('modal').classList.add('open');
+  setTimeout(() => document.getElementById('modal-bed').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+}
+
+function openBulkMeetingModal() {
+  if (residents.length === 0) { alert('先に利用者を登録してください'); return; }
+  document.getElementById('bulk-meeting-date').value = '';
+  const sorted = [...residents].sort((a, b) => a.bed.localeCompare(b.bed, 'ja'));
+  const listEl = document.getElementById('bulk-resident-list');
+  listEl.innerHTML = sorted.map(r => `
+    <label style="display:flex;align-items:center;gap:8px;padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border);">
+      <input type="checkbox" class="bulk-check" value="${r.id}" style="width:18px;height:18px;">
+      <span style="font-weight:700;color:var(--accent);">${r.bed}</span>
+      <span style="font-size:12px;color:var(--text-sub);">${r.memo ? esc(r.memo) : ''}</span>
+    </label>
+  `).join('');
+  document.getElementById('bulk-meeting-modal').classList.add('open');
+}
+
+function closeBulkMeetingModal() {
+  document.getElementById('bulk-meeting-modal').classList.remove('open');
+}
+
+function applyBulkMeeting() {
+  const date = document.getElementById('bulk-meeting-date').value;
+  if (!date) { alert('会議日を入力してください'); return; }
+  const checked = Array.from(document.querySelectorAll('.bulk-check:checked')).map(c => c.value);
+  if (checked.length === 0) { alert('対象の利用者を選択してください'); return; }
+
+  const nextD = nextDay(date);
+  const sgStart = nextMonthFirst(date);
+  const sgEnd = threeMonthEnd(sgStart);
+  checked.forEach(id => {
+    const r = residents.find(x => x.id === id);
+    if (!r) return;
+    const m = newMeeting('');
+    m.date = date;
+    m.shortGoalStart = sgStart;
+    m.shortGoalEnd = sgEnd;
+    m.docs.forEach(doc => { doc.createdDate = nextD; });
+    // 長期目標の繰り上げチェック
+    if (m.shortGoalEnd && r.longGoalEnd) {
+      while (r.longGoalEnd && m.shortGoalEnd >= r.longGoalEnd) {
+        r.longGoalStart = shiftOneYear(r.longGoalStart);
+        r.longGoalEnd = shiftOneYear(r.longGoalEnd);
+      }
+    }
+    r.meetings.push(m);
+  });
+
+  save();
+  closeBulkMeetingModal();
+  render();
+  showToast(`${checked.length}名に会議を追加しました`);
+}
+
+function addResident() {
+  const bedRaw = document.getElementById('modal-bed').value.trim();
+  if (!bedRaw) { alert('ベッド位置を入力してください'); return; }
+  const memo = document.getElementById('modal-memo').value.trim();
+  const gender = document.getElementById('modal-gender').value;
+  const careLevel = document.getElementById('modal-carelevel').value;
+  const offset = parseInt(document.getElementById('modal-offset').value) || 1;
+  const meetingDate = document.getElementById('modal-meeting-date').value;
+
+  // 改行・カンマ・読点・ピリオド・空白で分割
+  const beds = bedRaw.split(/[\n,、.。\s　]+/).map(b => b.trim()).filter(b => b);
+
+  let added = 0;
+  let merged = 0;
+
+  beds.forEach((bed, i) => {
+    // 既存の同名利用者を検索
+    const existing = residents.find(r => r.bed === bed);
+
+    if (existing) {
+      // 同名利用者には会議を追加（会議日があるときのみ）
+      if (meetingDate) {
+        const m = newMeeting('');
+        m.date = meetingDate;
+        m.shortGoalStart = nextMonthFirst(meetingDate);
+        m.shortGoalEnd = threeMonthEnd(m.shortGoalStart);
+        const nextD = nextDay(meetingDate);
+        m.docs.forEach(doc => { doc.createdDate = nextD; });
+        // 長期目標の繰り上げチェック
+        if (m.shortGoalEnd && existing.longGoalEnd) {
+          while (existing.longGoalEnd && m.shortGoalEnd >= existing.longGoalEnd) {
+            existing.longGoalStart = shiftOneYear(existing.longGoalStart);
+            existing.longGoalEnd = shiftOneYear(existing.longGoalEnd);
+          }
+        }
+        existing.meetings.push(m);
+        merged++;
+      }
+      // 会議日なしならスキップ
+    } else {
+      // 新規利用者を作成
+      const r = {
+        id: Date.now().toString() + i + Math.random().toString(36).slice(2),
+        bed, memo, gender, careLevel,
+        meetingOffset: offset,
+        longGoalStart: '', longGoalEnd: '',
+        assessment: '',
+        meetings: []
+      };
+      if (meetingDate) {
+        const m = newMeeting('');
+        m.date = meetingDate;
+        m.shortGoalStart = nextMonthFirst(meetingDate);
+        m.shortGoalEnd = threeMonthEnd(m.shortGoalStart);
+        const nextD = nextDay(meetingDate);
+        m.docs.forEach(doc => { doc.createdDate = nextD; });
+        r.meetings.push(m);
+      }
+      residents.push(r);
+      added++;
+    }
+  });
+
+  save();
+  closeModal();
+  render();
+
+  // トースト表示
+  const parts = [];
+  if (added > 0) parts.push(`${added}名を新規登録`);
+  if (merged > 0) parts.push(`${merged}名に会議追加`);
+  showToast(parts.length > 0 ? parts.join('・') : '変更はありませんでした');
+}
+
+let _confirmCallback = null;
+
+function showConfirm(msg, callback) {
+  document.getElementById('confirm-msg').textContent = msg;
+  _confirmCallback = callback;
+  document.getElementById('confirm-modal').classList.add('open');
+}
+
+function confirmOk() {
+  document.getElementById('confirm-modal').classList.remove('open');
+  if (_confirmCallback) { _confirmCallback(); _confirmCallback = null; }
+}
+
+function confirmCancel() {
+  document.getElementById('confirm-modal').classList.remove('open');
+  _confirmCallback = null;
+}
+
+function deleteResident(id) {
+  const r = residents.find(r => r.id === id);
+  if (!r) return;
+  showConfirm(`${r.bed} を削除しますか？`, () => {
+    residents = residents.filter(x => x.id !== id);
+    openCards.delete(id);
+    delete openMeetings[id];
+    save();
+    render();
+    showToast('削除しました');
+  });
+}
+
+function shiftOneYear(dateStr) {
+  if (!dateStr) return '';
+  const [y, m, d] = parseYMD(dateStr);
+  return toYMD(y + 1, m, d);
+}
+
+function addMeeting(residentId) {
+  const r = residents.find(r => r.id === residentId);
+  const m = newMeeting('');
+  r.meetings.push(m);
+
+  save();
+  if (!openMeetings[residentId]) openMeetings[residentId] = new Set();
+  openMeetings[residentId] = new Set([r.meetings.length - 1]);
+  openCards.add(residentId);
+  render();
+}
+
+function deleteMeeting(residentId, origIdx) {
+  const r = residents.find(r => r.id === residentId);
+  const dispNum = (r.meetingOffset || 1) + origIdx;
+  showConfirm(`第${dispNum}回の記録を削除しますか？`, () => {
+    r.meetings.splice(origIdx, 1);
+    save();
+    render();
+    showToast('削除しました');
+  });
+}
+
+function toggleCard(id) {
+  if (openCards.has(id)) {
+    openCards.delete(id);
+  } else {
+    openCards.add(id);
+    // カードを開くときは中の会議を全て閉じた状態にする
+    openMeetings[id] = new Set();
+  }
+  render();
+}
+
+function toggleMeeting(residentId, mIdx) {
+  if (!openMeetings[residentId]) openMeetings[residentId] = new Set();
+  if (openMeetings[residentId].has(mIdx)) openMeetings[residentId].delete(mIdx);
+  else openMeetings[residentId].add(mIdx);
+  render();
+}
+
+function toggleCreated(residentId, mIdx, dIdx) {
+  document.getElementById(`dc-${residentId}-${mIdx}-${dIdx}`).classList.toggle('on');
+}
+
+function togglePrint(residentId, mIdx, dIdx) {
+  document.getElementById(`dp-${residentId}-${mIdx}-${dIdx}`).classList.toggle('on');
+}
+
+function onMeetingDateChange(residentId, mIdx, dateVal) {
+  if (!dateVal) return;
+  const r = residents.find(r => r.id === residentId);
+  if (!r) return;
+  const m = r.meetings[mIdx];
+  if (!m) return;
+
+  // 全書類の作成日を会議日の翌日に
+  const next = nextDay(dateVal);
+  m.docs.forEach((doc, dIdx) => {
+    const el = document.getElementById(`dd-${residentId}-${mIdx}-${dIdx}`);
+    if (el) el.value = next;
+  });
+
+  // 短期目標：会議日の翌月1日から2ヶ月後の末日
+  const sgStart = nextMonthFirst(dateVal);
+  const sgEnd = threeMonthEnd(sgStart);
+  m.shortGoalStart = sgStart;
+  m.shortGoalEnd = sgEnd;
+  const sgStartEl = document.getElementById(`sg-start-${residentId}-${mIdx}`);
+  if (sgStartEl) sgStartEl.value = sgStart;
+  const sgEndEl = document.getElementById(`sg-end-${residentId}-${mIdx}`);
+  if (sgEndEl) sgEndEl.value = sgEnd;
+}
+
+function saveResident(id) {
+  const r = residents.find(r => r.id === id);
+  const bedEl = document.getElementById(`bed-${id}`);
+  if (bedEl && bedEl.value.trim()) r.bed = bedEl.value.trim();
+  const genderEl = document.getElementById(`gender-${id}`);
+  if (genderEl) r.gender = genderEl.value;
+  const careLevelEl = document.getElementById(`carelevel-${id}`);
+  if (careLevelEl) r.careLevel = careLevelEl.value;
+  const memoEl = document.getElementById(`memo-${id}`);
+  if (memoEl) r.memo = memoEl.value.trim();
+  r.longGoalStart  = document.getElementById(`lg-start-${id}`).value;
+  r.longGoalEnd    = document.getElementById(`lg-end-${id}`).value;
+  r.meetingOffset  = parseInt(document.getElementById(`offset-${id}`).value) || 1;
+
+  r.meetings.forEach((m, mIdx) => {
+    const de = document.getElementById(`m-date-${id}-${mIdx}`);
+    if (de) m.date = de.value;
+
+    const sgs = document.getElementById(`sg-start-${id}-${mIdx}`);
+    if (sgs) m.shortGoalStart = sgs.value;
+    const sge = document.getElementById(`sg-end-${id}-${mIdx}`);
+    if (sge) m.shortGoalEnd = sge.value;
+
+    const ma = document.getElementById(`m-assessment-${id}-${mIdx}`);
+    if (ma) m.assessment = ma.value;
+
+    m.docs.forEach((doc, dIdx) => {
+      const dd = document.getElementById(`dd-${id}-${mIdx}-${dIdx}`);
+      if (dd) doc.createdDate = dd.value;
+      const pb = document.getElementById(`dp-${id}-${mIdx}-${dIdx}`);
+      if (pb) doc.printed = pb.classList.contains('on');
+      const cb = document.getElementById(`dc-${id}-${mIdx}-${dIdx}`);
+      if (cb) doc.created = cb.classList.contains('on');
+    });
+  });
+
+  // 会議を日付順に並べ替え（古い順、日付なしは末尾）
+  r.meetings.sort((a, b) => {
+    if (!a.date && !b.date) return 0;
+    if (!a.date) return 1;
+    if (!b.date) return -1;
+    return a.date.localeCompare(b.date);
+  });
+
+  // カードレベルの判定所見は最新会議から自動同期
+  r.assessment = r.meetings.length > 0 ? (r.meetings[r.meetings.length - 1].assessment || '') : '';
+
+  save();
+  openCards.delete(id);
+  render();
+  showToast('保存しました');
+}
+
+function latestMeetingAllPrinted(r) {
+  if (!r.meetings || r.meetings.length === 0) return false;
+  return r.meetings[r.meetings.length - 1].docs.every(d => d.printed);
+}
+
+function latestDots(r) {
+  if (!r.meetings || r.meetings.length === 0) return DOCS.map(() => false);
+  return r.meetings[r.meetings.length - 1].docs.map(d => d.printed);
+}
+
+function fmtDate(s) { return s ? s.replace(/-/g, '/') : ''; }
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = residents.length;
+
+  let remainingCreated = 0;
+  let remainingPrinted = 0;
+  residents.forEach(r => {
+    (r.meetings || []).forEach(m => {
+      if (m.docs.some(d => d.name !== '支援経過' && !d.created)) remainingCreated++;
+      if (m.docs.some(d => d.name !== '支援経過' && !d.printed)) remainingPrinted++;
+    });
+  });
+  document.getElementById('stat-created').textContent = remainingCreated;
+  document.getElementById('stat-printed').textContent = remainingPrinted;
+
+  updateAlert();
+}
+
+// 最新会議から7日経過してケアプラン未印刷の利用者を返す
+function getOverdueResidents() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const result = [];
+  residents.forEach(r => {
+    if (!r.meetings || r.meetings.length === 0) return;
+    const latest = r.meetings[r.meetings.length - 1];
+    if (!latest.date) return;
+    const [y, m, d] = latest.date.split('-').map(Number);
+    const meetingDate = new Date(y, m - 1, d);
+    const diffDays = Math.floor((today - meetingDate) / (1000 * 60 * 60 * 24));
+    if (diffDays < 7) return;
+    const careplan = latest.docs.find(doc => doc.name === 'ケアプラン');
+    if (careplan && !careplan.printed) {
+      result.push({ r, meetingDate: latest.date, diffDays });
+    }
+  });
+  return result;
+}
+
+function updateAlert() {
+  const overdue = getOverdueResidents();
+  const bar = document.getElementById('alert-bar');
+  if (overdue.length === 0) {
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  bar.innerHTML = `⚠️ ケアプラン印刷の期限超過が ${overdue.length}件 あります<span class="arrow">›</span>`;
+}
+
+function openAlertModal() {
+  const overdue = getOverdueResidents();
+  const listEl = document.getElementById('alert-list');
+  if (overdue.length === 0) {
+    listEl.innerHTML = '<p style="color:var(--text-sub);font-size:13px;">該当はありません。</p>';
+  } else {
+    listEl.innerHTML = overdue.map(({ r, meetingDate, diffDays }) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="closeAlertModal();jumpToRoomEdit('${r.id}')">
+        <div class="bed-badge">${esc(r.bed)}</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;">最新会議：${fmtDate(meetingDate)}</div>
+          <div style="font-size:11px;color:#a03030;font-weight:700;">${diffDays}日経過・未印刷</div>
+        </div>
+        <span style="color:var(--text-sub);">›</span>
+      </div>
+    `).join('');
+  }
+  document.getElementById('alert-modal').classList.add('open');
+}
+
+function closeAlertModal() {
+  document.getElementById('alert-modal').classList.remove('open');
+}
+
+let openRooms = new Set();
+let openYears = new Set();
+let groupMode = 'month'; // 'month' or 'room'
+
+function toggleGroupMode() {
+  groupMode = groupMode === 'month' ? 'room' : 'month';
+  const btn = document.getElementById('group-toggle-btn');
+  btn.textContent = groupMode === 'month' ? '🏠 部屋別' : '📅 月別';
+  openRooms = new Set();
+  openYears = new Set();
+  render();
+}
+
+function toggleYear(yearKey) {
+  if (openYears.has(yearKey)) openYears.delete(yearKey);
+  else openYears.add(yearKey);
+  render();
+}
+
+function getRoomKey(bed) {
+  return bed.includes('-') ? bed.split('-')[0] : bed;
+}
+
+function getMonthKeys(r) {
+  // 会議をした全ての月を返す（重複除去）
+  if (!r.meetings || r.meetings.length === 0) return ['未設定'];
+  const months = new Set();
+  r.meetings.forEach(m => {
+    if (m.date) months.add(m.date.slice(0, 7));
+  });
+  if (months.size === 0) return ['未設定'];
+  return [...months];
+}
+
+function fmtMonthKey(key) {
+  if (key === '未設定') return '会議日未設定';
+  const [y, m] = key.split('-');
+  return `${y}年${parseInt(m)}月`;
+}
+
+// 月フォルダー1つ分のHTMLを生成（月別モード用）
+function renderMonthFolder(monthKey, monthResidents, indent) {
+  const isOpen = openRooms.has(monthKey);
+  const label = fmtMonthKey(monthKey);
+  const cardsHtml = monthResidents.map(r => renderMonthCard(r, monthKey)).join('');
+  return `
+    <div class="room-folder"${indent ? ' style="margin-bottom:8px;"' : ''}>
+      <div class="room-header${isOpen ? ' open' : ''}"${indent ? ' style="background:#5a7d96;"' : ''} onclick="toggleRoom('${monthKey}')">
+        <span class="room-icon">▶</span>
+        <span class="room-name"${indent ? ' style="font-size:13px;"' : ''}>${label}</span>
+        <span class="room-count">${monthResidents.length}名</span>
+      </div>
+      <div class="room-body${isOpen ? ' open' : ''}">
+        ${cardsHtml}
+      </div>
+    </div>
+  `;
+}
+
+function toggleRoom(groupKey) {
+  if (openRooms.has(groupKey)) {
+    openRooms.delete(groupKey);
+  } else {
+    openRooms.add(groupKey);
+    // 部屋別表示：その部屋に属する利用者カードを閉じる
+    if (groupMode === 'room') {
+      residents.forEach(r => {
+        if (getRoomKey(r.bed) === groupKey) openCards.delete(r.id);
+      });
+    }
+  }
+  render();
+}
+
+// 編集中のカードの入力値をデータに反映（再描画前に値を失わないため）
+function syncEditingFields(id) {
+  const r = residents.find(x => x.id === id);
+  if (!r) return;
+  const lgs = document.getElementById(`lg-start-${id}`);
+  if (lgs) r.longGoalStart = lgs.value;
+  const lge = document.getElementById(`lg-end-${id}`);
+  if (lge) r.longGoalEnd = lge.value;
+  const off = document.getElementById(`offset-${id}`);
+  if (off) r.meetingOffset = parseInt(off.value) || 1;
+  const bed = document.getElementById(`bed-${id}`);
+  if (bed && bed.value.trim()) r.bed = bed.value.trim();
+  const g = document.getElementById(`gender-${id}`);
+  if (g) r.gender = g.value;
+  const cl = document.getElementById(`carelevel-${id}`);
+  if (cl) r.careLevel = cl.value;
+  const mm = document.getElementById(`memo-${id}`);
+  if (mm) r.memo = mm.value.trim();
+
+  r.meetings.forEach((m, mIdx) => {
+    const de = document.getElementById(`m-date-${id}-${mIdx}`);
+    if (de) m.date = de.value;
+    const ma = document.getElementById(`m-assessment-${id}-${mIdx}`);
+    if (ma) m.assessment = ma.value;
+    m.docs.forEach((doc, dIdx) => {
+      const dd = document.getElementById(`dd-${id}-${mIdx}-${dIdx}`);
+      if (dd) doc.createdDate = dd.value;
+      const pb = document.getElementById(`dp-${id}-${mIdx}-${dIdx}`);
+      if (pb) doc.printed = pb.classList.contains('on');
+      const cb = document.getElementById(`dc-${id}-${mIdx}-${dIdx}`);
+      if (cb) doc.created = cb.classList.contains('on');
+    });
+  });
+}
+
+function esc(str) {
+  return (str || '').replace(/`/g, '\\`').replace(/\$/g, '&#36;');
+}
+
+function renderMonthCard(r, monthKey) {
+  // その月に該当する会議だけ抽出
+  const monthMeetings = r.meetings
+    .map((m, origIdx) => ({ m, origIdx }))
+    .filter(({ m }) => m.date && m.date.slice(0, 7) === monthKey);
+
+  const offset = r.meetingOffset || 1;
+
+  const meetingsHtml = monthMeetings.map(({ m, origIdx }) => {
+    const dispNum = offset + origIdx;
+    const docsHtml = m.docs.map((doc, dIdx) => `
+      <tr>
+        <td><div class="doc-name">${doc.name}</div></td>
+        <td>
+          <div class="print-check">
+            <button class="print-toggle created-toggle${doc.created ? ' on' : ''}" onclick="toggleCreatedMonth('${r.id}',${origIdx},${dIdx})"></button>
+          </div>
+        </td>
+        <td>
+          <div class="print-check">
+            <button class="print-toggle${doc.printed ? ' on' : ''}" onclick="togglePrintMonth('${r.id}',${origIdx},${dIdx})"></button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    return `
+      <div style="padding:8px 0;border-top:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;">第${dispNum}回　${fmtDate(m.date)}</div>
+        <table class="docs-table">
+          <thead>
+            <tr>
+              <th>書類名</th>
+              <th style="text-align:center">作成</th>
+              <th style="text-align:center">印刷</th>
+            </tr>
+          </thead>
+          <tbody>${docsHtml}</tbody>
+        </table>
+      </div>
+    `;
+  }).join('');
+
+  return `
+    <div class="resident-card">
+      <div class="card-header" style="cursor:default;">
+        <div class="card-header-left">
+          <div class="bed-badge" style="cursor:pointer;" onclick="jumpToRoomEdit('${r.id}')">${esc(r.bed)}</div>
+          <div class="card-meta">${r.memo ? `<strong>${esc(r.memo)}</strong>` : ''}</div>
+        </div>
+      </div>
+      <div style="padding:0 14px 12px;">${meetingsHtml}</div>
+    </div>
+  `;
+}
+
+function jumpToRoomEdit(residentId) {
+  const r = residents.find(x => x.id === residentId);
+  if (!r) return;
+  // 部屋別モードに切り替え
+  groupMode = 'room';
+  document.getElementById('group-toggle-btn').textContent = '📅 月別';
+  // 該当の部屋フォルダーと利用者カードを開く
+  openRooms = new Set([getRoomKey(r.bed)]);
+  openCards = new Set([residentId]);
+  render();
+  // 該当カードへスクロール
+  setTimeout(() => {
+    const badge = [...document.querySelectorAll('.bed-badge')].find(b => b.textContent === r.bed);
+    if (badge) badge.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+}
+
+function toggleCreatedMonth(residentId, mIdx, dIdx) {
+  const r = residents.find(x => x.id === residentId);
+  if (!r || !r.meetings[mIdx]) return;
+  const doc = r.meetings[mIdx].docs[dIdx];
+  doc.created = !doc.created;
+  save();
+  render();
+}
+
+function togglePrintMonth(residentId, mIdx, dIdx) {
+  const r = residents.find(x => x.id === residentId);
+  if (!r || !r.meetings[mIdx]) return;
+  const doc = r.meetings[mIdx].docs[dIdx];
+  doc.printed = !doc.printed;
+  save();
+  render();
+}
+
+function render() {
+  const list = document.getElementById('resident-list');
+
+  if (residents.length === 0) {
+    list.innerHTML = `<div class="empty-state">利用者が登録されていません<br><p>右上の「＋ 追加」から追加してください</p></div>`;
+    updateStats();
+    return;
+  }
+
+  const sorted = [...residents].sort((a, b) => a.bed.localeCompare(b.bed, 'ja'));
+
+  // 月別モード：今年は月フォルダー、それ以外は年フォルダーに入れ子
+  if (groupMode === 'month') {
+    const currentYear = String(new Date().getFullYear());
+    // 月キーごとに利用者をまとめる
+    const monthMap = new Map();
+    sorted.forEach(r => {
+      getMonthKeys(r).forEach(key => {
+        if (!monthMap.has(key)) monthMap.set(key, []);
+        monthMap.get(key).push(r);
+      });
+    });
+
+    // 月キーを新しい順にソート（未設定は最後）
+    const monthKeysSorted = [...monthMap.keys()].sort((a, b) => {
+      if (a === '未設定') return 1;
+      if (b === '未設定') return -1;
+      return b.localeCompare(a);
+    });
+
+    // 今年の月 / 年ごとの月 / 未設定 に振り分け
+    const thisYearMonths = [];
+    const yearGroups = new Map(); // 年 -> [月キー...]
+    let hasUnset = false;
+    monthKeysSorted.forEach(k => {
+      if (k === '未設定') { hasUnset = true; return; }
+      const y = k.slice(0, 4);
+      if (y === currentYear) thisYearMonths.push(k);
+      else {
+        if (!yearGroups.has(y)) yearGroups.set(y, []);
+        yearGroups.get(y).push(k);
+      }
+    });
+
+    let html = '';
+    // 今年の月フォルダー
+    thisYearMonths.forEach(k => {
+      html += renderMonthFolder(k, monthMap.get(k), false);
+    });
+    // 過去の年フォルダー（新しい年順）
+    [...yearGroups.keys()].sort((a, b) => b.localeCompare(a)).forEach(y => {
+      const yearKey = `year-${y}`;
+      const isYearOpen = openYears.has(yearKey);
+      // その年の利用者数（重複除去）
+      const yearResidentIds = new Set();
+      yearGroups.get(y).forEach(k => monthMap.get(k).forEach(r => yearResidentIds.add(r.id)));
+      const innerHtml = yearGroups.get(y).map(k => renderMonthFolder(k, monthMap.get(k), true)).join('');
+      html += `
+        <div class="room-folder">
+          <div class="room-header${isYearOpen ? ' open' : ''}" onclick="toggleYear('${yearKey}')">
+            <span class="room-icon">▶</span>
+            <span class="room-name">${y}年</span>
+            <span class="room-count">${yearResidentIds.size}名</span>
+          </div>
+          <div class="room-body${isYearOpen ? ' open' : ''}" style="padding:8px;">
+            ${innerHtml}
+          </div>
+        </div>
+      `;
+    });
+    // 未設定
+    if (hasUnset) {
+      html += renderMonthFolder('未設定', monthMap.get('未設定'), false);
+    }
+
+    list.innerHTML = html;
+    updateStats();
+    return;
+  }
+
+  // 部屋別モード（従来通り）
+  // グループ化
+  const groupMap = new Map();
+  sorted.forEach(r => {
+    if (groupMode === 'room') {
+      const key = getRoomKey(r.bed);
+      if (!groupMap.has(key)) groupMap.set(key, []);
+      groupMap.get(key).push(r);
+    } else {
+      getMonthKeys(r).forEach(key => {
+        if (!groupMap.has(key)) groupMap.set(key, []);
+        groupMap.get(key).push(r);
+      });
+    }
+  });
+
+  // ソート（部屋別：昇順）
+  const sortedKeys = [...groupMap.keys()].sort((a, b) => {
+    if (groupMode === 'room') return a.localeCompare(b, 'ja');
+    if (a === '未設定') return 1;
+    if (b === '未設定') return -1;
+    return b.localeCompare(a);
+  });
+
+  list.innerHTML = sortedKeys.map(groupKey => {
+    const groupResidents = groupMap.get(groupKey);
+    const isRoomOpen = openRooms.has(groupKey);
+    const totalCount = groupResidents.length;
+    const folderLabel = groupMode === 'room'
+      ? `${groupKey}号室`
+      : fmtMonthKey(groupKey);
+
+    const residentsHtml = groupResidents.map(r => {
+      // 月別フォルダーは軽量チェックリスト表示
+      if (groupMode === 'month') {
+        return renderMonthCard(r, groupKey);
+      }
+
+      const isOpen = openCards.has(r.id);
+      const dots = latestDots(r);
+      const dotHtml = DOCS.map((_, i) => `<div class="dot${dots[i] ? ' done' : ''}"></div>`).join('');
+      const latestMeeting = r.meetings && r.meetings.length > 0 ? r.meetings[r.meetings.length - 1] : null;
+      const offset = r.meetingOffset || 1;
+
+      let bodyHtml = '';
+      if (isOpen) {
+        const reversed = [...r.meetings].map((m, i) => ({ m, origIdx: i })).reverse();
+
+        const meetingsHtml = reversed.map(({ m, origIdx }) => {
+          const isLatest = origIdx === r.meetings.length - 1;
+          const dispNum = offset + origIdx;
+          const mOpen = openMeetings[r.id] && openMeetings[r.id].has(origIdx);
+          const mDots = m.docs.map(d => `<div class="meeting-dot${d.printed ? ' done' : ''}"></div>`).join('');
+
+          const sgSummary = (m.shortGoalStart || m.shortGoalEnd)
+            ? `<span style="font-size:11px;color:var(--green);margin-left:4px;">📅 ${fmtDate(m.shortGoalStart)}〜${fmtDate(m.shortGoalEnd)}</span>`
+            : '';
+
+          const docsHtml = m.docs.map((doc, dIdx) => `
+            <tr>
+              <td><div class="doc-name">${doc.name}</div></td>
+              <td><input type="date" class="doc-date-input" id="dd-${r.id}-${origIdx}-${dIdx}" value="${doc.createdDate}"></td>
+              <td>
+                <div class="print-check">
+                  <button class="print-toggle created-toggle${doc.created ? ' on' : ''}" id="dc-${r.id}-${origIdx}-${dIdx}" onclick="toggleCreated('${r.id}',${origIdx},${dIdx})"></button>
+                </div>
+              </td>
+              <td>
+                <div class="print-check">
+                  <button class="print-toggle${doc.printed ? ' on' : ''}" id="dp-${r.id}-${origIdx}-${dIdx}" onclick="togglePrint('${r.id}',${origIdx},${dIdx})"></button>
+                </div>
+              </td>
+            </tr>
+          `).join('');
+
+          return `
+            <div class="meeting-item${isLatest ? ' latest' : ''}">
+              <div class="meeting-item-header" onclick="toggleMeeting('${r.id}', ${origIdx})">
+                <div class="meeting-num">
+                  第${dispNum}回
+                  ${isLatest ? '<span class="latest-badge">最新</span>' : ''}
+                  ${!mOpen ? sgSummary : ''}
+                </div>
+                <div class="meeting-header-right">
+                  <div class="meeting-date-label">${m.date ? fmtDate(m.date) : '日付未設定'}</div>
+                  <div class="meeting-dots">${mDots}</div>
+                </div>
+              </div>
+              <div class="meeting-item-body${mOpen ? ' open' : ''}">
+                <div class="meeting-date-row">
+                  <label>会議日</label>
+                  <input type="date" class="small" id="m-date-${r.id}-${origIdx}" value="${m.date}"
+                    onchange="onMeetingDateChange('${r.id}', ${origIdx}, this.value)">
+                </div>
+                <div class="short-goal-box">
+                  <div class="sg-label">短期目標期間</div>
+                  <div class="sg-dates">
+                    <input type="date" class="small" id="sg-start-${r.id}-${origIdx}" value="${m.shortGoalStart || ''}">
+                    <span>〜</span>
+                    <input type="date" class="small" id="sg-end-${r.id}-${origIdx}" value="${m.shortGoalEnd || ''}">
+                  </div>
+                  <div style="font-size:10px;color:var(--text-sub);margin-top:4px;">会議日を入れると自動設定されます。新入所などは手動で調整できます。</div>
+                </div>
+                <div class="field-block">
+                  <div class="section-label">判定所見</div>
+                  <textarea id="m-assessment-${r.id}-${origIdx}" placeholder="この回の判定所見を入力...">${esc(m.assessment)}</textarea>
+                </div>
+                <hr class="divider">
+                <div class="docs-label">書類記録</div>
+                <table class="docs-table">
+                  <thead>
+                    <tr>
+                      <th>書類名</th>
+                      <th>作成日</th>
+                      <th style="text-align:center">作成</th>
+                      <th style="text-align:center">印刷</th>
+                    </tr>
+                  </thead>
+                  <tbody>${docsHtml}</tbody>
+                </table>
+                <div class="meeting-footer">
+                  <button class="btn-del-meeting" onclick="deleteMeeting('${r.id}', ${origIdx})">この回を削除</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        bodyHtml = `
+          <div class="card-body open">
+            <!-- ベッド位置（転室時に変更可能） -->
+            <div class="bed-edit-row">
+              <span class="section-label" style="margin:0;">ベッド位置</span>
+              <input type="text" id="bed-${r.id}" value="${esc(r.bed)}" class="bed-edit-input">
+            </div>
+            <!-- 基本情報 -->
+            <div class="info-row">
+              <div class="info-field">
+                <label class="info-label">性別</label>
+                <select id="gender-${r.id}" class="info-input">
+                  <option value=""${!r.gender ? ' selected' : ''}>―</option>
+                  <option value="女性"${r.gender === '女性' ? ' selected' : ''}>女性</option>
+                  <option value="男性"${r.gender === '男性' ? ' selected' : ''}>男性</option>
+                </select>
+              </div>
+              <div class="info-field">
+                <label class="info-label">要介護度</label>
+                <select id="carelevel-${r.id}" class="info-input">
+                  <option value=""${!r.careLevel ? ' selected' : ''}>―</option>
+                  ${["要支援1","要支援2","要介護1","要介護2","要介護3","要介護4","要介護5"].map(v => `<option value="${v}"${r.careLevel === v ? ' selected' : ''}>${v}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div class="info-field" style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+              <label class="info-label">メモ</label>
+              <input type="text" id="memo-${r.id}" value="${esc(r.memo)}" class="info-input" placeholder="自由記入">
+            </div>
+            <!-- 判定所見（最新会議から自動反映） -->
+            <div class="assessment-box">
+              <div class="section-label">判定所見（最新会議）</div>
+              <textarea id="assessment-${r.id}" readonly placeholder="最新の会議に判定所見を入力すると反映されます" style="background:#f5f3f0;color:var(--text-sub);cursor:default;">${esc(r.meetings.length > 0 ? (r.meetings[r.meetings.length - 1].assessment || '') : '')}</textarea>
+            </div>
+            <!-- 開始回数 -->
+            <div class="offset-row">
+              <span>会議の開始回数：</span>
+              <strong>第</strong>
+              <input type="number" class="small" id="offset-${r.id}" value="${offset}" min="1" max="99">
+              <strong>回から</strong>
+            </div>
+            <div class="goals-section">
+              <div class="section-label">長期目標期間</div>
+              <div class="goal-row">
+                <span class="goal-tag long">長期</span>
+                <div class="goal-col">
+                  <div class="goal-dates">
+                    <input type="date" class="small" id="lg-start-${r.id}" value="${r.longGoalStart}">
+                    <span>〜</span>
+                    <input type="date" class="small" id="lg-end-${r.id}" value="${r.longGoalEnd}">
+                  </div>
+                  <div style="font-size:10px;color:var(--text-sub);margin-top:4px;">開始（和暦）</div>
+                  ${warekiSelectHtml(`lg-start-${r.id}`, r.longGoalStart)}
+                  <div style="font-size:10px;color:var(--text-sub);margin-top:4px;">終了（和暦）</div>
+                  ${warekiSelectHtml(`lg-end-${r.id}`, r.longGoalEnd)}
+                </div>
+              </div>
+            </div>
+            <div class="meetings-section">
+              <div class="section-label">担当者会議・短期目標・書類記録</div>
+              ${meetingsHtml || '<div style="font-size:12px;color:var(--text-sub);margin-bottom:10px;">まだ記録がありません</div>'}
+            </div>
+            <button class="btn-add-meeting" onclick="addMeeting('${r.id}')">＋ 担当者会議を追加</button>
+            <div class="card-actions">
+              <button class="btn-save" onclick="saveResident('${r.id}')">保存</button>
+              <button class="btn-delete" onclick="deleteResident('${r.id}')">削除</button>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="resident-card">
+          <div class="card-header${isOpen ? ' open' : ''}" onclick="toggleCard('${r.id}')">
+            <div class="card-header-left">
+              <div class="bed-badge">${r.bed}</div>
+              <div class="card-meta">
+                ${(r.careLevel || r.gender || r.memo) ? `<strong>${[r.careLevel, r.gender, r.memo].filter(x => x).map(esc).join('・')}</strong><br>` : ''}
+                ${latestMeeting
+                  ? `最新会議：${latestMeeting.date ? fmtDate(latestMeeting.date) : '日付未設定'}（全${r.meetings.length}回）`
+                  : '<span style="color:#aaa">会議記録なし</span>'}
+              </div>
+            </div>
+            <div class="status-dots">${dotHtml}</div>
+          </div>
+          ${bodyHtml}
+        </div>
+      `;
+    }).join('');
+
+    return `
+      <div class="room-folder">
+        <div class="room-header${isRoomOpen ? ' open' : ''}" onclick="toggleRoom('${groupKey}')">
+          <span class="room-icon">▶</span>
+          <span class="room-name">${folderLabel}</span>
+          <span class="room-count">${totalCount}名</span>
+        </div>
+        <div class="room-body${isRoomOpen ? ' open' : ''}">
+          ${residentsHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  updateStats();
+}
+
+document.getElementById('backup-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeBackupModal();
+});
+
+document.getElementById('bulk-meeting-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeBulkMeetingModal();
+});
+
+document.getElementById('alert-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeAlertModal();
+});
+
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+document.getElementById('modal-memo').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addResident();
+});
+
+load();
+render();
+</script>
+</body>
+</html>
