@@ -689,19 +689,30 @@ document.getElementById("imgFile").addEventListener("change",async e=>{
       r.onerror=()=>rej(new Error("画像の読み込みに失敗しました"));
       r.readAsDataURL(file);
     });
-    const prompt=`これは介護施設の勤務記録の画像です。「シフトカレンダー」か「タイムカード」のどちらかです。
+    const rowNum = parseInt(document.getElementById("imgRow").value, 10);
+    const rowInstruction = rowNum >= 1
+      ? `この表は複数人の勤務表です。上から${rowNum}行目（データ行のみカウント、ヘッダー行は除く）のシフトを読み取ってください。`
+      : ``;
 
-【タイムカードの場合】（紙のタイムカード。日付ごとに打刻時刻が並ぶ）
-- ヘッダーの「R○年○月分」から年月を読む（R8=2026年。「○月分」は締め月で、日付16〜31はその前月、1〜15は締め月の日付）
-- 4列目「定時退」の打刻時刻を end として読む（1列目の定時出は不要）
-- 5列目・6列目（時間外の出・退）に打刻があれば otStart / otEnd として読む
+    const prompt=`これは介護施設の勤務記録の画像です。「シフトカレンダー」「複数人の勤務表」「タイムカード」のいずれかです。${rowInstruction}
+
+【複数人の勤務表の場合】（横に日付、縦に人員が並ぶ表）
+- ヘッダーから年月を読む
+- 指定行のシフトを各日付ごとに読む（×や/や空欄は休みとして "休み" と出力）
 - 以下のJSON形式のみで回答:
-{"type":"timecard","closeYear":2026,"closeMonth":6,"days":{"16":{"end":"17:15"},"25":{"end":"18:02"},"9":{"end":"18:24","otStart":"9:00","otEnd":"11:00"}}}
+{"type":"shift","year":2026,"month":6,"days":{"1":"2A'","2":"3A'",...}}
 
 【シフトカレンダーの場合】（月間カレンダーにシフト名ラベル）
-- ヘッダーから年月、各日付のシフト名（2A, 3A', 2当, 明け, 休み 等）を読む。前後月のグレー日付は無視
+- ヘッダーから年月、各日付のシフト名を読む。前後月のグレー日付は無視
 - 以下のJSON形式のみで回答:
 {"type":"shift","year":2026,"month":6,"days":{"1":"2A'","2":"3A'"}}
+
+【タイムカードの場合】（紙のタイムカード。日付ごとに打刻時刻が並ぶ）
+- ヘッダーの「R○年○月分」から年月を読む（R8=2026年。16〜31は前月、1〜15は締め月）
+- 4列目「定時退」の打刻時刻を end として読む
+- 5・6列目（時間外の出・退）に打刻があれば otStart / otEnd として読む
+- 以下のJSON形式のみで回答:
+{"type":"timecard","closeYear":2026,"closeMonth":6,"days":{"16":{"end":"17:15"},"25":{"end":"18:02"}}}
 
 打刻・ラベルが無い日は days に含めない。前置き・説明・コードブロック記号は一切不要。`;
     const resp=await fetch("https://api.anthropic.com/v1/messages",{
@@ -710,6 +721,7 @@ document.getElementById("imgFile").addEventListener("change",async e=>{
       body:JSON.stringify({
         model:"claude-sonnet-4-20250514",
         max_tokens:1000,
+        system:"JSONのみを出力してください。説明文・前置き・コードブロック記号は一切含めず、JSONオブジェクトだけを返してください。",
         messages:[{role:"user",content:[
           {type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:b64}},
           {type:"text",text:prompt}
@@ -719,8 +731,11 @@ document.getElementById("imgFile").addEventListener("change",async e=>{
     if(!resp.ok) throw new Error("API応答エラー（"+resp.status+"）");
     const data=await resp.json();
     const text=(data.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("\n");
+    /* コードブロック除去→JSON部分を正規表現で抽出 */
     const clean=text.replace(/```json|```/g,"").trim();
-    const parsed=JSON.parse(clean);
+    const jsonMatch=clean.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error("JSONを抽出できませんでした（応答: "+clean.slice(0,80)+"）");
+    const parsed=JSON.parse(jsonMatch[0]);
 
     if(parsed.type==="timecard"){
       /* ── タイムカード: 終了時刻・時間外をマージ ── */
@@ -766,8 +781,7 @@ document.getElementById("imgFile").addEventListener("change",async e=>{
     st.textContent=msg;
   }catch(err){
     st.className="status err";
-    st.textContent="❌ 取り込みできませんでした。\n"+err.message+
-      "\n（公開ページ上ではこの機能は使えません。Claude上で開くか、手入力をご利用ください）";
+    st.textContent="❌ 取り込みできませんでした。"+err.message;
   }
 });
 
