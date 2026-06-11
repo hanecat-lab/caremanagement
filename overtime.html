@@ -316,6 +316,7 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
     <div class="status" id="dataStatus"></div>
 
     <div class="sec-title">リセット</div>
+    <button class="big-btn sub" id="resetMasterBtn">🔄 対応表を初期順に戻す（記録は保持）</button>
     <button class="big-btn danger" id="clearBtn">🗑 全データを消去</button>
   </section>
 </main>
@@ -333,11 +334,17 @@ const store={
 
 /* ---------- state ---------- */
 const defaultMaster=[
-  /* ── 日勤系 ── */
+  /* ── A系 ── */
   {label:"2A'",   start:"08:00", end:"17:00", color:"#2e5cb8", noWork:false},
   {label:"3A'",   start:"08:00", end:"17:00", color:"#2e5cb8", noWork:false},
   {label:"2A",    start:"08:00", end:"17:00", color:"#2e7d2e", noWork:false},
   {label:"3A",    start:"08:00", end:"17:00", color:"#2e7d2e", noWork:false},
+  /* ── 夜勤系（A直後） ── */
+  {label:"2当",   start:"16:30", end:"00:00", color:"#d8432f", noWork:false, night:true},
+  {label:"3当",   start:"16:30", end:"00:00", color:"#d8432f", noWork:false, night:true},
+  {label:"明け",  start:"00:00", end:"09:00", color:"#dd9c00", noWork:false},
+  {label:"明けA'",start:"17:00", end:"17:00", color:"#2e5cb8", noWork:false},
+  /* ── B系 ── */
   {label:"2B",    start:"07:30", end:"16:00", color:"#d8432f", noWork:false},
   {label:"3B",    start:"07:30", end:"16:00", color:"#d8432f", noWork:false},
   {label:"2BM",   start:"07:30", end:"12:00", color:"#d8432f", noWork:false},
@@ -352,11 +359,6 @@ const defaultMaster=[
   /* ── 特殊時刻名 ── */
   {label:"17:00", start:"17:00", end:"18:20", color:"#3f3da8", noWork:false},
   {label:"7:30",  start:"07:30", end:"09:00", color:"#d8432f", noWork:false},
-  /* ── 夜勤系 ── */
-  {label:"2当",   start:"16:30", end:"00:00", color:"#d8432f", noWork:false, night:true},
-  {label:"3当",   start:"16:30", end:"00:00", color:"#d8432f", noWork:false, night:true},
-  {label:"明け",  start:"00:00", end:"09:00", color:"#dd9c00", noWork:false},
-  {label:"明けA'",start:"17:00", end:"17:00", color:"#2e5cb8", noWork:false},
   /* ── 休日 ── */
   {label:"休み",  start:"",      end:"",      color:"#94ad28", noWork:true},
 ];
@@ -539,6 +541,17 @@ function renderDays(){
     const v=e.target.value;
     if(!state.days[k]) state.days[k]={};
     state.days[k].shift=v||undefined;
+    /* 夜勤（当）を選択したら翌日を自動で「明け」に設定 */
+    if(v){
+      const m=masterOf(v);
+      if(m && m.night){
+        const [y,mo,d]=k.split("-").map(Number);
+        const nd=new Date(y,mo-1,d+1);
+        const nk=keyOf(nd);
+        if(!state.days[nk]) state.days[nk]={};
+        state.days[nk].shift="明け";
+      }
+    }
     saveRender();
   }));
   /* 時刻入力: iOSのピッカーは「リセット」でchangeが飛ばないことがあるため
@@ -795,6 +808,13 @@ document.getElementById("jsonFile").addEventListener("change",e=>{
   };
   r.readAsText(file);
 });
+document.getElementById("resetMasterBtn").addEventListener("click",()=>{
+  if(confirm("対応表を初期値・初期順に戻します。記録データはそのまま保持されます。よろしいですか？")){
+    state.master=structuredClone(defaultMaster);
+    saveRender();
+    document.getElementById("dataStatus").textContent="✅ 対応表を初期値に戻しました。";
+  }
+});
 document.getElementById("clearBtn").addEventListener("click",()=>{
   if(confirm("全データ（対応表・記録）を消去します。よろしいですか？")){
     state={master:structuredClone(defaultMaster), days:{}};
@@ -846,12 +866,14 @@ function makeICS(){
       }
       lines.push(`DTEND;TZID=Asia/Tokyo:${eStr}`);
       lines.push(`SUMMARY:${day.shift}（${m.start}〜${m.end}）`);
-      /* 通知: シフト開始1時間前（最低でも06:00より前には出さない） */
-      lines.push("BEGIN:VALARM");
-      lines.push("TRIGGER:-PT60M");
-      lines.push("ACTION:DISPLAY");
-      lines.push(`DESCRIPTION:本日のシフト：${day.shift}（${m.start}〜${m.end}）`);
-      lines.push("END:VALARM");
+      /* 通知: 明けは前夜から勤務中のため通知なし。それ以外はシフト開始1時間前 */
+      if(day.shift!=="明け"){
+        lines.push("BEGIN:VALARM");
+        lines.push("TRIGGER:-PT60M");
+        lines.push("ACTION:DISPLAY");
+        lines.push(`DESCRIPTION:本日のシフト：${day.shift}（${m.start}〜${m.end}）`);
+        lines.push("END:VALARM");
+      }
     }
     lines.push(`UID:${uid}`);
     lines.push("END:VEVENT");
