@@ -127,10 +127,13 @@
     gap: 8px;
     margin-bottom: 14px;
     align-items: center;
+    width: 100%;
+    overflow: hidden;
   }
 
   .search-input {
     flex: 1;
+    min-width: 0;
     font-family: 'Noto Sans JP', sans-serif;
     font-size: 16px;
     color: var(--text);
@@ -151,9 +154,10 @@
     background: var(--surface2);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 9px 12px;
+    padding: 9px 10px;
     cursor: pointer;
     white-space: nowrap;
+    flex-shrink: 0;
     transition: all 0.15s;
   }
 
@@ -2605,7 +2609,7 @@ function buildFloorDef(prefix, from, to) {
     const num = parseInt(s.slice(-2) || s);
     let beds, type;
     if (num === 7) { beds = 1; type = '1人'; }
-    else if ((num >= 2 && num <= 6) || n === 316 || n === 301) { beds = 2; type = '2人'; }
+    else if ((num >= 2 && num <= 6) || n === 316 || n === 301 || n === 212 || n === 213) { beds = 2; type = '2人'; }
     else { beds = 4; type = '4人'; }
     rooms.push({ room: String(n), beds, type });
   }
@@ -2734,6 +2738,12 @@ function openBedDetail(residentId) {
     r.memo ? `<span style="font-size:12px;color:var(--text-sub);">${esc(r.memo)}</span>` : '',
   ].filter(x => x).join(' ');
 
+  const assessmentHtml = r.assessment ? `
+    <div style="margin-top:10px;padding:8px 10px;background:var(--bg);border-radius:6px;font-size:13px;color:var(--text-sub);">
+      <span style="font-size:11px;font-weight:700;color:var(--text-sub);display:block;margin-bottom:3px;">判定所見</span>
+      ${esc(r.assessment)}
+    </div>` : '';
+
   const meetingHtml = latest ? `
     <div style="margin-top:12px;">
       <div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:6px;">第${dispNum}回　${fmtDate(latest.date)}</div>
@@ -2752,6 +2762,7 @@ function openBedDetail(residentId) {
   document.getElementById('bed-detail-title').innerHTML = `<div class="bed-badge">${esc(r.bed)}</div>`;
   document.getElementById('bed-detail-content').innerHTML = `
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;">${infoHtml}</div>
+    ${assessmentHtml}
     ${meetingHtml}
   `;
   document.getElementById('bed-detail-edit-btn').onclick = () => {
