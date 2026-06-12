@@ -300,17 +300,23 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
   <button id="tabMaster">対応表</button>
   <button id="tabData">データ</button>
 </nav>
+<div style="display:flex; justify-content:flex-end; padding:2px 4px 0;">
+  <button id="scrollBottomBtn"
+    style="font-size:11px; color:var(--sub); background:none; border:none;
+           padding:2px 6px; cursor:pointer; touch-action:manipulation; line-height:1;">
+    最下部へ ↓
+  </button>
+</div>
 
 <main>
   <section id="secCal">
     <div id="todayCard"></div>
     <div class="cal-nav">
       <button id="calPrev" aria-label="前の月">‹</button>
-      <div style="position:relative; display:flex; justify-content:center; align-items:center;">
+      <div style="position:relative; display:flex; align-items:center;">
         <button class="cal-title num" id="calTitle"
           style="background:none;border:none;cursor:pointer;font:inherit;color:inherit;
-                 padding:4px 8px;border-radius:8px;white-space:nowrap;font-size:16px;font-weight:700;
-                 margin-right:24px;"></button>
+                 padding:4px 8px;border-radius:8px;white-space:nowrap;font-size:16px;font-weight:700;"></button>
         <input type="month" id="calMonthPicker"
           style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;font-size:16px;" aria-label="年月選択">
       </div>
@@ -894,13 +900,27 @@ document.getElementById("icsBtn").addEventListener("click",()=>{
   st.textContent="✅ 書き出しました。ファイルを開くとカレンダーアプリに追加できます。";
 });
 
-/* ---------- tabs / nav ---------- */
+document.getElementById("scrollBottomBtn").addEventListener("click",()=>{
+  /* 表示中のセクションの最後の子要素までスクロール */
+  const active=document.querySelector("section:not(.hidden)");
+  if(active){
+    const last=active.lastElementChild;
+    if(last) last.scrollIntoView({behavior:"smooth", block:"end"});
+  }
+});
 const tabs={tabCal:"secCal", tabDays:"secDays", tabMaster:"secMaster", tabData:"secData"};
 for(const t in tabs){
   document.getElementById(t).addEventListener("click",()=>{
     for(const u in tabs){
       document.getElementById(u).classList.toggle("on",u===t);
       document.getElementById(tabs[u]).classList.toggle("hidden",u!==t);
+    }
+    /* カレンダータブに来たら今日に戻す */
+    if(t==="tabCal"){
+      const n=new Date();
+      widgetDate=new Date(n);
+      calY=n.getFullYear(); calM=n.getMonth()+1;
+      renderCal();
     }
   });
 }
@@ -1102,7 +1122,9 @@ function renderWidget(){
 }
 function renderCal(){
   renderWidget();
-  document.getElementById("calTitle").textContent=`${calY}年${calM}月 ▾`;
+  const titleBtn=document.getElementById("calTitle");
+  titleBtn.textContent=`${calY}年${calM}月 ▾`;
+  titleBtn.style.marginLeft="30%";
   document.getElementById("calMonthPicker").value=`${calY}-${pad(calM)}`;
   const grid=document.getElementById("calGrid");
   grid.innerHTML="";
