@@ -732,7 +732,7 @@ document.getElementById("exportBtn").addEventListener("click",()=>{
   const blob=new Blob([JSON.stringify(state,null,1)],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download=`zangyo-${closeY}${pad(closeM)}.json`;
+  a.download=`残業管理-${closeY}${pad(closeM)}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
   document.getElementById("dataStatus").textContent="✅ 書き出しました。";
@@ -893,7 +893,7 @@ document.getElementById("icsBtn").addEventListener("click",()=>{
   const blob=new Blob([ics],{type:"text/calendar;charset=utf-8"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
-  a.download="shift-schedule.ics";
+  a.download="シフト表.ics";
   a.click();
   URL.revokeObjectURL(a.href);
   st.className="status";
