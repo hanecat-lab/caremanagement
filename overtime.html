@@ -209,7 +209,7 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 .cal-cell{
   min-height:54px; border-radius:8px; padding:3px 2px;
   display:flex; flex-direction:column; align-items:center; gap:2px;
-  background:#fafbfd;
+  background:#fafbfd; position:relative;
 }
 .cal-cell.blank{background:none;}
 .cal-cell .d{font-size:12px; font-weight:700; color:var(--ink); line-height:1.2;}
@@ -224,6 +224,39 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
   background:var(--card); border-radius:var(--radius); margin-top:10px;
   padding:14px; box-shadow:0 1px 2px rgba(20,40,70,.05);
 }
+/* ── 今日のシフトウィジェット ── */
+#todayCard{
+  background:var(--card); border-radius:var(--radius); padding:14px 16px;
+  box-shadow:0 1px 3px rgba(20,40,70,.08); margin-bottom:10px;
+}
+.tc-label{font-size:10px; color:var(--sub); font-weight:700; letter-spacing:.08em; margin-bottom:4px;}
+.tc-date-nav{display:flex; align-items:center; gap:6px; margin-bottom:12px;}
+.tc-date-nav .tc-date{font-size:14px; font-weight:700; color:var(--ink); flex:1; text-align:center;}
+.tc-date-nav button{background:none; border:none; color:var(--sub); font-size:18px; padding:2px 6px;
+  cursor:pointer; touch-action:manipulation; line-height:1;}
+.tc-main{display:flex; align-items:flex-start; gap:10px;}
+.tc-left{display:flex; align-items:center; gap:10px; flex:1; min-width:0;}
+.tc-shift{font-size:32px; font-weight:800; line-height:1; flex-shrink:0;}
+.tc-detail{display:flex; flex-direction:column; gap:2px; min-width:0;}
+.tc-time{font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap;}
+.tc-ot{font-size:12px; color:var(--sub);}
+.tc-none{font-size:15px; color:var(--sub); font-weight:500;}
+.tc-memo-box{
+  flex-shrink:0; max-width:48%;
+  border:1.5px solid var(--line); border-radius:8px; padding:5px 8px;
+  display:flex; align-items:center; gap:5px;
+}
+.tc-memo-ttl{font-size:15px; flex-shrink:0; line-height:1;}
+.cal-cell .memo-mark{
+  font-size:9px; line-height:1;
+}
+.tc-memo-val{font-size:12px; color:var(--ink); line-height:1.4; word-break:break-all;}
+.tc-memo-empty{font-size:11px; color:#ccc;}
+.tc-tomorrow{margin-top:10px; padding-top:10px; border-top:1px solid var(--line);
+  display:flex; align-items:center; gap:8px;}
+.tc-tomorrow .tl{font-size:11px; color:var(--sub); white-space:nowrap;}
+.tc-tomorrow .ts{font-size:13px; font-weight:700;}
+.tc-tomorrow .tt{font-size:11px; color:var(--sub);}
 .night-card .nc-head{display:flex; align-items:baseline; gap:8px; margin-bottom:10px;}
 .night-card .nc-title{font-size:14px; font-weight:700;}
 .night-card .nc-total{margin-left:auto; font-size:20px; font-weight:700; color:var(--accent);}
@@ -268,6 +301,7 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 
 <main>
   <section id="secCal">
+    <div id="todayCard"></div>
     <div class="cal-nav">
       <button id="calPrev" aria-label="前の月">‹</button>
       <div class="cal-title num" id="calTitle"></div>
@@ -528,6 +562,11 @@ function renderDays(){
             <button type="button" class="reset num ${isOv?"show":""}" data-k="${k}" title="自動計算に戻す">↺</button>
           </div>
         </div>
+        <div class="r2-row">
+          <label>メモ</label>
+          <input type="text" class="memo" data-k="${k}" value="${esc(day.memo||"")}" placeholder="残業理由など" maxlength="40"
+            style="flex:1;border:1.5px solid var(--line);border-radius:9px;padding:5px 8px;font-size:14px;background:#fff;">
+        </div>
       </div>`;
     sec.appendChild(el);
   }
@@ -576,6 +615,14 @@ function renderDays(){
   bindTime("startA","startActual");
   bindTime("startE","startEnd");
   bindTime("endA","endActual", k=>shiftDefaultEnd(state.days[k]&&state.days[k].shift));
+
+  sec.querySelectorAll("input.memo").forEach(i=>i.addEventListener("change",e=>{
+    const k=e.target.dataset.k;
+    if(!state.days[k]) state.days[k]={};
+    state.days[k].memo=e.target.value||undefined;
+    store.save(state);
+    renderCal(); /* ウィジェットに即反映 */
+  }));
   sec.querySelectorAll("input.ot").forEach(i=>i.addEventListener("change",e=>{
     if(!e.target.isConnected) return; /* 再描画で消えた要素からの遅延発火を無視 */
     const k=e.target.dataset.k;
@@ -970,8 +1017,82 @@ function nightCat(d){
 
 /* ---------- render: calendar ---------- */
 let calY=today.getFullYear(), calM=today.getMonth()+1;
+let widgetDate=new Date(today); /* ウィジェット表示日（デフォルト=今日） */
 
+function renderWidget(){
+  const WDJ=["日","月","火","水","木","金","土"];
+  const wd=widgetDate;
+  const wk=keyOf(wd);
+  const isToday=keyOf(new Date())===wk;
+  const day=state.days[wk];
+  const m=day&&day.shift?masterOf(day.shift):null;
+
+  /* 翌日 */
+  const nd=new Date(wd.getFullYear(),wd.getMonth(),wd.getDate()+1);
+  const nk=keyOf(nd);
+  const nDay=state.days[nk];
+  const nM=nDay&&nDay.shift?masterOf(nDay.shift):null;
+
+  const dateLabel=`${wd.getMonth()+1}月${wd.getDate()}日（${WDJ[wd.getDay()]}）${isToday?" 🔵":""}`;
+  const nextLabel=isToday?"明日":`${nd.getMonth()+1}/${nd.getDate()}`;
+
+  let tcHTML=`<div class="tc-label">TODAY</div>
+    <div class="tc-date-nav">
+      <button id="tcPrev">‹</button>
+      <span class="tc-date">${dateLabel}</span>
+      <button id="tcNext">›</button>
+    </div>`;
+
+  /* メモボックス */
+  const memoHTML=`<div class="tc-memo-box">
+    <span class="tc-memo-ttl">🗒</span>
+    ${day&&day.memo
+      ?`<span class="tc-memo-val">${esc(day.memo)}</span>`
+      :`<span class="tc-memo-empty">なし</span>`}
+  </div>`;
+
+  if(day&&day.shift&&m){
+    const timeStr=m.start&&m.end?`${m.start} 〜 ${m.end}`:"";
+    const eff=effOT(day);
+    const otStr=eff!=null?`残業 ${fmtMin(eff)}`:"";
+    tcHTML+=`<div class="tc-main">
+      <div class="tc-left">
+        <span class="tc-shift" style="color:${m.color||"var(--ink)"}">${esc(day.shift)}</span>
+        <div class="tc-detail">
+          ${timeStr?`<span class="tc-time num">${timeStr}</span>`:""}
+          ${m.noWork?`<span class="tc-ot">勤務なし</span>`:otStr?`<span class="tc-ot">${otStr}</span>`:""}
+        </div>
+      </div>
+      ${memoHTML}
+    </div>`;
+  } else {
+    tcHTML+=`<div class="tc-main">
+      <div class="tc-none">シフト未登録</div>
+      ${memoHTML}
+    </div>`;
+  }
+
+  if(nDay&&nDay.shift&&nM){
+    const nmTime=nM.start&&nM.end?`${nM.start}〜${nM.end}`:"";
+    tcHTML+=`<div class="tc-tomorrow">
+      <span class="tl">${nextLabel}</span>
+      <span class="ts" style="color:${nM.color||"var(--ink)"}">${esc(nDay.shift)}</span>
+      ${nmTime?`<span class="tt num">${nmTime}</span>`:""}
+    </div>`;
+  }
+
+  document.getElementById("todayCard").innerHTML=tcHTML;
+  document.getElementById("tcPrev").addEventListener("click",()=>{
+    widgetDate=new Date(wd.getFullYear(),wd.getMonth(),wd.getDate()-1);
+    renderWidget();
+  });
+  document.getElementById("tcNext").addEventListener("click",()=>{
+    widgetDate=new Date(wd.getFullYear(),wd.getMonth(),wd.getDate()+1);
+    renderWidget();
+  });
+}
 function renderCal(){
+  renderWidget();
   document.getElementById("calTitle").textContent=`${calY}年${calM}月`;
   const grid=document.getElementById("calGrid");
   grid.innerHTML="";
@@ -998,8 +1119,8 @@ function renderCal(){
     cell.innerHTML=`
       <span class="d num">${d}</span>
       ${hol?'<span class="hmark">祝</span>':""}
-      ${day&&day.shift?`<span class="sh" style="color:${m&&m.color?m.color:"#6b7787"}">${esc(day.shift)}</span>`:""}`;
-    grid.appendChild(cell);
+      ${day&&day.shift?`<span class="sh" style="color:${m&&m.color?m.color:"#6b7787"}">${esc(day.shift)}</span>`:""}
+      ${day&&day.memo?`<span class="memo-mark">📌</span>`:""}`;    grid.appendChild(cell);
   }
 
   const total=counts.wk+counts.sat+counts.sun;
