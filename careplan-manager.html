@@ -1228,7 +1228,7 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `careplan_data_${new Date().toISOString().slice(0,10)}.json`;
+  a.download = `careplan_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
   closeBackupModal();
@@ -1636,15 +1636,21 @@ function getOverdueResidents() {
   const result = [];
   residents.forEach(r => {
     if (!r.meetings || r.meetings.length === 0) return;
-    const latest = r.meetings[r.meetings.length - 1];
-    if (!latest.date) return;
-    const [y, m, d] = latest.date.split('-').map(Number);
-    const meetingDate = new Date(y, m - 1, d);
-    const diffDays = Math.floor((today - meetingDate) / (1000 * 60 * 60 * 24));
-    if (diffDays < 7) return;
-    const careplan = latest.docs.find(doc => doc.name === 'ケアプラン');
-    if (careplan && !careplan.printed) {
-      result.push({ r, meetingDate: latest.date, diffDays });
+    // 全会議をチェック
+    const overdueMeetings = [];
+    r.meetings.forEach((meeting, idx) => {
+      if (!meeting.date) return;
+      const [y, m, d] = meeting.date.split('-').map(Number);
+      const meetingDate = new Date(y, m - 1, d);
+      const diffDays = Math.floor((today - meetingDate) / (1000 * 60 * 60 * 24));
+      if (diffDays < 7) return;
+      const careplan = meeting.docs.find(doc => doc.name === 'ケアプラン');
+      if (careplan && !careplan.printed) {
+        overdueMeetings.push({ meetingDate: meeting.date, diffDays, idx });
+      }
+    });
+    if (overdueMeetings.length > 0) {
+      result.push({ r, overdueMeetings });
     }
   });
   return result;
@@ -1657,8 +1663,9 @@ function updateAlert() {
     bar.style.display = 'none';
     return;
   }
+  const total = overdue.reduce((sum, o) => sum + o.overdueMeetings.length, 0);
   bar.style.display = 'flex';
-  bar.innerHTML = `⚠️ ケアプラン印刷の期限超過が ${overdue.length}件 あります<span class="arrow">›</span>`;
+  bar.innerHTML = `⚠️ ケアプラン印刷の期限超過が ${total}件 あります<span class="arrow">›</span>`;
 }
 
 function openAlertModal() {
@@ -1667,16 +1674,21 @@ function openAlertModal() {
   if (overdue.length === 0) {
     listEl.innerHTML = '<p style="color:var(--text-sub);font-size:13px;">該当はありません。</p>';
   } else {
-    listEl.innerHTML = overdue.map(({ r, meetingDate, diffDays }) => `
-      <div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="closeAlertModal();jumpToRoomEdit('${r.id}')">
-        <div class="bed-badge">${esc(r.bed)}</div>
-        <div style="flex:1;">
-          <div style="font-size:13px;">最新会議：${fmtDate(meetingDate)}</div>
-          <div style="font-size:11px;color:#a03030;font-weight:700;">${diffDays}日経過・未印刷</div>
+    listEl.innerHTML = overdue.map(({ r, overdueMeetings }) => {
+      const offset = r.meetingOffset || 1;
+      const meetingsHtml = overdueMeetings.map(({ meetingDate, diffDays, idx }) =>
+        `<div style="font-size:12px;color:#a03030;font-weight:700;">第${offset + idx}回 ${fmtDate(meetingDate)}・${diffDays}日経過・未印刷</div>`
+      ).join('');
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="closeAlertModal();jumpToRoomEdit('${r.id}')">
+          <div class="bed-badge">${esc(r.bed)}</div>
+          <div style="flex:1;">
+            ${meetingsHtml}
+          </div>
+          <span style="color:var(--text-sub);">›</span>
         </div>
-        <span style="color:var(--text-sub);">›</span>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
   document.getElementById('alert-modal').classList.add('open');
 }
