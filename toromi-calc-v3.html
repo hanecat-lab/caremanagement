@@ -149,15 +149,15 @@
     font-weight: 700; line-height: 1;
   }
   .qty-btn:active { background: var(--border); }
-  .qty-num { width: 20px; text-align: center; font-size: 0.88rem; font-weight: 700; }
+  .qty-num { width: 20px; text-align: center; font-size: 20px; font-weight: 700; }
   .ml-input {
     width: 60px; padding: 4px 5px;
     border: 1px solid var(--border); border-radius: 6px;
-    font-size: 0.8rem; text-align: right;
+    font-size: 20px; text-align: right;
     background: var(--card); color: var(--text);
   }
-  .ml-unit { font-size: 0.75rem; color: var(--muted); }
-  .row-total { font-size: 0.8rem; font-weight: 700; min-width: 50px; text-align: right; }
+  .ml-unit { font-size: 20px; color: var(--muted); }
+  .row-total { font-size: 20px; font-weight: 700; min-width: 50px; text-align: right; }
 
   .sub-total {
     margin-top: 9px; padding: 7px 9px; border-radius: 7px 7px 0 0;
@@ -327,8 +327,8 @@
 <div class="floor-section active" id="floor2">
   <div class="floor-banner f2">2階フロア</div>
   <div class="time-tabs">
-    <div class="time-tab active" onclick="switchTime(2,0)">9時（朝・昼）</div>
-    <div class="time-tab" onclick="switchTime(2,1)">15時（補充・夕食）</div>
+    <div class="time-tab active" onclick="switchTime(2,0)">9時</div>
+    <div class="time-tab" onclick="switchTime(2,1)">15時</div>
     <div class="time-tab" onclick="switchTime(2,2)">1日合計</div>
   </div>
 
@@ -399,6 +399,17 @@
           <input class="ml-input" type="number" id="f2_c0_hiru_ml" value="0" min="0" onchange="calc()">
           <span class="ml-unit">ml</span>
           <span class="row-total" id="f2_c0_hiru_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','c0','ko',-1)">−</button>
+            <span class="qty-num" id="f2_c0_ko_n">0</span>
+            <button class="qty-btn" onclick="chg('f2','c0','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_c0_ko_ml" value="0" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_c0_ko_t">0 ml</span>
         </div>
       </div>
       <div class="sub-total"><span>中間 9時 小計</span><span id="f2_c0_sub">450 ml</span></div>
@@ -528,6 +539,17 @@
           <span class="ml-unit">ml</span>
           <span class="row-total" id="f2_c1_yu_t">150 ml</span>
         </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f2','c1','ko',-1)">−</button>
+            <span class="qty-num" id="f2_c1_ko_n">0</span>
+            <button class="qty-btn" onclick="chg('f2','c1','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f2_c1_ko_ml" value="0" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f2_c1_ko_t">0 ml</span>
+        </div>
       </div>
       <div class="sub-total"><span>中間 15時 小計</span><span id="f2_c1_sub">300 ml</span></div>
       <div class="powder-row"><span class="pdr-label">🥄 とろみ粉</span><span class="pdr-val" id="f2_c1_pwd">6.0 g</span></div>
@@ -631,8 +653,8 @@
 <div class="floor-section" id="floor3">
   <div class="floor-banner f3">3階フロア</div>
   <div class="time-tabs">
-    <div class="time-tab active" onclick="switchTime(3,0)">9時（朝・昼）</div>
-    <div class="time-tab" onclick="switchTime(3,1)">15時（補充・夕食）</div>
+    <div class="time-tab active" onclick="switchTime(3,0)">9時</div>
+    <div class="time-tab" onclick="switchTime(3,1)">15時</div>
     <div class="time-tab" onclick="switchTime(3,2)">1日合計</div>
   </div>
 
@@ -702,6 +724,17 @@
           <input class="ml-input" type="number" id="f3_c0_hiru_ml" value="0" min="0" onchange="calc()">
           <span class="ml-unit">ml</span>
           <span class="row-total" id="f3_c0_hiru_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','c0','ko',-1)">−</button>
+            <span class="qty-num" id="f3_c0_ko_n">0</span>
+            <button class="qty-btn" onclick="chg('f3','c0','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_c0_ko_ml" value="0" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_c0_ko_t">0 ml</span>
         </div>
       </div>
       <div class="sub-total"><span>中間 9時 小計</span><span id="f3_c0_sub">450 ml</span></div>
@@ -827,6 +860,17 @@
           <input class="ml-input" type="number" id="f3_c1_yu_ml" value="0" min="0" onchange="calc()">
           <span class="ml-unit">ml</span>
           <span class="row-total" id="f3_c1_yu_t">150 ml</span>
+        </div>
+        <div class="use-row">
+          <span class="use-label">口腔ケア</span>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="chg('f3','c1','ko',-1)">−</button>
+            <span class="qty-num" id="f3_c1_ko_n">0</span>
+            <button class="qty-btn" onclick="chg('f3','c1','ko',1)">＋</button>
+          </div>
+          <input class="ml-input" type="number" id="f3_c1_ko_ml" value="0" min="0" onchange="calc()">
+          <span class="ml-unit">ml</span>
+          <span class="row-total" id="f3_c1_ko_t">0 ml</span>
         </div>
       </div>
       <div class="sub-total"><span>中間 15時 小計</span><span id="f3_c1_sub">300 ml</span></div>
@@ -958,18 +1002,18 @@
 const state = {
   f2: {
     u0: { asa:0, hiru:0, ko:0 },
-    c0: { asa:0, hiru:0 },
+    c0: { asa:0, hiru:0, ko:0 },
     k0: { asa:0, hiru:0, ko:0 },
     u1: { ho:0, yu:0, ko:0 },
-    c1: { ho:0, yu:0 },
+    c1: { ho:0, yu:0, ko:0 },
     k1: { ho:0, yu:0, ko:0 },
   },
   f3: {
     u0: { asa:0, hiru:0, ko:0 },
-    c0: { asa:0, hiru:0 },
+    c0: { asa:0, hiru:0, ko:0 },
     k0: { asa:0, hiru:0, ko:0 },
     u1: { ho:0, yu:0, ko:0 },
-    c1: { ho:0, yu:0 },
+    c1: { ho:0, yu:0, ko:0 },
     k1: { ho:0, yu:0, ko:0 },
   }
 };
@@ -1002,7 +1046,8 @@ function calcFloor(f) {
 
   const c0_asa  = s.c0.asa  * gml(`${f}_c0_asa_ml`);
   const c0_hiru = s.c0.hiru * gml(`${f}_c0_hiru_ml`);
-  const c0_sub  = c0_asa + c0_hiru;
+  const c0_ko   = s.c0.ko   * gml(`${f}_c0_ko_ml`);
+  const c0_sub  = c0_asa + c0_hiru + c0_ko;
 
   const k0_asa  = s.k0.asa  * gml(`${f}_k0_asa_ml`);
   const k0_hiru = s.k0.hiru * gml(`${f}_k0_hiru_ml`);
@@ -1017,7 +1062,8 @@ function calcFloor(f) {
 
   const c1_ho  = s.c1.ho * gml(`${f}_c1_ho_ml`);
   const c1_yu  = s.c1.yu * gml(`${f}_c1_yu_ml`);
-  const c1_sub = c1_ho + c1_yu;
+  const c1_ko  = s.c1.ko * gml(`${f}_c1_ko_ml`);
+  const c1_sub = c1_ho + c1_yu + c1_ko;
 
   const k1_ho  = s.k1.ho * gml(`${f}_k1_ho_ml`);
   const k1_yu  = s.k1.yu * gml(`${f}_k1_yu_ml`);
@@ -1028,14 +1074,14 @@ function calcFloor(f) {
   set(`${f}_u0_asa_t`,  ml(u0_asa));  set(`${f}_u0_hiru_t`, ml(u0_hiru));
   set(`${f}_u0_ko_t`,   ml(u0_ko));   set(`${f}_u0_sub`,    ml(u0_sub));
   set(`${f}_c0_asa_t`,  ml(c0_asa));  set(`${f}_c0_hiru_t`, ml(c0_hiru));
-  set(`${f}_c0_sub`,    ml(c0_sub));
+  set(`${f}_c0_ko_t`,   ml(c0_ko));   set(`${f}_c0_sub`,    ml(c0_sub));
   set(`${f}_k0_asa_t`,  ml(k0_asa));  set(`${f}_k0_hiru_t`, ml(k0_hiru));
   set(`${f}_k0_ko_t`,   ml(k0_ko));   set(`${f}_k0_sub`,    ml(k0_sub));
 
   set(`${f}_u1_ho_t`,   ml(u1_ho));   set(`${f}_u1_yu_t`,   ml(u1_yu));
   set(`${f}_u1_ko_t`,   ml(u1_ko));   set(`${f}_u1_sub`,    ml(u1_sub));
   set(`${f}_c1_ho_t`,   ml(c1_ho));   set(`${f}_c1_yu_t`,   ml(c1_yu));
-  set(`${f}_c1_sub`,    ml(c1_sub));
+  set(`${f}_c1_ko_t`,   ml(c1_ko));   set(`${f}_c1_sub`,    ml(c1_sub));
   set(`${f}_k1_ho_t`,   ml(k1_ho));   set(`${f}_k1_yu_t`,   ml(k1_yu));
   set(`${f}_k1_ko_t`,   ml(k1_ko));   set(`${f}_k1_sub`,    ml(k1_sub));
 
