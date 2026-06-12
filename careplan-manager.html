@@ -122,6 +122,47 @@
 
   .alert-bar .arrow { margin-left: auto; color: #a03030; }
 
+  .search-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    align-items: center;
+  }
+
+  .search-input {
+    flex: 1;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 16px;
+    color: var(--text);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    outline: none;
+  }
+
+  .search-input:focus { border-color: var(--accent); }
+
+  .filter-btn {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-sub);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .filter-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
   .wareki-select {
     display: flex;
     gap: 4px;
@@ -871,6 +912,171 @@
     padding-top: 14px;
     border-top: 1px solid var(--border);
   }
+
+  /* タブ */
+  .tab-bar {
+    display: flex;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-sub);
+    padding: 10px 0;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.15s;
+  }
+
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* フロアマップ */
+  .floor-section {
+    margin-bottom: 20px;
+  }
+
+  .floor-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-sub);
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+    padding: 4px 10px;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 6px;
+    display: inline-block;
+  }
+
+  .floor-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .room-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .room-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    flex: 1;
+  }
+
+  .room-block-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-align: center;
+    margin-bottom: 6px;
+    letter-spacing: 0.03em;
+  }
+
+  .beds-grid {
+    display: grid;
+    gap: 5px;
+  }
+
+  .beds-grid.beds-4 { grid-template-columns: 1fr 1fr; }
+  .beds-grid.beds-2 { grid-template-columns: 1fr; }
+  .beds-grid.beds-1 { grid-template-columns: 1fr; }
+
+  .bed-cell {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 52px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+  }
+
+  .bed-cell:active { opacity: 0.7; }
+
+  .bed-cell.occupied {
+    background: var(--accent-light);
+    border-color: var(--accent);
+  }
+
+  .bed-cell.has-unfinished {
+    background: #fdeaea;
+    border-color: #e8a0a0;
+  }
+
+  .bed-cell.empty {
+    background: var(--bg);
+    border-color: var(--border);
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .bed-cell-id {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  .bed-cell.has-unfinished .bed-cell-id { color: #a03030; }
+
+  .bed-cell-info {
+    font-size: 10px;
+    color: var(--text-sub);
+    line-height: 1.3;
+  }
+
+  .bed-cell-dots {
+    display: flex;
+    gap: 2px;
+    justify-content: center;
+    margin-top: 2px;
+  }
+
+  .bed-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); }
+  .bed-dot.done { background: var(--green); }
+  .bed-dot.undone { background: #e8a0a0; }
+
+  /* ベッド詳細モーダル */
+  .bed-detail-modal {
+    background: #fff;
+    border-radius: 16px;
+    padding: 20px;
+    width: 100%;
+    max-width: 360px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .bed-detail-modal h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
 </style>
 </head>
 <body>
@@ -908,11 +1114,30 @@
 
   <div id="alert-bar" class="alert-bar" style="display:none;" onclick="openAlertModal()"></div>
 
-  <div id="resident-list">
-    <div class="empty-state">
-      利用者が登録されていません<br>
-      <p>右上の「＋ 追加」から追加してください</p>
+  <!-- タブ -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">📋 書類管理</button>
+    <button class="tab-btn" id="tab-map" onclick="switchTab('map')">🏠 フロアマップ</button>
+  </div>
+
+  <!-- 書類管理タブ -->
+  <div id="pane-list">
+    <!-- 検索・絞り込み -->
+    <div class="search-row">
+      <input type="text" id="search-input" class="search-input" placeholder="🔍 ベッド位置・メモで検索" oninput="render()">
+      <button id="filter-btn" class="filter-btn" onclick="toggleFilter()">未完了のみ</button>
     </div>
+    <div id="resident-list">
+      <div class="empty-state">
+        利用者が登録されていません<br>
+        <p>右上の「＋ 追加」から追加してください</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- フロアマップタブ -->
+  <div id="pane-map" style="display:none;">
+    <div id="floor-map"></div>
   </div>
 </div>
 
@@ -978,6 +1203,18 @@
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeBulkMeetingModal()">キャンセル</button>
       <button class="btn-primary" onclick="applyBulkMeeting()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- ベッド詳細モーダル -->
+<div class="modal-overlay" id="bed-detail-modal">
+  <div class="bed-detail-modal">
+    <h2 id="bed-detail-title"></h2>
+    <div id="bed-detail-content"></div>
+    <div style="margin-top:14px;display:flex;gap:8px;">
+      <button class="btn-primary" id="bed-detail-edit-btn">編集へ</button>
+      <button class="btn-cancel" onclick="closeBedDetail()">閉じる</button>
     </div>
   </div>
 </div>
@@ -1698,6 +1935,38 @@ function closeAlertModal() {
 }
 
 let openRooms = new Set();
+let filterUnfinished = false;
+
+function toggleFilter() {
+  filterUnfinished = !filterUnfinished;
+  const btn = document.getElementById('filter-btn');
+  if (btn) btn.classList.toggle('active', filterUnfinished);
+  render();
+}
+
+// 利用者が未完了書類を持つか
+function hasUnfinished(r) {
+  return (r.meetings || []).some(m =>
+    m.docs.some(d => d.name !== '支援経過' && (!d.created || !d.printed))
+  );
+}
+
+// 検索・絞り込みで利用者をフィルタリング
+function filterResidents(list) {
+  const q = (document.getElementById('search-input') || {}).value || '';
+  const query = q.trim().toLowerCase();
+  return list.filter(r => {
+    if (filterUnfinished && !hasUnfinished(r)) return false;
+    if (query) {
+      const bed = (r.bed || '').toLowerCase();
+      const memo = (r.memo || '').toLowerCase();
+      const careLevel = (r.careLevel || '').toLowerCase();
+      const gender = (r.gender || '').toLowerCase();
+      if (!bed.includes(query) && !memo.includes(query) && !careLevel.includes(query) && !gender.includes(query)) return false;
+    }
+    return true;
+  });
+}
 let openYears = new Set();
 let groupMode = 'month'; // 'month' or 'room'
 
@@ -1910,9 +2179,7 @@ function render() {
     return;
   }
 
-  const sorted = [...residents].sort((a, b) => a.bed.localeCompare(b.bed, 'ja'));
-
-  // 月別モード：今年は月フォルダー、それ以外は年フォルダーに入れ子
+  const sorted = filterResidents([...residents].sort((a, b) => a.bed.localeCompare(b.bed, 'ja')));
   if (groupMode === 'month') {
     const currentYear = String(new Date().getFullYear());
     // 月キーごとに利用者をまとめる
@@ -2234,6 +2501,173 @@ document.getElementById('modal').addEventListener('click', function(e) {
 
 document.getElementById('modal-memo').addEventListener('keydown', e => {
   if (e.key === 'Enter') addResident();
+});
+
+// ========== フロアマップ ==========
+
+// 部屋定義：除外(4,9含む)を除いた部屋番号と種別
+function buildFloorDef(prefix, from, to) {
+  const rooms = [];
+  for (let n = from; n <= to; n++) {
+    const s = String(n);
+    if (s.includes('4') || s.includes('9')) continue;
+    const num = parseInt(s.slice(-2) || s);
+    let beds, type;
+    if (num === 7) { beds = 1; type = '1人'; }
+    else if (num >= 2 && num <= 6) { beds = 2; type = '2人'; }
+    else { beds = 4; type = '4人'; }
+    rooms.push({ room: String(n), beds, type });
+  }
+  return rooms;
+}
+
+const FLOOR_200 = buildFloorDef(2, 201, 218);
+const FLOOR_300 = buildFloorDef(3, 301, 316);
+
+let currentTab = 'list';
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('pane-list').style.display = tab === 'list' ? 'block' : 'none';
+  document.getElementById('pane-map').style.display = tab === 'map' ? 'block' : 'none';
+  document.getElementById('tab-list').classList.toggle('active', tab === 'list');
+  document.getElementById('tab-map').classList.toggle('active', tab === 'map');
+  if (tab === 'map') renderFloorMap();
+}
+
+function getBedResidents(roomNum) {
+  // roomNum例："201" → 201-1,201-2,201-3,201-4 などを返す
+  return residents.filter(r => getRoomKey(r.bed) === roomNum);
+}
+
+function bedStatus(r) {
+  // 最新会議の書類状況
+  if (!r || !r.meetings || r.meetings.length === 0) return 'occupied';
+  const latest = r.meetings[r.meetings.length - 1];
+  const unfinished = latest.docs.some(d => d.name !== '支援経過' && (!d.created || !d.printed));
+  return unfinished ? 'has-unfinished' : 'occupied';
+}
+
+function renderBedCell(roomNum, bedSuffix, bedCount) {
+  // bedSuffix: 4人部屋なら1〜4、2人部屋なら1〜2、1人部屋ならなし
+  const bedId = bedCount === 1 ? roomNum : `${roomNum}-${bedSuffix}`;
+  const r = residents.find(res => res.bed === bedId);
+
+  if (!r) {
+    return `<div class="bed-cell empty">
+      <div class="bed-cell-id" style="color:var(--border);">${bedId}</div>
+    </div>`;
+  }
+
+  const status = bedStatus(r);
+  const latest = r.meetings && r.meetings.length > 0 ? r.meetings[r.meetings.length - 1] : null;
+  const dots = latest ? latest.docs.slice(0,3).map(d =>
+    `<div class="bed-dot${d.printed ? ' done' : ' undone'}"></div>`
+  ).join('') : '';
+  const info = [r.careLevel, r.gender].filter(x => x).join(' ');
+
+  return `<div class="bed-cell ${status}" onclick="openBedDetail('${r.id}')">
+    <div class="bed-cell-id">${esc(r.bed)}</div>
+    ${info ? `<div class="bed-cell-info">${esc(info)}</div>` : ''}
+    <div class="bed-cell-dots">${dots}</div>
+  </div>`;
+}
+
+function renderRoomBlock(roomDef) {
+  const { room, beds } = roomDef;
+  const bedsHtml = beds === 1
+    ? renderBedCell(room, 1, 1)
+    : Array.from({length: beds}, (_, i) => renderBedCell(room, i + 1, beds)).join('');
+
+  return `<div class="room-block">
+    <div class="room-block-label">${room}号室</div>
+    <div class="beds-grid beds-${beds}">${bedsHtml}</div>
+  </div>`;
+}
+
+function renderFloorMap() {
+  const map = document.getElementById('floor-map');
+
+  // 3部屋ずつ横に並べる
+  function chunkRooms(rooms) {
+    const rows = [];
+    for (let i = 0; i < rooms.length; i += 3) {
+      rows.push(rooms.slice(i, i + 3));
+    }
+    return rows;
+  }
+
+  const rows200 = chunkRooms(FLOOR_200);
+  const rows300 = chunkRooms(FLOOR_300);
+
+  const html200 = rows200.map(row =>
+    `<div class="room-row">${row.map(r => renderRoomBlock(r)).join('')}</div>`
+  ).join('');
+
+  const html300 = rows300.map(row =>
+    `<div class="room-row">${row.map(r => renderRoomBlock(r)).join('')}</div>`
+  ).join('');
+
+  map.innerHTML = `
+    <div class="floor-section">
+      <span class="floor-label">2F</span>
+      <div class="floor-grid">${html200}</div>
+    </div>
+    <div class="floor-section">
+      <span class="floor-label">3F</span>
+      <div class="floor-grid">${html300}</div>
+    </div>
+  `;
+}
+
+function openBedDetail(residentId) {
+  const r = residents.find(x => x.id === residentId);
+  if (!r) return;
+
+  const latest = r.meetings && r.meetings.length > 0 ? r.meetings[r.meetings.length - 1] : null;
+  const offset = r.meetingOffset || 1;
+  const dispNum = latest ? offset + r.meetings.length - 1 : null;
+
+  const infoHtml = [
+    r.careLevel ? `<span style="font-size:12px;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:4px;">${esc(r.careLevel)}</span>` : '',
+    r.gender ? `<span style="font-size:12px;background:var(--bg);color:var(--text-sub);padding:2px 8px;border-radius:4px;border:1px solid var(--border);">${esc(r.gender)}</span>` : '',
+    r.memo ? `<span style="font-size:12px;color:var(--text-sub);">${esc(r.memo)}</span>` : '',
+  ].filter(x => x).join(' ');
+
+  const meetingHtml = latest ? `
+    <div style="margin-top:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:6px;">第${dispNum}回　${fmtDate(latest.date)}</div>
+      ${latest.docs.map(d => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;">
+          <span>${d.name}</span>
+          <div style="display:flex;gap:6px;">
+            <span style="font-size:11px;font-weight:700;color:${d.created ? 'var(--accent)' : 'var(--border)'};">作成${d.created ? '✓' : '―'}</span>
+            <span style="font-size:11px;font-weight:700;color:${d.printed ? 'var(--green)' : 'var(--border)'};">印刷${d.printed ? '✓' : '―'}</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  ` : '<div style="font-size:13px;color:var(--text-sub);margin-top:10px;">会議記録なし</div>';
+
+  document.getElementById('bed-detail-title').innerHTML = `<div class="bed-badge">${esc(r.bed)}</div>`;
+  document.getElementById('bed-detail-content').innerHTML = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;">${infoHtml}</div>
+    ${meetingHtml}
+  `;
+  document.getElementById('bed-detail-edit-btn').onclick = () => {
+    closeBedDetail();
+    switchTab('list');
+    jumpToRoomEdit(residentId);
+  };
+  document.getElementById('bed-detail-modal').classList.add('open');
+}
+
+function closeBedDetail() {
+  document.getElementById('bed-detail-modal').classList.remove('open');
+}
+
+document.getElementById('bed-detail-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeBedDetail();
 });
 
 load();
