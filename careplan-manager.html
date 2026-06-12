@@ -2605,7 +2605,7 @@ function buildFloorDef(prefix, from, to) {
     const num = parseInt(s.slice(-2) || s);
     let beds, type;
     if (num === 7) { beds = 1; type = '1人'; }
-    else if ((num >= 2 && num <= 6) || n === 316) { beds = 2; type = '2人'; }
+    else if ((num >= 2 && num <= 6) || n === 316 || n === 301) { beds = 2; type = '2人'; }
     else { beds = 4; type = '4人'; }
     rooms.push({ room: String(n), beds, type });
   }
