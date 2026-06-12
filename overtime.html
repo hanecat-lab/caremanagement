@@ -192,12 +192,12 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 .hist-empty{font-size:13px; color:var(--sub); padding:20px 4px; text-align:center;}
 
 /* ===== calendar ===== */
-.cal-nav{display:flex; align-items:center; justify-content:space-between; margin:4px 2px 10px;}
+.cal-nav{display:grid; grid-template-columns:38px 1fr 38px; align-items:center; margin:4px 2px 10px; gap:4px;}
 .cal-nav button{
   background:#e6eaf0; border:none; color:var(--ink); font-size:18px;
   width:38px; height:38px; border-radius:11px;
 }
-.cal-nav .cal-title{font-size:17px; font-weight:700;}
+.cal-nav .cal-title{font-size:17px; font-weight:700; white-space:nowrap;}
 .cal{
   background:var(--card); border-radius:var(--radius); overflow:hidden;
   box-shadow:0 1px 2px rgba(20,40,70,.05); padding:6px 4px 8px;
@@ -218,6 +218,8 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 .cal-cell .hmark{font-size:8px; color:var(--red); line-height:1;}
 .cal-cell .sh{font-size:11px; font-weight:700; line-height:1.2; text-align:center; word-break:break-all;}
 .cal-cell.today{outline:2px solid var(--accent); outline-offset:-2px;}
+.cal-cell.selected{background:#e8eef7;}
+.cal-cell:not(.blank){cursor:pointer;}
 
 /* ===== night count ===== */
 .night-card{
@@ -304,7 +306,14 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
     <div id="todayCard"></div>
     <div class="cal-nav">
       <button id="calPrev" aria-label="前の月">‹</button>
-      <div class="cal-title num" id="calTitle"></div>
+      <div style="position:relative; display:flex; justify-content:center; align-items:center;">
+        <button class="cal-title num" id="calTitle"
+          style="background:none;border:none;cursor:pointer;font:inherit;color:inherit;
+                 padding:4px 8px;border-radius:8px;white-space:nowrap;font-size:16px;font-weight:700;
+                 margin-right:24px;"></button>
+        <input type="month" id="calMonthPicker"
+          style="position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;font-size:16px;" aria-label="年月選択">
+      </div>
       <button id="calNext" aria-label="次の月">›</button>
     </div>
     <div class="cal">
@@ -1093,7 +1102,8 @@ function renderWidget(){
 }
 function renderCal(){
   renderWidget();
-  document.getElementById("calTitle").textContent=`${calY}年${calM}月`;
+  document.getElementById("calTitle").textContent=`${calY}年${calM}月 ▾`;
+  document.getElementById("calMonthPicker").value=`${calY}-${pad(calM)}`;
   const grid=document.getElementById("calGrid");
   grid.innerHTML="";
   const first=new Date(calY,calM-1,1);
@@ -1115,12 +1125,19 @@ function renderCal(){
     if(m&&m.night) counts[nightCat(dt)]++;
 
     const cell=document.createElement("div");
-    cell.className="cal-cell"+(wd===0?" sun":wd===6?" sat":"")+(hol?" hol":"")+(k===todayKey?" today":"");
+    const isSelected=k===keyOf(widgetDate);
+    cell.className="cal-cell"+(wd===0?" sun":wd===6?" sat":"")+(hol?" hol":"")+(k===todayKey?" today":"")+(isSelected&&k!==todayKey?" selected":"");
     cell.innerHTML=`
       <span class="d num">${d}</span>
       ${hol?'<span class="hmark">祝</span>':""}
       ${day&&day.shift?`<span class="sh" style="color:${m&&m.color?m.color:"#6b7787"}">${esc(day.shift)}</span>`:""}
-      ${day&&day.memo?`<span class="memo-mark">📌</span>`:""}`;    grid.appendChild(cell);
+      ${day&&day.memo?`<span class="memo-mark">📌</span>`:""}`;
+    cell.addEventListener("click",()=>{
+      widgetDate=new Date(calY,calM-1,d);
+      renderCal();
+      document.getElementById("todayCard").scrollIntoView({behavior:"smooth",block:"nearest"});
+    });
+    grid.appendChild(cell);
   }
 
   const total=counts.wk+counts.sat+counts.sun;
@@ -1138,6 +1155,12 @@ function renderCal(){
 }
 document.getElementById("calPrev").addEventListener("click",()=>{ calM--; if(calM<1){calM=12;calY--;} renderCal(); });
 document.getElementById("calNext").addEventListener("click",()=>{ calM++; if(calM>12){calM=1;calY++;} renderCal(); });
+document.getElementById("calMonthPicker").addEventListener("change",e=>{
+  const v=e.target.value; /* "2026-06" */
+  if(!v) return;
+  const [y,m]=v.split("-").map(Number);
+  calY=y; calM=m; renderCal();
+});
 
 function saveRender(){ store.save(state); renderAll(); }
 function renderAll(){ renderHeader(); renderDays(); renderMaster(); renderHistory(); renderCal(); }
