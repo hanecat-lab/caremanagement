@@ -626,6 +626,13 @@
     border-bottom: 1px solid var(--border);
   }
 
+  .bed-input-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 0;
+  }
+
   .info-row {
     display: flex;
     gap: 10px;
@@ -1146,8 +1153,21 @@
     <h2>新規登録</h2>
     <div class="modal-field">
       <label>ベッド位置（管理番号）</label>
-      <input type="text" id="modal-bed" placeholder="例：201-1">
-      <div style="font-size:11px;color:var(--text-sub);margin-top:4px;">複数人まとめて追加する場合は、カンマ・ピリオド・空白・改行のいずれかで区切って入力（例：201-1, 201-2 202.203）</div>
+      <div class="bed-input-row">
+        <select id="modal-room-select" class="info-input" onchange="onModalRoomSelect()" style="flex:1.2;">
+          <option value="">部屋番号</option>
+          <optgroup label="2F">
+            <option>201</option><option>202</option><option>203</option><option>205</option><option>206</option><option>207</option><option>208</option><option>210</option><option>211</option><option>212</option><option>213</option><option>215</option><option>216</option><option>217</option><option>218</option>
+          </optgroup>
+          <optgroup label="3F">
+            <option>301</option><option>302</option><option>303</option><option>305</option><option>306</option><option>307</option><option>308</option><option>310</option><option>311</option><option>312</option><option>313</option><option>315</option><option>316</option>
+          </optgroup>
+        </select>
+        <span style="font-size:14px;color:var(--text-sub);flex-shrink:0;">-</span>
+        <input type="text" id="modal-suffix" placeholder="H, T など" style="flex:1;" oninput="onModalBedInput()">
+      </div>
+      <input type="text" id="modal-bed" placeholder="例：201-H" style="margin-top:6px;">
+      <div style="font-size:11px;color:var(--text-sub);margin-top:4px;">プルダウンで部屋番号を選んでサフィックスを入力するか、直接入力できます。</div>
     </div>
     <div class="modal-field">
       <label>性別・要介護度（任意・全員共通）</label>
@@ -1532,8 +1552,28 @@ function closeBackupModal() {
   document.getElementById('backup-modal').classList.remove('open');
 }
 
+function onModalRoomSelect() {
+  const room = document.getElementById('modal-room-select').value;
+  const suffix = document.getElementById('modal-suffix').value.trim();
+  const bedEl = document.getElementById('modal-bed');
+  if (room) {
+    bedEl.value = suffix ? `${room}-${suffix}` : room;
+  }
+}
+
+function onModalBedInput() {
+  const room = document.getElementById('modal-room-select').value;
+  const suffix = document.getElementById('modal-suffix').value.trim();
+  const bedEl = document.getElementById('modal-bed');
+  if (room) {
+    bedEl.value = suffix ? `${room}-${suffix}` : room;
+  }
+}
+
 function openModal() {
   document.getElementById('modal-bed').value = '';
+  document.getElementById('modal-room-select').value = '';
+  document.getElementById('modal-suffix').value = '';
   document.getElementById('modal-memo').value = '';
   document.getElementById('modal-gender').value = '';
   document.getElementById('modal-carelevel').value = '';
@@ -2379,8 +2419,17 @@ function render() {
         bodyHtml = `
           <div class="card-body open">
             <!-- ベッド位置（転室時に変更可能） -->
-            <div class="bed-edit-row">
-              <span class="section-label" style="margin:0;">ベッド位置</span>
+            <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+              <span class="section-label" style="display:block;margin-bottom:6px;">ベッド位置</span>
+              <div class="bed-input-row" style="margin-bottom:6px;">
+                <select id="room-select-${r.id}" class="info-input" style="flex:1.2;" onchange="onCardRoomSelect('${r.id}')">
+                  <option value="">部屋番号</option>
+                  <optgroup label="2F"><option>201</option><option>202</option><option>203</option><option>205</option><option>206</option><option>207</option><option>208</option><option>210</option><option>211</option><option>212</option><option>213</option><option>215</option><option>216</option><option>217</option><option>218</option></optgroup>
+                  <optgroup label="3F"><option>301</option><option>302</option><option>303</option><option>305</option><option>306</option><option>307</option><option>308</option><option>310</option><option>311</option><option>312</option><option>313</option><option>315</option><option>316</option></optgroup>
+                </select>
+                <span style="font-size:14px;color:var(--text-sub);flex-shrink:0;">-</span>
+                <input type="text" id="suffix-${r.id}" placeholder="H, T など" style="flex:1;font-family:'Noto Sans JP',sans-serif;font-size:16px;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 8px;outline:none;" oninput="onCardSuffixInput('${r.id}')">
+              </div>
               <input type="text" id="bed-${r.id}" value="${esc(r.bed)}" class="bed-edit-input">
             </div>
             <!-- 基本情報 -->
@@ -2548,14 +2597,10 @@ function bedStatus(r) {
   return unfinished ? 'has-unfinished' : 'occupied';
 }
 
-function renderBedCell(roomNum, bedSuffix, bedCount) {
-  // bedSuffix: 4人部屋なら1〜4、2人部屋なら1〜2、1人部屋ならなし
-  const bedId = bedCount === 1 ? roomNum : `${roomNum}-${bedSuffix}`;
-  const r = residents.find(res => res.bed === bedId);
-
+function renderBedCell(roomNum, r) {
   if (!r) {
     return `<div class="bed-cell empty">
-      <div class="bed-cell-id" style="color:var(--border);">${bedId}</div>
+      <div class="bed-cell-id" style="color:var(--border);">空</div>
     </div>`;
   }
 
@@ -2575,13 +2620,21 @@ function renderBedCell(roomNum, bedSuffix, bedCount) {
 
 function renderRoomBlock(roomDef) {
   const { room, beds } = roomDef;
-  const bedsHtml = beds === 1
-    ? renderBedCell(room, 1, 1)
-    : Array.from({length: beds}, (_, i) => renderBedCell(room, i + 1, beds)).join('');
+  // その部屋に登録されている利用者を取得
+  const roomResidents = residents.filter(r => getRoomKey(r.bed) === room)
+    .sort((a, b) => a.bed.localeCompare(b.bed, 'ja'));
+
+  // 登録人数とベッド定義数の多い方に合わせてセル数を決める
+  const cellCount = Math.max(beds, roomResidents.length);
+  const bedsHtml = Array.from({length: cellCount}, (_, i) =>
+    renderBedCell(room, roomResidents[i] || null)
+  ).join('');
+
+  const gridClass = cellCount >= 3 ? 'beds-4' : cellCount === 2 ? 'beds-2' : 'beds-1';
 
   return `<div class="room-block">
     <div class="room-block-label">${room}号室</div>
-    <div class="beds-grid beds-${beds}">${bedsHtml}</div>
+    <div class="beds-grid ${gridClass}">${bedsHtml}</div>
   </div>`;
 }
 
