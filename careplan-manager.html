@@ -1295,13 +1295,23 @@
 
     <div class="backup-section-label">📥 復元・インポート</div>
     <button class="btn-backup-import" onclick="document.getElementById('file-input-backup').click()">
-      📂 バックアップファイルを選択
+      📂 バックアップファイルを選択（JSON）
     </button>
+
+    <div class="backup-section-label">📋 CSV一括登録</div>
+    <button class="btn-backup-action" onclick="exportCsvTemplate()">
+      📄 CSVテンプレートを保存
+    </button>
+    <button class="btn-backup-import" onclick="document.getElementById('file-input-csv').click()">
+      📂 CSVファイルを取り込む
+    </button>
+    <input type="file" id="file-input-csv" accept=".csv" onchange="importCsv(event)" style="display:none;">
 
     <div class="backup-steps">
       ① 今の端末で「JSONファイルに保存」<br>
       ② 新しい端末でこのアプリを開く<br>
-      ③「バックアップファイルを選択」で読み込む
+      ③「バックアップファイルを選択」で読み込む<br><br>
+      📋 CSVは「テンプレートを保存」→ 記入 →「取り込む」
     </div>
   </div>
 </div>
