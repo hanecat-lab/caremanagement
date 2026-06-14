@@ -1204,6 +1204,22 @@
       <input type="text" id="modal-memo" placeholder="自由記入">
     </div>
     <div class="modal-field">
+      <label>判定所見（任意）</label>
+      <textarea id="modal-assessment" placeholder="例：廃用症候群進行防止、医療的管理" style="font-family:inherit;font-size:16px;width:100%;min-height:52px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 8px;outline:none;resize:vertical;line-height:1.6;box-sizing:border-box;"></textarea>
+    </div>
+    <div class="modal-field">
+      <label>判定日（任意）</label>
+      <input type="date" id="modal-assessment-date">
+    </div>
+    <div class="modal-field" style="display:flex;align-items:center;justify-content:space-between;">
+      <label style="margin:0;">担当外（情報のみ）</label>
+      <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;" onclick="toggleModalInfoOnly()">
+        <input type="checkbox" id="modal-infoonly" style="opacity:0;width:0;height:0;">
+        <span id="modal-infoonly-track" style="position:absolute;inset:0;background:var(--border);border-radius:12px;transition:0.2s;"></span>
+        <span id="modal-infoonly-thumb" style="position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:0.2s;"></span>
+      </label>
+    </div>
+    <div class="modal-field">
       <label>開始回数（すでに何回か終わっている場合）</label>
       <input type="number" id="modal-offset" value="1" min="1" max="99">
     </div>
@@ -1485,6 +1501,7 @@ function load() {
       if (r.memo === undefined) r.memo = '';
       if (r.initial === undefined) r.initial = '';
       if (r.infoOnly === undefined) r.infoOnly = false;
+      if (r.assessmentDate === undefined) r.assessmentDate = '';
       // 旧データの短期目標をカードレベルから除去（会議レベルへ移行）
       r.meetings.forEach(m => {
         if (!m.shortGoalStart) m.shortGoalStart = '';
@@ -1499,6 +1516,107 @@ function load() {
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(residents));
+}
+
+function exportCsvTemplate() {
+  const rows = [['ベッド位置', 'イニシャル', '性別', '要介護度', '判定所見', '担当外(1=はい)']];
+  const roomDefs = [...FLOOR_200, ...FLOOR_300];
+  roomDefs.forEach(({ room, beds }) => {
+    if (beds === 1) {
+      rows.push([room, '', '', '', '', '']);
+    } else {
+      for (let i = 1; i <= beds; i++) {
+        rows.push([`${room}-${i}`, '', '', '', '', '']);
+      }
+    }
+  });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'careplan_template.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSVテンプレートを保存しました');
+}
+
+function importCsv(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      let text = e.target.result;
+      // BOM除去
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { alert('データがありません'); return; }
+
+      // ヘッダー行スキップ
+      let added = 0, updated = 0;
+      for (let i = 1; i < lines.length; i++) {
+        const cols = parseCsvLine(lines[i]);
+        if (cols.length < 1) continue;
+        const bed = cols[0].trim();
+        if (!bed) continue;
+        const initial   = (cols[1] || '').trim();
+        const gender    = (cols[2] || '').trim();
+        const careLevel = (cols[3] || '').trim();
+        const assessment = (cols[4] || '').trim();
+        const infoOnly  = (cols[5] || '').trim() === '1';
+
+        const existing = residents.find(r => r.bed === bed);
+        if (existing) {
+          if (initial)   existing.initial   = initial;
+          if (gender)    existing.gender    = gender;
+          if (careLevel) existing.careLevel = careLevel;
+          if (assessment) existing.assessment = assessment;
+          existing.infoOnly = infoOnly;
+          updated++;
+        } else {
+          residents.push({
+            id: Date.now().toString() + i + Math.random().toString(36).slice(2),
+            bed, initial, gender, careLevel, memo: '',
+            meetingOffset: 1,
+            longGoalStart: '', longGoalEnd: '',
+            assessment, infoOnly,
+            meetings: []
+          });
+          added++;
+        }
+      }
+      save();
+      openCards = new Set();
+      render();
+      closeBackupModal();
+      showToast(`${added}件追加・${updated}件更新しました`);
+    } catch(e) {
+      alert('CSVの読み込みに失敗しました: ' + e.message);
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+  event.target.value = '';
+}
+
+// CSV行をパース（ダブルクォート対応）
+function parseCsvLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      result.push(cur); cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
 }
 
 function exportData() {
@@ -1574,6 +1692,15 @@ function closeBackupModal() {
   document.getElementById('backup-modal').classList.remove('open');
 }
 
+function toggleModalInfoOnly() {
+  const cb = document.getElementById('modal-infoonly');
+  const track = document.getElementById('modal-infoonly-track');
+  const thumb = document.getElementById('modal-infoonly-thumb');
+  cb.checked = !cb.checked;
+  track.style.background = cb.checked ? 'var(--accent)' : 'var(--border)';
+  thumb.style.left = cb.checked ? '23px' : '3px';
+}
+
 function toggleInfoOnly(id) {
   const cb = document.getElementById(`infoonly-${id}`);
   const track = document.getElementById(`infoonly-track-${id}`);
@@ -1606,6 +1733,11 @@ function openModal() {
   document.getElementById('modal-bednum').value = '';
   document.getElementById('modal-initial').value = '';
   document.getElementById('modal-memo').value = '';
+  document.getElementById('modal-assessment').value = '';
+  document.getElementById('modal-assessment-date').value = '';
+  document.getElementById('modal-infoonly').checked = false;
+  document.getElementById('modal-infoonly-track').style.background = 'var(--border)';
+  document.getElementById('modal-infoonly-thumb').style.left = '3px';
   document.getElementById('modal-gender').value = '';
   document.getElementById('modal-carelevel').value = '';
   document.getElementById('modal-offset').value = '1';
@@ -1679,6 +1811,9 @@ function addResident() {
   const initial = document.getElementById('modal-initial').value.trim();
   const offset = parseInt(document.getElementById('modal-offset').value) || 1;
   const meetingDate = document.getElementById('modal-meeting-date').value;
+  const assessment = document.getElementById('modal-assessment').value.trim();
+  const assessmentDate = document.getElementById('modal-assessment-date').value;
+  const infoOnly = document.getElementById('modal-infoonly').checked;
 
   // 改行・カンマ・読点・ピリオド・空白で分割
   const beds = bedRaw.split(/[\n,、.。\s　]+/).map(b => b.trim()).filter(b => b);
@@ -1714,10 +1849,10 @@ function addResident() {
       // 新規利用者を作成
       const r = {
         id: Date.now().toString() + i + Math.random().toString(36).slice(2),
-        bed, memo, gender, careLevel, initial,
+        bed, memo, gender, careLevel, initial, infoOnly,
         meetingOffset: offset,
         longGoalStart: '', longGoalEnd: '',
-        assessment: '',
+        assessment, assessmentDate,
         meetings: []
       };
       if (meetingDate) {
@@ -1870,6 +2005,8 @@ function saveResident(id) {
   if (initialEl) r.initial = initialEl.value.trim();
   const infoOnlyEl = document.getElementById(`infoonly-${id}`);
   if (infoOnlyEl) r.infoOnly = infoOnlyEl.checked;
+  const assessmentDateEl = document.getElementById(`assessment-date-${id}`);
+  if (assessmentDateEl) r.assessmentDate = assessmentDateEl.value;
   r.longGoalStart  = document.getElementById(`lg-start-${id}`).value;
   r.longGoalEnd    = document.getElementById(`lg-end-${id}`).value;
   r.meetingOffset  = parseInt(document.getElementById(`offset-${id}`).value) || 1;
@@ -2511,6 +2648,10 @@ function render() {
             <div class="assessment-box">
               <div class="section-label">判定所見（最新会議）</div>
               <textarea id="assessment-${r.id}" readonly placeholder="最新の会議に判定所見を入力すると反映されます" style="background:#f5f3f0;color:var(--text-sub);cursor:default;">${esc(r.meetings.length > 0 ? (r.meetings[r.meetings.length - 1].assessment || '') : '')}</textarea>
+              <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--text-sub);white-space:nowrap;">判定日</span>
+                <input type="date" id="assessment-date-${r.id}" value="${r.assessmentDate || ''}" style="font-size:14px;flex:1;">
+              </div>
             </div>
             <!-- 開始回数 -->
             <div class="offset-row">
@@ -2750,7 +2891,7 @@ function openBedDetail(residentId) {
 
   const assessmentHtml = r.assessment ? `
     <div style="margin-top:10px;padding:8px 10px;background:var(--bg);border-radius:6px;font-size:13px;color:var(--text-sub);">
-      <span style="font-size:11px;font-weight:700;color:var(--text-sub);display:block;margin-bottom:3px;">判定所見</span>
+      <span style="font-size:11px;font-weight:700;color:var(--text-sub);display:block;margin-bottom:3px;">判定所見${r.assessmentDate ? '（' + fmtDate(r.assessmentDate) + '）' : ''}</span>
       ${esc(r.assessment)}
     </div>` : '';
 
