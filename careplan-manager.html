@@ -1727,6 +1727,20 @@ function onModalRoomSelect() {
   else if (room) bedEl.value = room;
 }
 
+function openModalWithBed(bedId) {
+  openModal();
+  // ベッド位置を自動入力
+  document.getElementById('modal-bed').value = bedId;
+  // 部屋番号とベッド番号をプルダウンにも反映
+  const parts = bedId.split('-');
+  if (parts.length >= 2) {
+    const roomEl = document.getElementById('modal-room-select');
+    const numEl = document.getElementById('modal-bednum');
+    if (roomEl) roomEl.value = parts[0];
+    if (numEl) numEl.value = parts[1];
+  }
+}
+
 function openModal() {
   document.getElementById('modal-bed').value = '';
   document.getElementById('modal-room-select').value = '';
@@ -2796,8 +2810,8 @@ function bedStatus(r) {
 
 function renderBedCell(roomNum, r, bedId) {
   if (!r) {
-    return `<div class="bed-cell empty">
-      <div class="bed-cell-id" style="color:var(--border);">${bedId || '空'}</div>
+    return `<div class="bed-cell empty" style="opacity:0.4;cursor:pointer;" onclick="openModalWithBed('${bedId}')">
+      <div class="bed-cell-id" style="color:var(--text-sub);font-size:11px;">${bedId || '空'}</div>
     </div>`;
   }
 
