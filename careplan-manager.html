@@ -2079,12 +2079,16 @@ function latestDots(r) {
 
 function fmtDate(s) { return s ? s.replace(/-/g, '/') : ''; }
 
-// 最新会議の判定所見を返す。空欄なら前回分を遡る。{assessment, date}を返す
+// 最新会議の判定所見を返す。会議日が今日以前のものだけ対象、空欄なら遡る。{assessment, date}
 function getLatestAssessment(r) {
   if (!r.meetings || r.meetings.length === 0) return { assessment: '', date: '' };
+  const today = toYMD(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
   for (let i = r.meetings.length - 1; i >= 0; i--) {
-    if (r.meetings[i].assessment && r.meetings[i].assessment.trim()) {
-      return { assessment: r.meetings[i].assessment, date: r.meetings[i].date || '' };
+    const m = r.meetings[i];
+    // 会議日が未設定、または未来の場合はスキップ
+    if (!m.date || m.date > today) continue;
+    if (m.assessment && m.assessment.trim()) {
+      return { assessment: m.assessment, date: m.date };
     }
   }
   return { assessment: '', date: '' };
