@@ -2056,7 +2056,9 @@ function saveResident(id) {
   });
 
   // カードレベルの判定所見は最新会議から自動同期
-  r.assessment = getLatestAssessment(r);
+  const la = getLatestAssessment(r);
+  r.assessment = la.assessment;
+  if (la.date && !r.assessmentDate) r.assessmentDate = la.date;
 
   save();
   openCards.delete(id);
@@ -2076,15 +2078,15 @@ function latestDots(r) {
 
 function fmtDate(s) { return s ? s.replace(/-/g, '/') : ''; }
 
-// 最新会議の判定所見を返す。空欄なら前回分を遡る
+// 最新会議の判定所見を返す。空欄なら前回分を遡る。{assessment, date}を返す
 function getLatestAssessment(r) {
-  if (!r.meetings || r.meetings.length === 0) return '';
+  if (!r.meetings || r.meetings.length === 0) return { assessment: '', date: '' };
   for (let i = r.meetings.length - 1; i >= 0; i--) {
     if (r.meetings[i].assessment && r.meetings[i].assessment.trim()) {
-      return r.meetings[i].assessment;
+      return { assessment: r.meetings[i].assessment, date: r.meetings[i].date || '' };
     }
   }
-  return '';
+  return { assessment: '', date: '' };
 }
 
 function updateStats() {
@@ -2672,7 +2674,7 @@ function render() {
             <!-- 判定所見（最新会議から自動反映） -->
             <div class="assessment-box">
               <div class="section-label">判定所見（最新会議）</div>
-              <textarea id="assessment-${r.id}" readonly placeholder="最新の会議に判定所見を入力すると反映されます" style="background:#f5f3f0;color:var(--text-sub);cursor:default;">${esc(getLatestAssessment(r))}</textarea>
+              <textarea id="assessment-${r.id}" readonly placeholder="最新の会議に判定所見を入力すると反映されます" style="background:#f5f3f0;color:var(--text-sub);cursor:default;">${esc(getLatestAssessment(r).assessment)}</textarea>
               <div style="margin-top:6px;display:flex;align-items:center;gap:8px;">
                 <span style="font-size:12px;color:var(--text-sub);white-space:nowrap;">判定日</span>
                 <input type="date" id="assessment-date-${r.id}" value="${r.assessmentDate || ''}" style="font-size:14px;flex:1;">
@@ -2914,10 +2916,13 @@ function openBedDetail(residentId) {
     r.memo ? `<span style="font-size:12px;color:var(--text-sub);">${esc(r.memo)}</span>` : '',
   ].filter(x => x).join(' ');
 
-  const assessmentHtml = (r.assessment || getLatestAssessment(r)) ? `
+  const la = getLatestAssessment(r);
+  const displayAssessment = r.assessment || la.assessment;
+  const displayAssessmentDate = r.assessmentDate || la.date;
+  const assessmentHtml = displayAssessment ? `
     <div style="margin-top:10px;padding:8px 10px;background:var(--bg);border-radius:6px;font-size:13px;color:var(--text-sub);">
-      <span style="font-size:11px;font-weight:700;color:var(--text-sub);display:block;margin-bottom:3px;">判定所見${r.assessmentDate ? '（' + fmtDate(r.assessmentDate) + '）' : ''}</span>
-      ${esc(r.assessment || getLatestAssessment(r))}
+      <span style="font-size:11px;font-weight:700;color:var(--text-sub);display:block;margin-bottom:3px;">判定所見${displayAssessmentDate ? '（' + fmtDate(displayAssessmentDate) + '）' : ''}</span>
+      ${esc(displayAssessment)}
     </div>` : '';
 
   const meetingHtml = latest ? `
