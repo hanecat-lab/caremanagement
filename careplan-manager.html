@@ -1886,6 +1886,7 @@ function addResident() {
   save();
   closeModal();
   render();
+  if (currentTab === 'map') renderFloorMap();
 
   // トースト表示
   const parts = [];
