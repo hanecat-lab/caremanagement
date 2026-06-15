@@ -1050,6 +1050,13 @@
 
   .bed-cell.has-unfinished .bed-cell-id { color: #a03030; }
 
+  .bed-cell.info-with-meetings {
+    background: #fdf6e3;
+    border-color: #d9b94e;
+  }
+
+  .bed-cell.info-with-meetings .bed-cell-id { color: #9a7d1a; }
+
   .bed-cell-info {
     font-size: 10px;
     color: var(--text-sub);
@@ -1651,6 +1658,9 @@ function importData(event) {
         if (r.gender === undefined) r.gender = '';
         if (r.careLevel === undefined) r.careLevel = '';
         if (r.memo === undefined) r.memo = '';
+        if (r.infoOnly === undefined) r.infoOnly = false;
+        if (r.initial === undefined) r.initial = '';
+        if (r.assessmentDate === undefined) r.assessmentDate = '';
         r.meetings.forEach(m => {
           if (!m.shortGoalStart) m.shortGoalStart = '';
           if (!m.shortGoalEnd) m.shortGoalEnd = '';
@@ -2070,6 +2080,7 @@ function saveResident(id) {
   save();
   openCards.delete(id);
   render();
+  if (currentTab === 'map') renderFloorMap();
   showToast('保存しました');
 }
 
@@ -2737,8 +2748,9 @@ function render() {
         <div class="resident-card">
           <div class="card-header${isOpen ? ' open' : ''}" onclick="toggleCard('${r.id}')">
             <div class="card-header-left">
-              <div class="bed-badge">${r.bed}</div>
+              <div class="bed-badge"${r.infoOnly && r.meetings && r.meetings.length > 0 ? ' style="background:#d9b94e;"' : ''}>${r.bed}</div>
               <div class="card-meta">
+                ${r.infoOnly ? '<span style="font-size:11px;font-weight:700;color:#9a7d1a;background:#fdf6e3;padding:1px 6px;border-radius:4px;">担当外</span><br>' : ''}
                 ${(r.careLevel || r.gender || r.memo) ? `<strong>${[r.careLevel, r.gender, r.memo].filter(x => x).map(esc).join('・')}</strong><br>` : ''}
                 <strong style="color:var(--accent);">${esc(r.bed)}${r.initial ? ' ' + esc(r.initial) : ''}</strong><br>
                 ${latestMeeting
@@ -2828,8 +2840,11 @@ function getBedResidents(roomNum) {
 }
 
 function bedStatus(r) {
-  // 最新会議の書類状況
-  if (!r || !r.meetings || r.meetings.length === 0) return 'occupied';
+  if (!r) return 'occupied';
+  // 担当外で会議記録があるものは黄色
+  if (r.infoOnly && r.meetings && r.meetings.length > 0) return 'info-with-meetings';
+  if (r.infoOnly) return 'occupied';
+  if (!r.meetings || r.meetings.length === 0) return 'occupied';
   const latest = r.meetings[r.meetings.length - 1];
   const unfinished = latest.docs.some(d => d.name !== '支援経過' && (!d.created || !d.printed));
   return unfinished ? 'has-unfinished' : 'occupied';
