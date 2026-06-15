@@ -1779,14 +1779,68 @@ function openBulkMeetingModal() {
   document.getElementById('bulk-meeting-date').value = '';
   const sorted = [...residents].sort((a, b) => a.bed.localeCompare(b.bed, 'ja'));
   const listEl = document.getElementById('bulk-resident-list');
-  listEl.innerHTML = sorted.map(r => `
-    <label style="display:flex;align-items:center;gap:8px;padding:7px 4px;cursor:pointer;border-bottom:1px solid var(--border);">
-      <input type="checkbox" class="bulk-check" value="${r.id}" style="width:18px;height:18px;">
-      <span style="font-weight:700;color:var(--accent);">${r.bed}</span>
-      <span style="font-size:12px;color:var(--text-sub);">${r.memo ? esc(r.memo) : ''}</span>
-    </label>
-  `).join('');
+
+  // 階層定義
+  const structure = [
+    { label: '2F', groups: [
+      { label: '201〜212', rooms: ['201','202','203','205','206','207','208','210','211','212'] },
+      { label: '213〜218', rooms: ['213','215','216','217','218'] }
+    ]},
+    { label: '3F', groups: [
+      { label: '301〜310', rooms: ['301','302','303','305','306','307','308','310'] },
+      { label: '311〜316', rooms: ['311','312','313','315','316'] }
+    ]}
+  ];
+
+  function residentRow(r) {
+    const label = [r.bed, r.initial].filter(x => x).join(' ');
+    const sub = [r.careLevel, r.infoOnly ? '担当外' : ''].filter(x => x).join('・');
+    return `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px 6px 16px;cursor:pointer;border-bottom:1px solid var(--border);">
+      <input type="checkbox" class="bulk-check" value="${r.id}" style="width:18px;height:18px;flex-shrink:0;">
+      <span style="font-weight:700;color:${r.infoOnly ? '#9a7d1a' : 'var(--accent)'};">${esc(label)}</span>
+      ${sub ? `<span style="font-size:11px;color:var(--text-sub);">${esc(sub)}</span>` : ''}
+    </label>`;
+  }
+
+  let html = '';
+  structure.forEach((floor, fi) => {
+    const floorId = `bulk-floor-${fi}`;
+    html += `<div style="border-bottom:2px solid var(--accent);margin-bottom:4px;">
+      <div onclick="toggleBulkSection('${floorId}')" style="display:flex;align-items:center;gap:6px;padding:8px 4px;cursor:pointer;font-weight:700;color:#fff;background:var(--accent);border-radius:6px;margin-bottom:4px;">
+        <span id="${floorId}-icon">▼</span> ${floor.label}
+      </div>
+      <div id="${floorId}">`;
+
+    floor.groups.forEach((group, gi) => {
+      const groupId = `bulk-group-${fi}-${gi}`;
+      const groupResidents = sorted.filter(r => group.rooms.includes(getRoomKey(r.bed)));
+      if (groupResidents.length === 0) return;
+
+      html += `<div style="margin-bottom:4px;">
+        <div onclick="toggleBulkSection('${groupId}')" style="display:flex;align-items:center;gap:6px;padding:6px 8px;cursor:pointer;font-weight:700;color:var(--accent);background:var(--accent-light);border-radius:6px;">
+          <span id="${groupId}-icon">▼</span> ${group.label}
+          <span style="font-size:11px;color:var(--text-sub);margin-left:auto;">${groupResidents.length}名</span>
+        </div>
+        <div id="${groupId}">
+          ${groupResidents.map(r => residentRow(r)).join('')}
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  listEl.innerHTML = html;
   document.getElementById('bulk-meeting-modal').classList.add('open');
+}
+
+function toggleBulkSection(id) {
+  const el = document.getElementById(id);
+  const icon = document.getElementById(id + '-icon');
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (icon) icon.textContent = isOpen ? '▶' : '▼';
 }
 
 function closeBulkMeetingModal() {
