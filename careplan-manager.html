@@ -1130,6 +1130,7 @@
     </div>
   </div>
 
+  <div id="alert-bar-uncreated" class="alert-bar" style="display:none;background:#fff3e0;border-color:#f0a040;color:#8a5a00;" onclick="openUncreatedModal()"></div>
   <div id="alert-bar" class="alert-bar" style="display:none;" onclick="openAlertModal()"></div>
 
   <!-- タブ -->
@@ -1268,6 +1269,18 @@
     <div style="margin-top:14px;display:flex;gap:8px;">
       <button class="btn-primary" id="bed-detail-edit-btn">編集へ</button>
       <button class="btn-cancel" onclick="closeBedDetail()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ケアプラン未作成モーダル -->
+<div class="modal-overlay" id="uncreated-modal">
+  <div class="modal">
+    <h2 style="color:#8a5a00;">📋 ケアプラン未作成</h2>
+    <p style="font-size:12px;color:var(--text-sub);margin-bottom:12px;">会議日が過ぎているのにケアプランが未作成の利用者です。</p>
+    <div id="uncreated-list" style="max-height:320px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="closeUncreatedModal()">閉じる</button>
     </div>
   </div>
 </div>
@@ -2153,7 +2166,7 @@ function fmtDate(s) { return s ? s.replace(/-/g, '/') : ''; }
 // 最新会議の判定所見を返す。会議日が今日以前のものだけ対象、空欄なら遡る。{assessment, date}
 function getLatestAssessment(r) {
   if (!r.meetings || r.meetings.length === 0) return { assessment: '', date: '' };
-  const today = toYMD(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+  const now = new Date(); const today = toYMD(now.getFullYear(), now.getMonth(), now.getDate());
   for (let i = r.meetings.length - 1; i >= 0; i--) {
     const m = r.meetings[i];
     // 会議日が未設定、または未来の場合はスキップ
@@ -2210,16 +2223,71 @@ function getOverdueResidents() {
   return result;
 }
 
+function getUncreatedResidents() {
+  const now = new Date(); const today = toYMD(now.getFullYear(), now.getMonth(), now.getDate());
+  const result = [];
+  residents.forEach(r => {
+    if (r.infoOnly) return;
+    const uncreatedMeetings = [];
+    (r.meetings || []).forEach((m, idx) => {
+      if (!m.date || m.date > today) return;
+      const careplan = m.docs.find(d => d.name === 'ケアプラン');
+      if (careplan && !careplan.created) {
+        uncreatedMeetings.push({ meetingDate: m.date, idx });
+      }
+    });
+    if (uncreatedMeetings.length > 0) result.push({ r, uncreatedMeetings });
+  });
+  return result;
+}
+
 function updateAlert() {
   const overdue = getOverdueResidents();
   const bar = document.getElementById('alert-bar');
   if (overdue.length === 0) {
     bar.style.display = 'none';
-    return;
+  } else {
+    const total = overdue.reduce((sum, o) => sum + o.overdueMeetings.length, 0);
+    bar.style.display = 'flex';
+    bar.innerHTML = `⚠️ ケアプラン印刷の期限超過が ${total}件 あります<span class="arrow">›</span>`;
   }
-  const total = overdue.reduce((sum, o) => sum + o.overdueMeetings.length, 0);
-  bar.style.display = 'flex';
-  bar.innerHTML = `⚠️ ケアプラン印刷の期限超過が ${total}件 あります<span class="arrow">›</span>`;
+
+  const uncreated = getUncreatedResidents();
+  const barU = document.getElementById('alert-bar-uncreated');
+  if (uncreated.length === 0) {
+    barU.style.display = 'none';
+  } else {
+    const totalU = uncreated.reduce((sum, o) => sum + o.uncreatedMeetings.length, 0);
+    barU.style.display = 'flex';
+    barU.innerHTML = `📋 ケアプラン未作成が ${totalU}件 あります<span class="arrow" style="color:#8a5a00;">›</span>`;
+  }
+}
+
+function openUncreatedModal() {
+  const uncreated = getUncreatedResidents();
+  const listEl = document.getElementById('uncreated-list');
+  if (uncreated.length === 0) {
+    listEl.innerHTML = '<p style="color:var(--text-sub);font-size:13px;">該当はありません。</p>';
+  } else {
+    listEl.innerHTML = uncreated.map(({ r, uncreatedMeetings }) => {
+      const offset = r.meetingOffset || 1;
+      const meetingsHtml = uncreatedMeetings.map(({ meetingDate, idx }) =>
+        `<div style="font-size:12px;color:#8a5a00;font-weight:700;">第${offset + idx}回 ${fmtDate(meetingDate)}・未作成</div>`
+      ).join('');
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="closeUncreatedModal();jumpToRoomEdit('${r.id}')">
+          <div class="bed-badge">${esc(r.bed)}</div>
+          <div style="flex:1;">${meetingsHtml}</div>
+          <span style="color:var(--text-sub);">›</span>
+        </div>
+      `;
+    }).join('');
+  }
+  document.getElementById('uncreated-modal').classList.add('open');
+}
+
+function closeUncreatedModal() {
+  document.getElementById('uncreated-modal').classList.remove('open');
 }
 
 function openAlertModal() {
@@ -2263,7 +2331,7 @@ function toggleFilter() {
 
 // 利用者が未完了書類を持つか
 function hasUnfinished(r) {
-  const today = toYMD(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+  const now = new Date(); const today = toYMD(now.getFullYear(), now.getMonth(), now.getDate());
   return (r.meetings || []).some(m => {
     // 未来の会議は除外
     if (m.date && m.date > today) return false;
@@ -2849,6 +2917,10 @@ document.getElementById('bulk-meeting-modal').addEventListener('click', function
 
 document.getElementById('alert-modal').addEventListener('click', function(e) {
   if (e.target === this) closeAlertModal();
+});
+
+document.getElementById('uncreated-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeUncreatedModal();
 });
 
 document.getElementById('modal').addEventListener('click', function(e) {
