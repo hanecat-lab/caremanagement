@@ -2263,9 +2263,12 @@ function toggleFilter() {
 
 // 利用者が未完了書類を持つか
 function hasUnfinished(r) {
-  return (r.meetings || []).some(m =>
-    m.docs.some(d => d.name !== '支援経過' && (!d.created || !d.printed))
-  );
+  const today = toYMD(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+  return (r.meetings || []).some(m => {
+    // 未来の会議は除外
+    if (m.date && m.date > today) return false;
+    return m.docs.some(d => d.name !== '支援経過' && (!d.created || !d.printed));
+  });
 }
 
 // 検索・絞り込みで利用者をフィルタリング
