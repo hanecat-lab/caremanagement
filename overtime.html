@@ -570,11 +570,16 @@ function renderDays(){
           <button type="button" class="tdef" data-k="${k}" title="定時を入力">定時</button>
           <div class="ot-wrap">
             <label>残業</label>
-            <input type="number" class="ot num ${eff?"has-ot":""} ${isOv?"override":""}" data-k="${k}"
-              inputmode="numeric" min="0" step="5"
-              value="${eff!=null?eff:""}" placeholder="${a!=null?a:"--"}">
-            <span class="unit">分</span>
-            <button type="button" class="reset num ${isOv?"show":""}" data-k="${k}" title="自動計算に戻す">↺</button>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
+              <div style="display:flex;align-items:center;gap:4px;">
+                <input type="number" class="ot num ${eff?"has-ot":""} ${isOv?"override":""}" data-k="${k}"
+                  inputmode="numeric" min="0" step="5"
+                  value="${eff!=null?eff:""}" placeholder="${a!=null?a:"--"}">
+                <span class="unit">分</span>
+                <button type="button" class="reset num ${isOv?"show":""}" data-k="${k}" title="自動計算に戻す">↺</button>
+              </div>
+              ${eff!=null&&eff>=60?`<span style="font-size:10px;color:var(--sub);">${fmtMin(eff)}</span>`:""}
+            </div>
           </div>
         </div>
         <div class="r2-row">
