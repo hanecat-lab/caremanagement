@@ -1308,6 +1308,18 @@
   </div>
 </div>
 
+<!-- 未保存確認モーダル -->
+<div class="modal-overlay" id="unsaved-modal">
+  <div class="confirm-modal">
+    <p>未保存の変更があります。</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px;">
+      <button class="btn-primary" id="unsaved-save-btn">保存して続ける</button>
+      <button class="btn-confirm-cancel" id="unsaved-discard-btn">破棄して続ける</button>
+      <button class="btn-cancel" onclick="closeUnsavedModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 <!-- バックアップモーダル -->
 <div class="modal-overlay" id="backup-modal">
   <div class="backup-modal">
@@ -2043,11 +2055,121 @@ function toggleCard(id) {
   render();
 }
 
+// 開いている会議のスナップショット（変更検知用）
+var meetingSnapshot = {};
+
+function takeMeetingSnapshot(residentId, mIdx) {
+  const r = residents.find(x => x.id === residentId);
+  if (!r || !r.meetings[mIdx]) return;
+  const m = r.meetings[mIdx];
+  const dateEl = document.getElementById(`m-date-${residentId}-${mIdx}`);
+  const assessEl = document.getElementById(`m-assessment-${residentId}-${mIdx}`);
+  meetingSnapshot[residentId + '-' + mIdx] = {
+    date: dateEl ? dateEl.value : m.date,
+    assessment: assessEl ? assessEl.value : m.assessment,
+    docs: m.docs.map((doc, dIdx) => {
+      const cb = document.getElementById(`dc-${residentId}-${mIdx}-${dIdx}`);
+      const pb = document.getElementById(`dp-${residentId}-${mIdx}-${dIdx}`);
+      const dd = document.getElementById(`dd-${residentId}-${mIdx}-${dIdx}`);
+      return {
+        created: cb ? cb.classList.contains('on') : doc.created,
+        printed: pb ? pb.classList.contains('on') : doc.printed,
+        createdDate: dd ? dd.value : doc.createdDate
+      };
+    })
+  };
+}
+
+function hasUnsavedMeetingChanges(residentId, mIdx) {
+  const key = residentId + '-' + mIdx;
+  const snap = meetingSnapshot[key];
+  if (!snap) return false;
+  const r = residents.find(x => x.id === residentId);
+  if (!r || !r.meetings[mIdx]) return false;
+  const m = r.meetings[mIdx];
+  const dateEl = document.getElementById(`m-date-${residentId}-${mIdx}`);
+  const assessEl = document.getElementById(`m-assessment-${residentId}-${mIdx}`);
+  if (dateEl && dateEl.value !== snap.date) return true;
+  if (assessEl && assessEl.value !== snap.assessment) return true;
+  for (var dIdx = 0; dIdx < m.docs.length; dIdx++) {
+    var cb = document.getElementById(`dc-${residentId}-${mIdx}-${dIdx}`);
+    var pb = document.getElementById(`dp-${residentId}-${mIdx}-${dIdx}`);
+    var dd = document.getElementById(`dd-${residentId}-${mIdx}-${dIdx}`);
+    if (cb && cb.classList.contains('on') !== snap.docs[dIdx].created) return true;
+    if (pb && pb.classList.contains('on') !== snap.docs[dIdx].printed) return true;
+    if (dd && dd.value !== snap.docs[dIdx].createdDate) return true;
+  }
+  return false;
+}
+
+function closeUnsavedModal() {
+  document.getElementById('unsaved-modal').classList.remove('open');
+}
+
+function openUnsavedModal(onSave, onDiscard) {
+  const modal = document.getElementById('unsaved-modal');
+  document.getElementById('unsaved-save-btn').onclick = function() {
+    closeUnsavedModal();
+    onSave();
+  };
+  document.getElementById('unsaved-discard-btn').onclick = function() {
+    closeUnsavedModal();
+    onDiscard();
+  };
+  modal.classList.add('open');
+}
+
 function toggleMeeting(residentId, mIdx) {
   if (!openMeetings[residentId]) openMeetings[residentId] = new Set();
-  if (openMeetings[residentId].has(mIdx)) openMeetings[residentId].delete(mIdx);
-  else openMeetings[residentId].add(mIdx);
+  const isOpen = openMeetings[residentId].has(mIdx);
+
+  if (isOpen) {
+    // 閉じるとき：未保存チェック
+    if (hasUnsavedMeetingChanges(residentId, mIdx)) {
+      openUnsavedModal(
+        function() {
+          // 保存して閉じる
+          saveResident(residentId);
+        },
+        function() {
+          // 破棄して閉じる
+          delete meetingSnapshot[residentId + '-' + mIdx];
+          openMeetings[residentId].delete(mIdx);
+          render();
+        }
+      );
+      return;
+    }
+    delete meetingSnapshot[residentId + '-' + mIdx];
+    openMeetings[residentId].delete(mIdx);
+  } else {
+    // 他の開いている会議に未保存変更があるか確認
+    var openList = Array.from(openMeetings[residentId] || []);
+    var dirty = openList.filter(function(idx) { return hasUnsavedMeetingChanges(residentId, idx); });
+    if (dirty.length > 0) {
+      openUnsavedModal(
+        function() {
+          // 保存してから新しい会議を開く
+          saveResident(residentId);
+          openMeetings[residentId] = openMeetings[residentId] || new Set();
+          openMeetings[residentId].add(mIdx);
+          render();
+          setTimeout(function() { takeMeetingSnapshot(residentId, mIdx); }, 50);
+        },
+        function() {
+          // 破棄して新しい会議を開く
+          dirty.forEach(function(idx) { delete meetingSnapshot[residentId + '-' + idx]; });
+          openMeetings[residentId].add(mIdx);
+          render();
+          setTimeout(function() { takeMeetingSnapshot(residentId, mIdx); }, 50);
+        }
+      );
+      return;
+    }
+    openMeetings[residentId].add(mIdx);
+  }
   render();
+  if (!isOpen) setTimeout(function() { takeMeetingSnapshot(residentId, mIdx); }, 50);
 }
 
 function toggleCreated(residentId, mIdx, dIdx) {
@@ -2146,6 +2268,7 @@ function saveResident(id) {
 
   save();
   openCards.delete(id);
+  meetingSnapshot = {};
   render();
   if (currentTab === 'map') renderFloorMap();
   showToast('保存しました');
@@ -2926,6 +3049,10 @@ document.getElementById('alert-modal').addEventListener('click', function(e) {
 
 document.getElementById('uncreated-modal').addEventListener('click', function(e) {
   if (e.target === this) closeUncreatedModal();
+});
+
+document.getElementById('unsaved-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeUnsavedModal();
 });
 
 document.getElementById('modal').addEventListener('click', function(e) {
