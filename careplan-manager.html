@@ -2269,6 +2269,24 @@ function saveResident(id) {
   save();
   openCards.delete(id);
   meetingSnapshot = {};
+
+  // 最新会議の月別フォルダーに移動
+  const latestM = r.meetings.length > 0 ? r.meetings[r.meetings.length - 1] : null;
+  if (latestM && latestM.date) {
+    const monthKey = latestM.date.slice(0, 7);
+    groupMode = 'month';
+    const btn = document.getElementById('group-toggle-btn');
+    if (btn) btn.textContent = '🏠 部屋別';
+    openRooms = new Set([monthKey]);
+    openYears = new Set();
+    // 今年以外は年フォルダーも開く
+    const currentYear = String(new Date().getFullYear());
+    const year = monthKey.slice(0, 4);
+    if (year !== currentYear) openYears.add('year-' + year);
+    // タブを書類管理に切り替え
+    switchTab('list');
+  }
+
   render();
   if (currentTab === 'map') renderFloorMap();
   showToast('保存しました');
