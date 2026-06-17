@@ -287,7 +287,7 @@
       width:100%;padding:12px 14px;border-radius:var(--rm);
       border:2px solid var(--bd);background:var(--bg);color:var(--tx);
       font-size:15px;outline:none;transition:border-color .2s;
-      resize:vertical;min-height:130px;line-height:1.65;
+      resize:vertical;min-height:80px;line-height:1.65;
     }
     .form-textarea:focus{border-color:var(--primary)}
 
@@ -334,6 +334,46 @@
     .icon-opt.sel{border-color:var(--primary);background:var(--primary-lt)}
     .icon-opt:active{transform:scale(.88)}
 
+    /* ===== LINK INPUT ===== */
+    .link-list{display:flex;flex-direction:column;gap:8px}
+    .link-row{display:flex;gap:6px;align-items:center}
+    .link-label-inp{
+      width:88px;flex-shrink:0;padding:10px 10px;border-radius:var(--rs);
+      border:2px solid var(--bd);background:var(--bg);color:var(--tx);
+      font-size:13px;outline:none;transition:border-color .2s;
+    }
+    .link-label-inp:focus{border-color:var(--primary)}
+    .link-url-inp{
+      flex:1;padding:10px 12px;border-radius:var(--rs);
+      border:2px solid var(--bd);background:var(--bg);color:var(--tx);
+      font-size:13px;outline:none;transition:border-color .2s;min-width:0;
+    }
+    .link-url-inp:focus{border-color:var(--primary)}
+    .link-del-btn{
+      width:30px;height:30px;flex-shrink:0;border:none;background:none;
+      color:#E03030;font-size:18px;border-radius:6px;
+      display:flex;align-items:center;justify-content:center;
+      transition:background .15s;
+    }
+    .link-del-btn:active{background:rgba(224,48,48,.1)}
+    .add-link-btn{
+      margin-top:6px;padding:8px 14px;border-radius:20px;border:none;
+      background:var(--primary-lt);color:var(--primary);font-size:12px;font-weight:800;
+      transition:opacity .15s;
+    }
+    .add-link-btn:active{opacity:.7}
+
+    /* ===== PERSON DETAIL LINKS ===== */
+    .pd-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 16px}
+    .pd-link-chip{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:8px 16px;border-radius:20px;
+      background:var(--primary-lt);color:var(--primary);
+      font-size:13px;font-weight:700;text-decoration:none;
+      border:2px solid transparent;transition:border-color .15s,transform .15s;
+    }
+    .pd-link-chip:active{transform:scale(.95);border-color:var(--primary)}
+
     /* Buttons */
     .btn-primary{
       width:100%;padding:15px;background:var(--primary);color:#fff;
@@ -354,6 +394,13 @@
       transition:transform .15s;
     }
     .btn-sec:active{transform:scale(.95)}
+    .icon-btn-danger{
+      width:36px;height:36px;border:none;
+      background:rgba(224,48,48,.1);color:#E03030;
+      border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;
+      transition:transform .15s,opacity .2s;
+    }
+    .icon-btn-danger:active{transform:scale(.9);opacity:.8}
 
     /* ===== PERSON DETAIL ===== */
     .pd-header{text-align:center;padding:20px 0 16px}
@@ -362,8 +409,8 @@
       display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 12px;
     }
     .pd-name{font-size:22px;font-weight:800;margin-bottom:4px}
-    .pd-memo{font-size:13px;color:var(--txm)}
-    .pd-stats{display:flex;justify-content:center;gap:28px;margin:14px 0}
+    .pd-memo{font-size:13px;color:var(--txm);margin-bottom:8px}
+    .pd-stats{display:flex;justify-content:center;gap:28px;margin:10px 0}
     .stat{text-align:center}
     .stat-n{font-size:26px;font-weight:800;color:var(--primary);line-height:1}
     .stat-l{font-size:11px;color:var(--txm);margin-top:2px}
@@ -557,7 +604,7 @@
     </div>
     <div class="form-group">
       <label class="form-label">📝 メモ</label>
-      <textarea class="form-textarea" id="recMemo" placeholder="今日の出来事や会話内容..."></textarea>
+      <textarea class="form-textarea" id="recMemo" placeholder="今日の出来事や会話内容..." style="min-height:130px;"></textarea>
     </div>
     <button class="btn-primary" onclick="saveRecord()">💾 保存</button>
     <button class="btn-danger" id="delRecBtn" style="display:none;" onclick="deleteCurrentRec()">🗑️ この記録を削除</button>
@@ -582,7 +629,12 @@
     </div>
     <div class="form-group">
       <label class="form-label">メモ</label>
-      <textarea class="form-textarea" id="pMemo" placeholder="この人についてのメモ..." style="min-height:80px;"></textarea>
+      <textarea class="form-textarea" id="pMemo" placeholder="この人についてのメモ..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🔗 SNS・リンク</label>
+      <div class="link-list" id="linkList"></div>
+      <button class="add-link-btn" onclick="addLinkRow()">＋ リンクを追加</button>
     </div>
     <button class="btn-primary" onclick="savePerson()">💾 保存</button>
     <button class="btn-danger" id="delPersonBtn" style="display:none;" onclick="deleteCurrentPerson()">🗑️ この人物を削除</button>
@@ -633,23 +685,23 @@
 'use strict';
 
 // ─── STATE ───────────────────────────────────────────────────
-let db = { records: [], people: [], settings: { theme: 'light' } };
-let curView    = 'home';
-let curSort    = 'newest';
-let editRecId  = null;
-let editPerId  = null;
-let ctxRecId   = null;
-let pdPersonId = null;
-let fromRec    = false;
-let calYear    = new Date().getFullYear();
-let calMonth   = new Date().getMonth();
-let calSelDate = null;
-let selPeople  = [];
-let selTags    = [];
-let selIcon    = '👤';
-let sf = { kw: '', personIds: [], tags: [], from: '', to: '' };
+var db = { records: [], people: [], settings: { theme: 'light' } };
+var curView    = 'home';
+var curSort    = 'newest';
+var editRecId  = null;
+var editPerId  = null;
+var ctxRecId   = null;
+var fromRec    = false;
+var calYear    = new Date().getFullYear();
+var calMonth   = new Date().getMonth();
+var calSelDate = null;
+var selPeople  = [];
+var selTags    = [];
+var selLinks   = [];   // [{ label:'', url:'' }]
+var selIcon    = '👤';
+var sf = { kw: '', personIds: [], tags: [], from: '', to: '' };
 
-const ICONS = [
+var ICONS = [
   '👤','👨','👩','👴','👵','👦','👧','🧑',
   '👨‍💼','👩‍💼','👨‍🎓','👩‍🎓','👨‍🍳','👩‍🍳','👨‍🎨','👩‍🎨',
   '🧔','👱','😀','🙂','😎','🤓','🥸','🤩',
@@ -659,7 +711,7 @@ const ICONS = [
 // ─── STORAGE ─────────────────────────────────────────────────
 function loadDB() {
   try {
-    const s = localStorage.getItem('hanecat_memo_v1');
+    var s = localStorage.getItem('hanecat_memo_v1');
     if (s) { db = JSON.parse(s); db.settings = db.settings || { theme: 'light' }; }
   } catch(e) {}
 }
@@ -669,9 +721,9 @@ function saveDB() {
 
 // ─── JSON IO ─────────────────────────────────────────────────
 function exportJSON() {
-  const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
+  var blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
   a.href = url;
   a.download = 'person-memo-' + today() + '.json';
   a.click();
@@ -680,12 +732,12 @@ function exportJSON() {
   closeModal('dataModal');
 }
 function importJSON(e) {
-  const f = e.target.files[0];
+  var f = e.target.files[0];
   if (!f) return;
-  const r = new FileReader();
+  var r = new FileReader();
   r.onload = function(ev) {
     try {
-      const d = JSON.parse(ev.target.result);
+      var d = JSON.parse(ev.target.result);
       if (d.records && d.people) {
         db = d;
         db.settings = db.settings || { theme: 'light' };
@@ -712,7 +764,7 @@ function clearAll() {
 
 // ─── THEME ───────────────────────────────────────────────────
 function applyTheme() {
-  const t = (db.settings && db.settings.theme) || 'light';
+  var t = (db.settings && db.settings.theme) || 'light';
   document.documentElement.setAttribute('data-theme', t);
   document.getElementById('themeBtn').textContent = t === 'dark' ? '☀️' : '🌙';
 }
@@ -731,15 +783,21 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function today() { return new Date().toISOString().slice(0, 10); }
 function fmtDate(d) {
   if (!d) return '';
-  const p = d.split('-');
+  var p = d.split('-');
   return p[0] + '/' + p[1] + '/' + p[2];
 }
-function getPerson(id) { return db.people.find(function(p){ return p.id === id; }); }
-function getRec(id)    { return db.records.find(function(r){ return r.id === id; }); }
+function getPerson(id) {
+  for (var i = 0; i < db.people.length; i++) { if (db.people[i].id === id) return db.people[i]; }
+  return null;
+}
+function getRec(id) {
+  for (var i = 0; i < db.records.length; i++) { if (db.records[i].id === id) return db.records[i]; }
+  return null;
+}
 function allTags() {
-  const s = new Set();
-  db.records.forEach(function(r){ (r.tags||[]).forEach(function(t){ s.add(t); }); });
-  return Array.from(s).sort();
+  var s = {};
+  db.records.forEach(function(r){ (r.tags||[]).forEach(function(t){ s[t]=1; }); });
+  return Object.keys(s).sort();
 }
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -750,6 +808,30 @@ function toast(msg) {
   el.classList.add('show');
   clearTimeout(el._t);
   el._t = setTimeout(function(){ el.classList.remove('show'); }, 2400);
+}
+
+// ─── SNS ICON ────────────────────────────────────────────────
+function snsIcon(url) {
+  if (!url) return '🔗';
+  var u = url.toLowerCase();
+  if (u.indexOf('twitter.com') >= 0 || u.indexOf('x.com') >= 0) return '🐦';
+  if (u.indexOf('instagram.com') >= 0) return '📷';
+  if (u.indexOf('facebook.com') >= 0) return '👍';
+  if (u.indexOf('youtube.com') >= 0 || u.indexOf('youtu.be') >= 0) return '▶️';
+  if (u.indexOf('tiktok.com') >= 0) return '🎵';
+  if (u.indexOf('linkedin.com') >= 0) return '💼';
+  if (u.indexOf('github.com') >= 0) return '💻';
+  if (u.indexOf('note.com') >= 0) return '📝';
+  if (u.indexOf('threads.net') >= 0) return '🧵';
+  if (u.indexOf('line.me') >= 0 || u.indexOf('line.naver') >= 0) return '💬';
+  return '🔗';
+}
+function snsLabel(lk) {
+  if (lk.label) return lk.label;
+  try {
+    var h = new URL(lk.url).hostname.replace(/^www\./, '');
+    return h.split('.')[0];
+  } catch(e) { return lk.url; }
 }
 
 // ─── MODAL ───────────────────────────────────────────────────
@@ -771,11 +853,7 @@ function showView(v) {
 
   var fab = document.getElementById('fab');
   fab.style.display = 'flex';
-  if (v === 'people') {
-    fab.onclick = openAddPerson;
-  } else {
-    fab.onclick = openAddRecord;
-  }
+  fab.onclick = v === 'people' ? openAddPerson : openAddRecord;
 
   window.scrollTo({ top: 0 });
   refresh();
@@ -806,22 +884,21 @@ function cardHTML(rec, delay) {
   delay = delay || 0;
   var people = (rec.peopleIds || []).map(getPerson).filter(Boolean);
   var peopleHTML = people.map(function(p){
-    return '<button class="person-chip" onclick="onPersonChip(\'' + p.id + '\',event)">' + (p.icon||'👤') + ' ' + esc(p.name) + '</button>';
+    return '<button class="person-chip" onclick="onPersonChip(\'' + p.id + '\',event)">'
+      + (p.icon||'👤') + ' ' + esc(p.name) + '</button>';
   }).join('');
   var tagsHTML = (rec.tags || []).map(function(t){
     return '<button class="tag-chip" onclick="onTagChip(\'' + esc(t) + '\',event)">#' + esc(t) + '</button>';
   }).join('');
-  return [
-    '<div class="record-card" style="animation-delay:' + (delay*40) + 'ms" onclick="openEditRecord(\'' + rec.id + '\')">',
-    '  <div class="card-header">',
-    '    <span class="card-date">📅 ' + fmtDate(rec.date) + '</span>',
-    '    <button class="card-menu" onclick="openCtx(event,\'' + rec.id + '\')">&#8943;</button>',
-    '  </div>',
-    people.length ? '<div class="card-people">' + peopleHTML + '</div>' : '',
-    rec.memo ? '<div class="card-memo">' + esc(rec.memo) + '</div>' : '',
-    rec.tags && rec.tags.length ? '<div class="card-tags">' + tagsHTML + '</div>' : '',
-    '</div>'
-  ].join('');
+  return '<div class="record-card" style="animation-delay:' + (delay*40) + 'ms" onclick="openEditRecord(\'' + rec.id + '\')">'
+    + '<div class="card-header">'
+    + '<span class="card-date">📅 ' + fmtDate(rec.date) + '</span>'
+    + '<button class="card-menu" onclick="openCtx(event,\'' + rec.id + '\')">&#8943;</button>'
+    + '</div>'
+    + (people.length ? '<div class="card-people">' + peopleHTML + '</div>' : '')
+    + (rec.memo ? '<div class="card-memo">' + esc(rec.memo) + '</div>' : '')
+    + (rec.tags && rec.tags.length ? '<div class="card-tags">' + tagsHTML + '</div>' : '')
+    + '</div>';
 }
 function onPersonChip(id, e) { e.stopPropagation(); showPersonDetail(id); }
 function onTagChip(tag, e) {
@@ -856,8 +933,8 @@ function renderPersonFilterChips() {
     return;
   }
   c.innerHTML = db.people.map(function(p){
-    var cls = 'filter-chip' + (sf.personIds.indexOf(p.id) >= 0 ? ' active' : '');
-    return '<button class="' + cls + '" onclick="togglePF(\'' + p.id + '\')">'
+    var act = sf.personIds.indexOf(p.id) >= 0 ? ' active' : '';
+    return '<button class="filter-chip' + act + '" onclick="togglePF(\'' + p.id + '\')">'
       + (p.icon||'👤') + ' ' + esc(p.name) + '</button>';
   }).join('');
 }
@@ -869,8 +946,8 @@ function renderTagFilterChips() {
     return;
   }
   c.innerHTML = tags.map(function(t){
-    var cls = 'filter-chip' + (sf.tags.indexOf(t) >= 0 ? ' active' : '');
-    return '<button class="' + cls + '" onclick="toggleTF(\'' + esc(t) + '\'">#' + esc(t) + '</button>';
+    var act = sf.tags.indexOf(t) >= 0 ? ' active' : '';
+    return '<button class="filter-chip' + act + '" onclick="toggleTF(\'' + esc(t) + '\')">#' + esc(t) + '</button>';
   }).join('');
 }
 function togglePF(id) {
@@ -935,21 +1012,18 @@ function renderCalendar() {
   var prevLast = new Date(calYear, calMonth, 0).getDate();
 
   var html = dow.map(function(d){ return '<div class="cal-dow">' + d + '</div>'; }).join('');
-
   for (var i = fd-1; i >= 0; i--)
     html += '<div class="cal-day other">' + (prevLast-i) + '</div>';
-
   for (var d = 1; d <= last; d++) {
-    var mm = String(calMonth+1).padStart ? String(calMonth+1).padStart(2,'0') : (calMonth+1 < 10 ? '0'+(calMonth+1) : ''+(calMonth+1));
+    var mm = (calMonth+1) < 10 ? '0'+(calMonth+1) : ''+(calMonth+1);
     var dd = d < 10 ? '0'+d : ''+d;
     var ds = calYear + '-' + mm + '-' + dd;
     var cls = 'cal-day';
-    if (ds === todayStr)    cls += ' today';
-    if (recDates[ds])       cls += ' has-rec';
-    if (ds === calSelDate)  cls += ' sel';
+    if (ds === todayStr)   cls += ' today';
+    if (recDates[ds])      cls += ' has-rec';
+    if (ds === calSelDate) cls += ' sel';
     html += '<div class="' + cls + '" onclick="calSelect(\'' + ds + '\')">' + d + '</div>';
   }
-
   var rem = (7 - ((fd + last) % 7)) % 7;
   for (var d2 = 1; d2 <= rem; d2++)
     html += '<div class="cal-day other">' + d2 + '</div>';
@@ -970,11 +1044,9 @@ function renderCalDayRecs() {
   document.getElementById('calSelLabel').textContent =
     '📅 ' + fmtDate(calSelDate) + ' の記録（' + recs.length + '件）';
   var c = document.getElementById('calDayRecords');
-  if (!recs.length) {
-    c.innerHTML = '<div style="text-align:center;padding:20px;font-size:13px;color:var(--txm);">記録はありません</div>';
-  } else {
-    c.innerHTML = recs.map(function(r,i){ return cardHTML(r,i); }).join('');
-  }
+  c.innerHTML = recs.length
+    ? recs.map(function(r,i){ return cardHTML(r,i); }).join('')
+    : '<div style="text-align:center;padding:20px;font-size:13px;color:var(--txm);">記録はありません</div>';
 }
 
 // ─── PEOPLE ──────────────────────────────────────────────────
@@ -986,16 +1058,15 @@ function renderPeople() {
   }
   c.innerHTML = db.people.map(function(p, i){
     var cnt = db.records.filter(function(r){ return (r.peopleIds||[]).indexOf(p.id) >= 0; }).length;
-    return [
-      '<div class="person-card" style="animation-delay:' + (i*30) + 'ms" onclick="showPersonDetail(\'' + p.id + '\')">',
-      '  <div class="p-icon">' + (p.icon||'👤') + '</div>',
-      '  <div class="p-info">',
-      '    <div class="p-name">' + esc(p.name) + '</div>',
-      '    <div class="p-memo">' + esc(p.memo||'—') + '</div>',
-      '  </div>',
-      '  <span class="p-count">' + cnt + '件</span>',
-      '</div>'
-    ].join('');
+    var sub = p.memo || ((p.links||[]).length ? (p.links[0].label || snsLabel(p.links[0])) + ' など' : '—');
+    return '<div class="person-card" style="animation-delay:' + (i*30) + 'ms" onclick="showPersonDetail(\'' + p.id + '\')">'
+      + '<div class="p-icon">' + (p.icon||'👤') + '</div>'
+      + '<div class="p-info">'
+      + '<div class="p-name">' + esc(p.name) + '</div>'
+      + '<div class="p-memo">' + esc(sub) + '</div>'
+      + '</div>'
+      + '<span class="p-count">' + cnt + '件</span>'
+      + '</div>';
   }).join('');
 }
 
@@ -1003,30 +1074,57 @@ function renderPeople() {
 function showPersonDetail(id) {
   var p = getPerson(id);
   if (!p) return;
-  pdPersonId = id;
   var recs = sorted(db.records.filter(function(r){ return (r.peopleIds||[]).indexOf(id) >= 0; }));
-  var html = [
-    '<div class="modal-head" style="margin-bottom:0;">',
-    '  <span></span>',
-    '  <div style="display:flex;gap:8px;">',
-    '    <button class="icon-btn" onclick="closeModal(\' personDetailModal\');openEditPerson(\'' + id + '\')">✏️</button>',
-    '    <button class="close-btn" onclick="closeModal(\'personDetailModal\')">×</button>',
-    '  </div>',
-    '</div>',
-    '<div class="pd-header">',
-    '  <div class="pd-icon">' + (p.icon||'👤') + '</div>',
-    '  <div class="pd-name">' + esc(p.name) + '</div>',
-    p.memo ? '  <div class="pd-memo">' + esc(p.memo) + '</div>' : '',
-    '  <div class="pd-stats">',
-    '    <div class="stat"><div class="stat-n">' + recs.length + '</div><div class="stat-l">記録数</div></div>',
-    '  </div>',
-    '</div>',
-    recs.length
-      ? recs.map(function(r,i){ return cardHTML(r,i); }).join('')
-      : '<div class="empty" style="padding:28px 0;"><div class="empty-icon">📝</div><p>記録がありません</p></div>'
-  ].join('');
+
+  var linksHTML = '';
+  var validLinks = (p.links||[]).filter(function(lk){ return lk.url; });
+  if (validLinks.length) {
+    linksHTML = '<div class="pd-links">'
+      + validLinks.map(function(lk){
+          return '<a class="pd-link-chip" href="' + esc(lk.url) + '" target="_blank" rel="noopener noreferrer">'
+            + snsIcon(lk.url) + ' ' + esc(snsLabel(lk)) + '</a>';
+        }).join('')
+      + '</div>';
+  }
+
+  var html = '<div class="modal-head" style="margin-bottom:0;">'
+    + '<span></span>'
+    + '<div style="display:flex;gap:8px;">'
+    + '<button class="icon-btn-danger" onclick="deletePersonById(\'' + id + '\')">🗑️</button>'
+    + '<button class="icon-btn" onclick="closeModal(\'personDetailModal\');openEditPerson(\'' + id + '\')">✏️</button>'
+    + '<button class="close-btn" onclick="closeModal(\'personDetailModal\')">×</button>'
+    + '</div>'
+    + '</div>'
+    + '<div class="pd-header">'
+    + '<div class="pd-icon">' + (p.icon||'👤') + '</div>'
+    + '<div class="pd-name">' + esc(p.name) + '</div>'
+    + (p.memo ? '<div class="pd-memo">' + esc(p.memo) + '</div>' : '')
+    + linksHTML
+    + '<div class="pd-stats">'
+    + '<div class="stat"><div class="stat-n">' + recs.length + '</div><div class="stat-l">記録数</div></div>'
+    + '</div>'
+    + '</div>'
+    + (recs.length
+        ? recs.map(function(r,i){ return cardHTML(r,i); }).join('')
+        : '<div class="empty" style="padding:28px 0;"><div class="empty-icon">📝</div><p>記録がありません</p></div>');
+
   document.getElementById('personDetailContent').innerHTML = html;
   openModal('personDetailModal');
+}
+
+// ─── DELETE PERSON (from detail) ─────────────────────────────
+function deletePersonById(id) {
+  var p = getPerson(id);
+  if (!p) return;
+  if (!confirm(p.name + ' を削除しますか？\n関連する記録の人物情報も削除されます。')) return;
+  db.people  = db.people.filter(function(per){ return per.id !== id; });
+  db.records.forEach(function(r){
+    r.peopleIds = (r.peopleIds||[]).filter(function(pid){ return pid !== id; });
+  });
+  saveDB();
+  closeModal('personDetailModal');
+  refresh();
+  toast('削除しました');
 }
 
 // ─── RECORD FORM ─────────────────────────────────────────────
@@ -1036,14 +1134,12 @@ function openAddRecord() {
   document.getElementById('recDate').value = today();
   document.getElementById('recMemo').value = '';
   document.getElementById('delRecBtn').style.display = 'none';
-  renderPselGrid();
-  renderTagChips();
+  renderPselGrid(); renderTagChips();
   openModal('recordModal');
   setTimeout(function(){ var el = document.getElementById('recMemo'); if(el) el.focus(); }, 350);
 }
 function openEditRecord(id) {
-  var r = getRec(id);
-  if (!r) return;
+  var r = getRec(id); if (!r) return;
   editRecId = id;
   selPeople = (r.peopleIds||[]).slice();
   selTags   = (r.tags||[]).slice();
@@ -1051,8 +1147,7 @@ function openEditRecord(id) {
   document.getElementById('recDate').value = r.date;
   document.getElementById('recMemo').value = r.memo || '';
   document.getElementById('delRecBtn').style.display = 'block';
-  renderPselGrid();
-  renderTagChips();
+  renderPselGrid(); renderTagChips();
   openModal('recordModal');
 }
 function renderPselGrid() {
@@ -1062,8 +1157,8 @@ function renderPselGrid() {
     return;
   }
   c.innerHTML = db.people.map(function(p){
-    var cls = 'psel-chip' + (selPeople.indexOf(p.id) >= 0 ? ' sel' : '');
-    return '<button class="' + cls + '" onclick="togglePsel(\'' + p.id + '\')">'
+    var sel = selPeople.indexOf(p.id) >= 0 ? ' sel' : '';
+    return '<button class="psel-chip' + sel + '" onclick="togglePsel(\'' + p.id + '\')">'
       + (p.icon||'👤') + ' ' + esc(p.name) + '</button>';
   }).join('');
 }
@@ -1102,9 +1197,7 @@ function tagKeydown(e) {
 }
 function tagInputChange(e) {
   var v = e.target.value;
-  if (v.slice(-1) === ',' || v.slice(-1) === '、') {
-    flushTag(v.slice(0,-1));
-  }
+  if (v.slice(-1) === ',' || v.slice(-1) === '、') flushTag(v.slice(0,-1));
 }
 function flushTag(raw) {
   var t = raw.trim().replace(/^#/, '');
@@ -1144,53 +1237,79 @@ function deleteCurrentRec() {
 
 // ─── PERSON FORM ─────────────────────────────────────────────
 function openAddPerson() {
-  editPerId = null; selIcon = '👤'; fromRec = false;
+  editPerId = null; selIcon = '👤'; selLinks = []; fromRec = false;
   document.getElementById('pModalTitle').textContent = '人物を追加';
-  document.getElementById('pName').value  = '';
-  document.getElementById('pMemo').value  = '';
+  document.getElementById('pName').value = '';
+  document.getElementById('pMemo').value = '';
   document.getElementById('delPersonBtn').style.display = 'none';
-  renderIconGrid();
+  renderIconGrid(); renderLinkList();
   openModal('personModal');
 }
 function openAddPersonFromRec() { fromRec = true; openAddPerson(); }
 function openEditPerson(id) {
-  var p = getPerson(id);
-  if (!p) return;
+  var p = getPerson(id); if (!p) return;
   editPerId = id; selIcon = p.icon || '👤'; fromRec = false;
+  selLinks = (p.links||[]).map(function(lk){ return { label: lk.label||'', url: lk.url||'' }; });
   document.getElementById('pModalTitle').textContent = '人物を編集';
-  document.getElementById('pName').value  = p.name;
-  document.getElementById('pMemo').value  = p.memo || '';
+  document.getElementById('pName').value = p.name;
+  document.getElementById('pMemo').value = p.memo || '';
   document.getElementById('delPersonBtn').style.display = 'block';
-  renderIconGrid();
+  renderIconGrid(); renderLinkList();
   openModal('personModal');
 }
 function renderIconGrid() {
   document.getElementById('iconGrid').innerHTML = ICONS.map(function(ic){
-    return '<button class="icon-opt' + (ic === selIcon ? ' sel' : '') + '" onclick="pickIcon(\'' + ic + '\')">'
-      + ic + '</button>';
+    return '<button class="icon-opt' + (ic === selIcon ? ' sel' : '') + '" onclick="pickIcon(\'' + ic + '\')">' + ic + '</button>';
   }).join('');
 }
 function pickIcon(ic) { selIcon = ic; renderIconGrid(); }
+
+// ─── LINK LIST ───────────────────────────────────────────────
+function renderLinkList() {
+  var c = document.getElementById('linkList');
+  if (!selLinks.length) { c.innerHTML = ''; return; }
+  c.innerHTML = selLinks.map(function(lk, i){
+    return '<div class="link-row">'
+      + '<input class="link-label-inp" type="text" placeholder="Twitter" value="' + esc(lk.label) + '" oninput="selLinks[' + i + '].label=this.value">'
+      + '<input class="link-url-inp" type="url" placeholder="https://..." value="' + esc(lk.url) + '" oninput="selLinks[' + i + '].url=this.value">'
+      + '<button class="link-del-btn" onclick="removeLinkRow(' + i + ')">×</button>'
+      + '</div>';
+  }).join('');
+}
+function addLinkRow() {
+  selLinks.push({ label: '', url: '' });
+  renderLinkList();
+  setTimeout(function(){
+    var inputs = document.querySelectorAll('.link-url-inp');
+    if (inputs.length) inputs[inputs.length-1].focus();
+  }, 50);
+}
+function removeLinkRow(i) {
+  selLinks.splice(i, 1);
+  renderLinkList();
+}
+
 function savePerson() {
   var name = document.getElementById('pName').value.trim();
   if (!name) { toast('名前を入力してください'); return; }
   var now = new Date().toISOString();
   var pid;
+  var cleanLinks = selLinks.filter(function(lk){ return lk.url.trim(); });
   if (editPerId) {
     var p = getPerson(editPerId);
     p.name = name; p.icon = selIcon;
     p.memo = document.getElementById('pMemo').value.trim();
+    p.links = cleanLinks;
     p.updatedAt = now;
     pid = editPerId;
   } else {
     pid = uid();
-    db.people.push({ id:pid, name:name, icon:selIcon, memo:document.getElementById('pMemo').value.trim(), createdAt:now });
+    db.people.push({ id:pid, name:name, icon:selIcon, memo:document.getElementById('pMemo').value.trim(), links:cleanLinks, createdAt:now });
   }
   saveDB(); closeModal('personModal');
   if (fromRec) {
     if (!editPerId) selPeople.push(pid);
-    renderPselGrid();
-    openModal('recordModal');
+    renderPselGrid(); openModal('recordModal');
   } else {
     refresh();
   }
@@ -1198,22 +1317,19 @@ function savePerson() {
 }
 function deleteCurrentPerson() {
   if (!editPerId || !confirm('この人物を削除しますか？\n関連する記録の人物情報も削除されます。')) return;
-  db.people  = db.people.filter(function(p){ return p.id !== editPerId; });
+  db.people = db.people.filter(function(p){ return p.id !== editPerId; });
   db.records.forEach(function(r){
     r.peopleIds = (r.peopleIds||[]).filter(function(id){ return id !== editPerId; });
   });
-  saveDB();
-  closeModal('personModal');
-  closeModal('personDetailModal');
-  refresh();
-  toast('削除しました');
+  saveDB(); closeModal('personModal'); closeModal('personDetailModal');
+  refresh(); toast('削除しました');
 }
 
 // ─── CONTEXT MENU ────────────────────────────────────────────
 function openCtx(e, id) {
   e.stopPropagation();
   ctxRecId = id;
-  var m  = document.getElementById('ctxMenu');
+  var m = document.getElementById('ctxMenu');
   m.classList.add('open');
   var rect = e.target.getBoundingClientRect();
   var top  = rect.bottom + 4;
@@ -1247,8 +1363,10 @@ document.addEventListener('keydown', function(e){
 // ─── SAMPLE DATA ─────────────────────────────────────────────
 function addSampleData() {
   var now = new Date().toISOString();
-  var p1  = { id:uid(), name:'山田太郎', icon:'👨', memo:'写真仲間', createdAt:now };
-  var p2  = { id:uid(), name:'佐藤花子', icon:'👩', memo:'デザイナー', createdAt:now };
+  var p1 = { id:uid(), name:'山田太郎', icon:'👨', memo:'写真仲間',
+    links:[{ label:'Instagram', url:'https://www.instagram.com/' }], createdAt:now };
+  var p2 = { id:uid(), name:'佐藤花子', icon:'👩', memo:'デザイナー',
+    links:[{ label:'X', url:'https://x.com/' }, { label:'note', url:'https://note.com/' }], createdAt:now };
   db.people.push(p1, p2);
   var d1 = today();
   var d2 = new Date(Date.now()-86400000).toISOString().slice(0,10);
