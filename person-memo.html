@@ -181,6 +181,12 @@
       cursor:pointer;transition:transform .15s;
     }
     .memo-tag-chip:active{transform:scale(.93)}
+    .memo-time-tag{
+      display:inline-block;font-size:11px;font-weight:800;
+      color:var(--primary);background:var(--primary-lt);
+      padding:2px 8px;border-radius:4px;margin-bottom:4px;
+    }
+    .memo-date-time{font-size:12px;font-weight:700;color:var(--primary);margin-left:6px;}
 
     /* ===== TOOLBAR ===== */
     .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
@@ -717,6 +723,10 @@
       <label class="form-label">📅 日付</label>
       <input class="form-input" id="recDate" type="date">
     </div>
+    <div class="form-group" id="recTimeGroup" style="display:none;">
+      <label class="form-label">⏰ 時刻</label>
+      <input class="form-input" id="recTime" type="time">
+    </div>
     <div class="form-group" id="recPersonGroup">
       <label class="form-label">👤 会った人</label>
       <div class="psel-row" id="pselGrid"></div>
@@ -1154,13 +1164,16 @@ function cardHTML(rec, delay, hideDate) {
     return '<button class="memo-tag-chip" onclick="onTagChip(\'' + esc(t) + '\',event)">#' + esc(t) + '</button>';
   }).join('');
   var bodyParts = '';
+  var timeTag = (rec.mode === 'quick' && rec.time) ? '<span class="memo-time-tag">⏰ ' + rec.time + '</span>' : '';
+  if (hideDate && timeTag) bodyParts += timeTag;
   if (people.length) bodyParts += '<div class="memo-people">' + peopleHTML + '</div>';
   if (rec.memo)      bodyParts += '<div class="memo-text">' + esc(rec.memo) + '</div>';
   if (rec.tags && rec.tags.length) bodyParts += '<div class="memo-tags">' + tagsHTML + '</div>';
+  var timeInBar = (!hideDate && rec.mode === 'quick' && rec.time) ? '<span class="memo-date-time">' + rec.time + '</span>' : '';
   var cls = 'memo-card' + (hideDate ? ' no-datebar' : '');
   return '<div class="' + cls + '" style="animation-delay:' + (delay*40) + 'ms" onclick="openEditRecord(\'' + rec.id + '\')">'
     + '<div class="memo-date-bar">'
-    + '<span class="memo-date-text">' + fmtDateLong(rec.date) + '</span>'
+    + '<span class="memo-date-text">' + fmtDateLong(rec.date) + timeInBar + '</span>'
     + '<button class="memo-edit-btn" onclick="event.stopPropagation();openEditRecord(\'' + rec.id + '\')" title="編集">✏️</button>'
     + '</div>'
     + (bodyParts ? '<div class="memo-body-area">' + bodyParts + '</div>' : '')
@@ -1496,6 +1509,10 @@ function openAddRecord() {
   document.getElementById('recDate').value = today();
   document.getElementById('recMemo').value = '';
   document.getElementById('delRecBtn').style.display = 'none';
+  var nt = new Date();
+  var hh = (nt.getHours()   < 10 ? '0' : '') + nt.getHours();
+  var mm = (nt.getMinutes() < 10 ? '0' : '') + nt.getMinutes();
+  document.getElementById('recTime').value = hh + ':' + mm;
   updateRecForm();
   renderPselGrid(); renderTagChips();
   openModal('recordModal');
@@ -1512,6 +1529,7 @@ function openEditRecord(id) {
   document.getElementById('recModalTitle').textContent = titles[em] || '記録を編集';
   document.getElementById('recDate').value = r.date;
   document.getElementById('recMemo').value = r.memo || '';
+  document.getElementById('recTime').value = r.time || '';
   document.getElementById('delRecBtn').style.display = 'block';
   updateRecForm(em);
   renderPselGrid(); renderTagChips();
@@ -1521,8 +1539,10 @@ function updateRecForm(m) {
   m = m || curMode;
   var pg = document.getElementById('recPersonGroup');
   var tg = document.getElementById('recTagGroup');
+  var tmg = document.getElementById('recTimeGroup');
   if (pg) pg.style.display = m === 'hobby' ? 'block' : 'none';
   if (tg) tg.style.display = 'block';
+  if (tmg) tmg.style.display = m === 'quick' ? 'block' : 'none';
   var placeholders = { hobby: '今日の出来事や会話内容...', work: '仕事の記録...', quick: 'メモ...' };
   var ta = document.getElementById('recMemo');
   if (ta) ta.placeholder = placeholders[m] || 'メモ...';
@@ -1638,15 +1658,17 @@ function saveRecord() {
   if (!date) { toast('日付を入力してください'); return; }
   var memo = document.getElementById('recMemo').value.trim();
   var now  = new Date().toISOString();
+  var timeVal = document.getElementById('recTime').value || '';
   if (editRecId) {
     var r = getRec(editRecId);
     var rm = r.mode || 'hobby';
     r.date = date; r.memo = memo;
     if (rm === 'hobby') r.peopleIds = selPeople.slice();
     r.tags = selTags.slice();
+    if (rm === 'quick') r.time = timeVal;
     r.updatedAt = now;
   } else {
-    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:selTags.slice(), createdAt:now, updatedAt:now });
+    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:selTags.slice(), time:curMode==='quick'?timeVal:'', createdAt:now, updatedAt:now });
   }
   if (curMode === 'hobby') recalcLastContact();
   saveDB(); closeModal('recordModal'); refresh();
