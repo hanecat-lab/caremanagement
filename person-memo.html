@@ -629,6 +629,7 @@
     <input class="search-input" id="searchKw" type="text" placeholder="🔍 キーワードで検索..." oninput="onSearch()">
     <div class="filter-card" id="personFilterCard">
       <div class="filter-title">👤 人物</div>
+      <div id="personFilterRows"></div>
       <div class="chip-row" id="personFilterChips"></div>
     </div>
     <div class="filter-card" id="tagFilterCard">
@@ -889,6 +890,8 @@ var personSort   = 'lastContact_desc';
 var selGroup       = 'その他';
 var pselGroupFilter  = 'all';
 var pselGenderFilter = 'all';
+var sfGroupFilter    = 'all';
+var sfGenderFilter   = 'all';
 
 var GENDERS = [
   { val: 'm', label: '🚹 男性' },
@@ -1134,6 +1137,7 @@ function setMode(m) {
   document.getElementById(tabs[m]).classList.add('active');
   var prevKw = sf.kw;
   sf = { kw: prevKw, personIds: [], tags: [], from: '', to: '' };
+  sfGroupFilter = 'all'; sfGenderFilter = 'all';
   var df = document.getElementById('dateFrom'); if(df) df.value = '';
   var dt = document.getElementById('dateTo');   if(dt) dt.value = '';
   refresh();
@@ -1230,16 +1234,39 @@ function renderSearch() {
   renderTagFilterChips();
   renderSearchResults();
 }
+function renderPersonFilterRows() {
+  var fc = document.getElementById('personFilterRows');
+  if (!fc) return;
+  var groupOpts = ['all'].concat(db.groups);
+  var groupRow = groupOpts.map(function(g){
+    return '<button class="psel-filter-chip' + (sfGroupFilter === g ? ' active' : '') + '" onclick="setSFGroupFilter(\'' + g + '\')">' + (g === 'all' ? '全て' : g) + '</button>';
+  }).join('');
+  var genOpts = [{ val:'all', label:'全て' }].concat(GENDERS);
+  var genRow = genOpts.map(function(g){
+    return '<button class="psel-filter-chip' + (sfGenderFilter === g.val ? ' active' : '') + '" onclick="setSFGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
+  }).join('');
+  fc.innerHTML = '<div class="psel-filter-row" style="margin-bottom:6px;">' + groupRow + '</div>'
+    + '<div class="psel-filter-row" style="margin-bottom:8px;">' + genRow + '</div>';
+}
+function setSFGroupFilter(g) { sfGroupFilter = g; renderPersonFilterChips(); }
+function setSFGenderFilter(v) { sfGenderFilter = v; renderPersonFilterChips(); }
 function renderPersonFilterChips() {
+  renderPersonFilterRows();
   var c = document.getElementById('personFilterChips');
   if (!db.people.length) {
     c.innerHTML = '<span style="font-size:12px;color:var(--txm);">人物が登録されていません</span>';
     return;
   }
-  c.innerHTML = db.people.map(function(p){
+  var people = db.people.filter(function(p){
+    var gok = sfGroupFilter === 'all' || (p.group||'その他') === sfGroupFilter;
+    var sok = sfGenderFilter === 'all' || (p.gender||'') === sfGenderFilter;
+    return gok && sok;
+  });
+  c.innerHTML = people.map(function(p){
     var act = sf.personIds.indexOf(p.id) >= 0 ? ' active' : '';
+    var gbadge = p.gender ? genderIcon(p.gender) : '';
     return '<button class="filter-chip' + act + '" onclick="togglePF(\'' + p.id + '\')">'
-      + (p.icon||'👤') + ' ' + esc(p.name) + '</button>';
+      + (p.icon||'👤') + gbadge + ' ' + esc(p.name) + '</button>';
   }).join('');
 }
 function renderTagFilterChips() {
