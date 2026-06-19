@@ -634,7 +634,10 @@
     <div class="filter-card" id="personFilterCard">
       <div class="filter-title">👤 人物</div>
       <div id="personFilterRows"></div>
-      <div class="chip-row" id="personFilterChips"></div>
+      <div id="personPeopleToggle"></div>
+      <div id="personPeopleWrap" style="display:none;">
+        <div class="chip-row" id="personFilterChips"></div>
+      </div>
     </div>
     <div class="filter-card" id="tagFilterCard">
       <div class="filter-title">🏷️ タグ</div>
@@ -743,8 +746,11 @@
     <div class="form-group" id="recPersonGroup">
       <label class="form-label">👤 会った人</label>
       <div class="psel-filters" id="pselFilters"></div>
-      <div class="psel-row" id="pselGrid"></div>
-      <button class="add-per-btn" onclick="openAddPersonFromRec()">＋ 新しい人物を追加</button>
+      <div id="pselPeopleToggle"></div>
+      <div id="pselPeopleWrap" style="display:none;">
+        <div class="psel-row" id="pselGrid"></div>
+        <button class="add-per-btn" onclick="openAddPersonFromRec()">＋ 新しい人物を追加</button>
+      </div>
     </div>
     <div class="form-group" id="recTagGroup">
       <label class="form-label">🏷️ タグ（Enter で追加）</label>
@@ -895,9 +901,11 @@ var selGroup       = 'その他';
 var pselGroupFilter  = 'all';
 var pselGenderFilter = 'all';
 var pselFiltersOpen  = false;
+var pselOpen         = false;
 var sfGroupFilter    = 'all';
 var sfGenderFilter   = 'all';
 var sfFiltersOpen    = false;
+var sfPeopleOpen     = false;
 
 var GENDERS = [
   { val: 'm', label: '🚹 男性' },
@@ -1143,7 +1151,7 @@ function setMode(m) {
   document.getElementById(tabs[m]).classList.add('active');
   var prevKw = sf.kw;
   sf = { kw: prevKw, personIds: [], tags: [], from: '', to: '' };
-  sfGroupFilter = 'all'; sfGenderFilter = 'all'; sfFiltersOpen = false;
+  sfGroupFilter = 'all'; sfGenderFilter = 'all'; sfFiltersOpen = false; sfPeopleOpen = false;
   var df = document.getElementById('dateFrom'); if(df) df.value = '';
   var dt = document.getElementById('dateTo');   if(dt) dt.value = '';
   refresh();
@@ -1262,6 +1270,13 @@ function setSFGroupFilter(g) { sfGroupFilter = g; renderPersonFilterChips(); }
 function setSFGenderFilter(v) { sfGenderFilter = v; renderPersonFilterChips(); }
 function renderPersonFilterChips() {
   renderPersonFilterRows();
+  var wrap = document.getElementById('personPeopleWrap');
+  var tog  = document.getElementById('personPeopleToggle');
+  var selCount = sf.personIds.length;
+  var lbl = sfPeopleOpen ? '▾ 閉じる' : ('▸ 人物を選ぶ' + (selCount ? '（' + selCount + '人選択中）' : ''));
+  if (tog) tog.innerHTML = '<button class="psel-filter-toggle' + (selCount ? ' on' : '') + '" onclick="toggleSFPeople()">' + lbl + '</button>';
+  if (wrap) wrap.style.display = sfPeopleOpen ? 'block' : 'none';
+  if (!sfPeopleOpen) return;
   var c = document.getElementById('personFilterChips');
   if (!db.people.length) {
     c.innerHTML = '<span style="font-size:12px;color:var(--txm);">人物が登録されていません</span>';
@@ -1279,6 +1294,7 @@ function renderPersonFilterChips() {
       + (p.icon||'👤') + gbadge + ' ' + esc(p.name) + '</button>';
   }).join('');
 }
+function toggleSFPeople() { sfPeopleOpen = !sfPeopleOpen; renderPersonFilterChips(); }
 function renderTagFilterChips() {
   var c = document.getElementById('tagFilterChips');
   var tags = allTags();
@@ -1554,7 +1570,7 @@ function deletePersonById(id) {
 // ─── RECORD FORM ─────────────────────────────────────────────
 function openAddRecord() {
   editRecId = null; selPeople = []; selTags = [];
-  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false;
+  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false; pselOpen = false;
   resetTagSuggest();
   var titles = { hobby: '記録を追加', work: '仕事メモを追加', quick: '一言メモを追加', kotono: '言の葉を追加' };
   document.getElementById('recModalTitle').textContent = titles[curMode] || '記録を追加';
@@ -1575,7 +1591,7 @@ function openEditRecord(id) {
   editRecId = id;
   selPeople = (r.peopleIds||[]).slice();
   selTags   = (r.tags||[]).slice();
-  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false;
+  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false; pselOpen = false;
   resetTagSuggest();
   var em = r.mode || 'hobby';
   var titles = { hobby: '記録を編集', work: '仕事メモを編集', quick: '一言メモを編集', kotono: '言の葉を編集' };
@@ -1621,6 +1637,13 @@ function setPselGroupFilter(g) { pselGroupFilter = g; renderPselGrid(); }
 function setPselGenderFilter(v) { pselGenderFilter = v; renderPselGrid(); }
 function renderPselGrid() {
   renderPselFilters();
+  var wrap = document.getElementById('pselPeopleWrap');
+  var tog  = document.getElementById('pselPeopleToggle');
+  var selCount = selPeople.length;
+  var lbl = pselOpen ? '▾ 閉じる' : ('▸ 人物を選ぶ' + (selCount ? '（' + selCount + '人選択中）' : ''));
+  if (tog) tog.innerHTML = '<button class="psel-filter-toggle' + (selCount ? ' on' : '') + '" onclick="togglePselOpen()">' + lbl + '</button>';
+  if (wrap) wrap.style.display = pselOpen ? 'block' : 'none';
+  if (!pselOpen) return;
   var c = document.getElementById('pselGrid');
   if (!db.people.length) {
     c.innerHTML = '<span style="font-size:13px;color:var(--txm);">人物が登録されていません</span>';
@@ -1642,6 +1665,7 @@ function renderPselGrid() {
       + (p.icon||'👤') + gbadge + ' ' + esc(p.name) + '</button>';
   }).join('');
 }
+function togglePselOpen() { pselOpen = !pselOpen; renderPselGrid(); }
 function togglePsel(id) {
   var i = selPeople.indexOf(id);
   if (i >= 0) selPeople.splice(i, 1); else selPeople.push(id);
