@@ -249,6 +249,9 @@
     }
     .p-sns{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
     .p-sns-link{text-decoration:none;font-size:16px}
+    .p-group-badge{display:inline-block;font-size:11px;font-weight:800;background:var(--primary-lt);color:var(--primary);padding:2px 8px;border-radius:20px;}
+    .p-contact-row{display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;}
+    .p-last-contact{font-size:11px;color:var(--txm);font-weight:600;}
 
     /* ===== MODAL ===== */
     .modal-overlay{
@@ -558,6 +561,16 @@
 
   <!-- PEOPLE -->
   <div class="view" id="viewPeople">
+    <div class="filter-card" style="margin-bottom:10px;">
+      <div class="filter-title">👥 グループ</div>
+      <div class="chip-row" id="groupFilterChips"></div>
+    </div>
+    <div class="toolbar" style="margin-bottom:12px;">
+      <button class="sort-btn active" id="pSortLCD" onclick="setPersonSort('lastContact_desc')">接触↓</button>
+      <button class="sort-btn" id="pSortLCA" onclick="setPersonSort('lastContact_asc')">接触↑</button>
+      <button class="sort-btn" id="pSortName" onclick="setPersonSort('name')">名前順</button>
+      <span class="count-badge" id="peopleCount"></span>
+    </div>
     <div id="peopleList"></div>
   </div>
 
@@ -641,6 +654,10 @@
       <div class="icon-grid" id="iconGrid"></div>
     </div>
     <div class="form-group">
+      <label class="form-label">グループ</label>
+      <div class="chip-row" id="groupSelRow"></div>
+    </div>
+    <div class="form-group">
       <label class="form-label">名前</label>
       <input class="form-input" id="pName" type="text" placeholder="山田太郎">
     </div>
@@ -718,6 +735,10 @@ var selTags    = [];
 var selLinks   = [];   // [{ label:'', url:'' }]
 var selIcon    = '👤';
 var sf = { kw: '', personIds: [], tags: [], from: '', to: '' };
+var personFilter = 'all';
+var personSort   = 'lastContact_desc';
+var selGroup     = 'その他';
+var GROUPS = ['家族','友人','仕事','趣味','その他'];
 
 var ICONS = [
   '👤','👨','👩','👴','👵','👦','👧','🧑',
@@ -734,6 +755,10 @@ function loadDB() {
       db = JSON.parse(s);
       db.settings = db.settings || { theme: 'light' };
       db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
+      db.people.forEach(function(p){
+        if (!p.group) p.group = 'その他';
+        if (p.lastContactDate === undefined) p.lastContactDate = '';
+      });
     }
   } catch(e) {}
 }
@@ -1090,15 +1115,52 @@ function renderCalDayRecs() {
 }
 
 // ─── PEOPLE ──────────────────────────────────────────────────
-function renderPeople() {
+function renderGroupFilterChips() {
+  var c = document.getElementById('groupFilterChips');
+  var opts = ['all'].concat(GROUPS);
+  var labels = { all: '全て' };
+  c.innerHTML = opts.map(function(g){
+    var label = labels[g] || g;
+    var act = personFilter === g ? ' active' : '';
+    return '<button class="filter-chip' + act + '" onclick="setPersonFilter(\'' + g + '\')">' + label + '</button>';
+  }).join('');
+}
+function setPersonFilter(g) {
+  personFilter = g;
+  renderGroupFilterChips();
+  renderPeopleList();
+}
+function setPersonSort(s) {
+  personSort = s;
+  document.querySelectorAll('#pSortLCD,#pSortLCA,#pSortName').forEach(function(el){ el.classList.remove('active'); });
+  var ids = { lastContact_desc:'pSortLCD', lastContact_asc:'pSortLCA', name:'pSortName' };
+  var el = document.getElementById(ids[s]); if(el) el.classList.add('active');
+  renderPeopleList();
+}
+function sortedPeople(arr) {
+  return arr.slice().sort(function(a, b){
+    if (personSort === 'name') return a.name.localeCompare(b.name, 'ja');
+    var da = a.lastContactDate || '';
+    var db2 = b.lastContactDate || '';
+    if (da === db2) return a.name.localeCompare(b.name, 'ja');
+    if (personSort === 'lastContact_desc') return da > db2 ? -1 : 1;
+    return da < db2 ? -1 : 1;
+  });
+}
+function renderPeopleList() {
   var c = document.getElementById('peopleList');
-  if (!db.people.length) {
-    c.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>まだ人物が登録されていません<br>＋ボタンから追加しましょう</p></div>';
+  var people = db.people.filter(function(p){
+    return personFilter === 'all' || (p.group||'その他') === personFilter;
+  });
+  var cnt = document.getElementById('peopleCount');
+  if (cnt) cnt.textContent = people.length + '人';
+  if (!people.length) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>'
+      + (personFilter === 'all' ? 'まだ人物が登録されていません<br>＋ボタンから追加しましょう' : 'このグループに人物はいません')
+      + '</p></div>';
     return;
   }
-  c.innerHTML = db.people.map(function(p, i){
-    var cnt = db.records.filter(function(r){ return (r.peopleIds||[]).indexOf(p.id) >= 0; }).length;
-    var sub = p.memo || '—';
+  c.innerHTML = sortedPeople(people).map(function(p, i){
     var validLinks = (p.links||[]).filter(function(lk){ return lk.url; });
     var snsHTML = validLinks.length
       ? '<div class="p-sns">'
@@ -1108,16 +1170,23 @@ function renderPeople() {
           }).join('')
         + '</div>'
       : '';
+    var lc = p.lastContactDate ? '最終接触 ' + fmtDate(p.lastContactDate) : '接触記録なし';
     return '<div class="person-card" style="animation-delay:' + (i*30) + 'ms" onclick="showPersonDetail(\'' + p.id + '\')">'
       + '<div class="p-icon">' + (p.icon||'👤') + '</div>'
       + '<div class="p-info">'
       + '<div class="p-name">' + esc(p.name) + '</div>'
-      + '<div class="p-memo">' + esc(sub) + '</div>'
+      + '<div class="p-contact-row">'
+      + '<span class="p-group-badge">' + esc(p.group||'その他') + '</span>'
+      + '<span class="p-last-contact">' + lc + '</span>'
+      + '</div>'
       + snsHTML
       + '</div>'
-      + '<span class="p-count">' + cnt + '件</span>'
       + '</div>';
   }).join('');
+}
+function renderPeople() {
+  renderGroupFilterChips();
+  renderPeopleList();
 }
 
 // ─── PERSON DETAIL ───────────────────────────────────────────
@@ -1275,6 +1344,16 @@ function removeTag(t) {
   if (i >= 0) selTags.splice(i, 1);
   renderTagChips();
 }
+function recalcLastContact() {
+  db.people.forEach(function(p){ p.lastContactDate = ''; });
+  db.records.forEach(function(r){
+    if ((r.mode||'hobby') !== 'hobby') return;
+    (r.peopleIds||[]).forEach(function(pid){
+      var p = getPerson(pid);
+      if (p && (!p.lastContactDate || r.date > p.lastContactDate)) p.lastContactDate = r.date;
+    });
+  });
+}
 function saveRecord() {
   var inp = document.getElementById('tagInput');
   if (inp && inp.value.trim()) flushTag(inp.value);
@@ -1292,35 +1371,37 @@ function saveRecord() {
   } else {
     db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:curMode!=='quick'?selTags.slice():[], createdAt:now, updatedAt:now });
   }
+  if (curMode === 'hobby') recalcLastContact();
   saveDB(); closeModal('recordModal'); refresh();
   toast(editRecId ? '更新しました' : '保存しました');
 }
 function deleteCurrentRec() {
   if (!editRecId || !confirm('この記録を削除しますか？')) return;
   db.records = db.records.filter(function(r){ return r.id !== editRecId; });
+  recalcLastContact();
   saveDB(); closeModal('recordModal'); refresh(); toast('削除しました');
 }
 
 // ─── PERSON FORM ─────────────────────────────────────────────
 function openAddPerson() {
-  editPerId = null; selIcon = '👤'; selLinks = []; fromRec = false;
+  editPerId = null; selIcon = '👤'; selLinks = []; selGroup = 'その他'; fromRec = false;
   document.getElementById('pModalTitle').textContent = '人物を追加';
   document.getElementById('pName').value = '';
   document.getElementById('pMemo').value = '';
   document.getElementById('delPersonBtn').style.display = 'none';
-  renderIconGrid(); renderLinkList();
+  renderIconGrid(); renderGroupSel(); renderLinkList();
   openModal('personModal');
 }
 function openAddPersonFromRec() { fromRec = true; openAddPerson(); }
 function openEditPerson(id) {
   var p = getPerson(id); if (!p) return;
-  editPerId = id; selIcon = p.icon || '👤'; fromRec = false;
+  editPerId = id; selIcon = p.icon || '👤'; selGroup = p.group || 'その他'; fromRec = false;
   selLinks = (p.links||[]).map(function(lk){ return { label: lk.label||'', url: lk.url||'' }; });
   document.getElementById('pModalTitle').textContent = '人物を編集';
   document.getElementById('pName').value = p.name;
   document.getElementById('pMemo').value = p.memo || '';
   document.getElementById('delPersonBtn').style.display = 'block';
-  renderIconGrid(); renderLinkList();
+  renderIconGrid(); renderGroupSel(); renderLinkList();
   openModal('personModal');
 }
 function renderIconGrid() {
@@ -1329,6 +1410,14 @@ function renderIconGrid() {
   }).join('');
 }
 function pickIcon(ic) { selIcon = ic; renderIconGrid(); }
+function renderGroupSel() {
+  var c = document.getElementById('groupSelRow');
+  if (!c) return;
+  c.innerHTML = GROUPS.map(function(g){
+    return '<button class="filter-chip' + (g === selGroup ? ' active' : '') + '" onclick="pickGroup('' + g + '')">' + g + '</button>';
+  }).join('');
+}
+function pickGroup(g) { selGroup = g; renderGroupSel(); }
 
 // ─── LINK LIST ───────────────────────────────────────────────
 function renderLinkList() {
@@ -1363,14 +1452,14 @@ function savePerson() {
   var cleanLinks = selLinks.filter(function(lk){ return lk.url.trim(); });
   if (editPerId) {
     var p = getPerson(editPerId);
-    p.name = name; p.icon = selIcon;
+    p.name = name; p.icon = selIcon; p.group = selGroup;
     p.memo = document.getElementById('pMemo').value.trim();
     p.links = cleanLinks;
     p.updatedAt = now;
     pid = editPerId;
   } else {
     pid = uid();
-    db.people.push({ id:pid, name:name, icon:selIcon, memo:document.getElementById('pMemo').value.trim(), links:cleanLinks, createdAt:now });
+    db.people.push({ id:pid, name:name, icon:selIcon, group:selGroup, memo:document.getElementById('pMemo').value.trim(), links:cleanLinks, lastContactDate:'', createdAt:now });
   }
   saveDB(); closeModal('personModal');
   if (fromRec) {
@@ -1412,6 +1501,7 @@ function ctxDelete() {
   closeCtx();
   if (!ctxRecId || !confirm('この記録を削除しますか？')) return;
   db.records = db.records.filter(function(r){ return r.id !== ctxRecId; });
+  recalcLastContact();
   saveDB(); refresh(); toast('削除しました');
 }
 
@@ -1429,10 +1519,10 @@ document.addEventListener('keydown', function(e){
 // ─── SAMPLE DATA ─────────────────────────────────────────────
 function addSampleData() {
   var now = new Date().toISOString();
-  var p1 = { id:uid(), name:'山田太郎', icon:'👨', memo:'写真仲間',
-    links:[{ label:'Instagram', url:'https://www.instagram.com/' }], createdAt:now };
-  var p2 = { id:uid(), name:'佐藤花子', icon:'👩', memo:'デザイナー',
-    links:[{ label:'X', url:'https://x.com/' }, { label:'note', url:'https://note.com/' }], createdAt:now };
+  var p1 = { id:uid(), name:'山田太郎', icon:'👨', group:'趣味', memo:'写真仲間',
+    links:[{ label:'Instagram', url:'https://www.instagram.com/' }], lastContactDate:'', createdAt:now };
+  var p2 = { id:uid(), name:'佐藤花子', icon:'👩', group:'友人', memo:'デザイナー',
+    links:[{ label:'X', url:'https://x.com/' }, { label:'note', url:'https://note.com/' }], lastContactDate:'', createdAt:now };
   db.people.push(p1, p2);
   var d1 = today();
   var d2 = new Date(Date.now()-86400000).toISOString().slice(0,10);
