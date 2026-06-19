@@ -1086,6 +1086,15 @@ function allTags() {
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function hashIcon(size) {
+  size = size || '0.82em';
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:-.05em;flex-shrink:0;margin-right:1px">'
+    + '<line x1="3.5" y1="1" x2="2.5" y2="9"/>'
+    + '<line x1="7.5" y1="1" x2="6.5" y2="9"/>'
+    + '<line x1="1" y1="3.5" x2="9" y2="3.5"/>'
+    + '<line x1="1" y1="6.5" x2="9" y2="6.5"/>'
+    + '</svg>';
+}
 function toast(msg) {
   var el = document.getElementById('toast');
   el.textContent = msg;
@@ -1190,7 +1199,7 @@ function cardHTML(rec, delay, hideDate) {
     return '<button class="memo-person-chip" onclick="onPersonChip(\'' + p.id + '\',event)">👤 ' + esc(p.name) + '</button>';
   }).join('');
   var tagsHTML = (rec.tags || []).map(function(t){
-    return '<button class="memo-tag-chip" onclick="onTagChip(\'' + esc(t) + '\',event)">#' + esc(t) + '</button>';
+    return '<button class="memo-tag-chip" onclick="onTagChip(\'' + esc(t) + '\',event)">' + hashIcon() + esc(t) + '</button>';
   }).join('');
   var bodyParts = '';
   var timeTag = (rec.mode === 'quick' && rec.time) ? '<span class="memo-time-tag">⏰ ' + rec.time + '</span>' : '';
@@ -1304,7 +1313,7 @@ function renderTagFilterChips() {
   }
   c.innerHTML = tags.map(function(t){
     var act = sf.tags.indexOf(t) >= 0 ? ' active' : '';
-    return '<button class="filter-chip' + act + '" onclick="toggleTF(\'' + esc(t) + '\')">#' + esc(t) + '</button>';
+    return '<button class="filter-chip' + act + '" onclick="toggleTF(\'' + esc(t) + '\')">' + hashIcon() + esc(t) + '</button>';
   }).join('');
 }
 function togglePF(id) {
@@ -1677,7 +1686,7 @@ function renderTagChips() {
   selTags.forEach(function(t){
     var span = document.createElement('span');
     span.className = 'ti-chip';
-    span.innerHTML = '#' + esc(t) + ' <button onclick="removeTag(\'' + esc(t) + '\')">×</button>';
+    span.innerHTML = hashIcon() + esc(t) + ' <button onclick="removeTag(\'' + esc(t) + '\')">×</button>';
     c.appendChild(span);
   });
   var inp = document.createElement('input');
@@ -1716,7 +1725,7 @@ function renderTagSuggestions() {
   }
   c.innerHTML = tags.map(function(t){
     var used = selTags.indexOf(t) >= 0;
-    return '<button class="tag-sug-chip' + (used ? ' used' : '') + '" onclick="quickAddTag(\'' + esc(t) + '\')">#' + esc(t) + '</button>';
+    return '<button class="tag-sug-chip' + (used ? ' used' : '') + '" onclick="quickAddTag(\'' + esc(t) + '\')">' + hashIcon() + esc(t) + '</button>';
   }).join('');
 }
 function quickAddTag(t) {
