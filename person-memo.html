@@ -484,6 +484,28 @@
     .data-sec-title{font-size:12px;font-weight:800;color:var(--tx2);margin-bottom:10px}
     .data-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
+    /* ===== TAG SUGGESTIONS ===== */
+    .tag-suggest-toggle{
+      background:none;border:none;color:var(--txm);
+      font-size:11px;font-weight:700;padding:7px 0 2px;
+      cursor:pointer;letter-spacing:.3px;transition:color .15s;
+      display:block;
+    }
+    .tag-suggest-toggle:active{color:var(--primary)}
+    .tag-suggest-list{
+      display:flex;flex-wrap:wrap;gap:5px;padding:4px 0 2px;
+    }
+    .tag-sug-chip{
+      display:inline-flex;align-items:center;
+      font-size:12px;font-weight:700;
+      padding:4px 10px;border-radius:4px;
+      background:var(--bg);color:var(--tx2);
+      border:1px solid var(--bd);cursor:pointer;
+      transition:background .15s,color .15s,border-color .15s;
+    }
+    .tag-sug-chip:active{background:var(--primary-lt);color:var(--primary);border-color:var(--primary)}
+    .tag-sug-chip.used{opacity:.35;pointer-events:none;}
+
     /* ===== DATE SEPARATOR ===== */
     .date-sep{
       display:flex;align-items:center;gap:10px;
@@ -682,6 +704,8 @@
     <div class="form-group" id="recTagGroup">
       <label class="form-label">🏷️ タグ（Enter で追加）</label>
       <div class="tag-field" id="tagField" onclick="focusTagInput()"></div>
+      <button class="tag-suggest-toggle" id="tagSuggestToggle" onclick="toggleTagSuggest()">▸ 使用中のタグ</button>
+      <div class="tag-suggest-list" id="tagSuggestList" style="display:none;"></div>
     </div>
     <div class="form-group">
       <label class="form-label">📝 メモ</label>
@@ -1335,6 +1359,7 @@ function deletePersonById(id) {
 // ─── RECORD FORM ─────────────────────────────────────────────
 function openAddRecord() {
   editRecId = null; selPeople = []; selTags = [];
+  tagSuggestOpen = false;
   var titles = { hobby: '記録を追加', work: '仕事メモを追加', quick: '一言メモを追加' };
   document.getElementById('recModalTitle').textContent = titles[curMode] || '記録を追加';
   document.getElementById('recDate').value = today();
@@ -1350,6 +1375,7 @@ function openEditRecord(id) {
   editRecId = id;
   selPeople = (r.peopleIds||[]).slice();
   selTags   = (r.tags||[]).slice();
+  tagSuggestOpen = false;
   var em = r.mode || 'hobby';
   var titles = { hobby: '記録を編集', work: '仕事メモを編集', quick: '一言メモを編集' };
   document.getElementById('recModalTitle').textContent = titles[em] || '記録を編集';
@@ -1403,6 +1429,33 @@ function renderTagChips() {
   inp.onkeydown  = tagKeydown;
   inp.oninput    = tagInputChange;
   c.appendChild(inp);
+  renderTagSuggestions();
+}
+var tagSuggestOpen = false;
+function toggleTagSuggest() {
+  tagSuggestOpen = !tagSuggestOpen;
+  var list = document.getElementById('tagSuggestList');
+  var btn  = document.getElementById('tagSuggestToggle');
+  if (list) list.style.display = tagSuggestOpen ? 'flex' : 'none';
+  if (btn)  btn.textContent = (tagSuggestOpen ? '▾' : '▸') + ' 使用中のタグ';
+  if (tagSuggestOpen) renderTagSuggestions();
+}
+function renderTagSuggestions() {
+  if (!tagSuggestOpen) return;
+  var c = document.getElementById('tagSuggestList');
+  if (!c) return;
+  var tags = allTags();
+  if (!tags.length) {
+    c.innerHTML = '<span style="font-size:11px;color:var(--txm);">タグがありません</span>';
+    return;
+  }
+  c.innerHTML = tags.map(function(t){
+    var used = selTags.indexOf(t) >= 0;
+    return '<button class="tag-sug-chip' + (used ? ' used' : '') + '" onclick="quickAddTag(\'' + esc(t) + '\')">#' + esc(t) + '</button>';
+  }).join('');
+}
+function quickAddTag(t) {
+  if (selTags.indexOf(t) < 0) { selTags.push(t); renderTagChips(); }
 }
 function focusTagInput() { var el = document.getElementById('tagInput'); if(el) el.focus(); }
 function tagKeydown(e) {
