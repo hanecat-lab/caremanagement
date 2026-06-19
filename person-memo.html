@@ -1095,9 +1095,9 @@ function renderSearch() {
   var pfc = document.getElementById('personFilterCard');
   var tfc = document.getElementById('tagFilterCard');
   if (pfc) pfc.style.display = curMode === 'hobby' ? 'block' : 'none';
-  if (tfc) tfc.style.display = curMode === 'quick' ? 'none' : 'block';
+  if (tfc) tfc.style.display = 'block';
   if (curMode === 'hobby') renderPersonFilterChips();
-  if (curMode !== 'quick') renderTagFilterChips();
+  renderTagFilterChips();
   renderSearchResults();
 }
 function renderPersonFilterChips() {
@@ -1390,7 +1390,7 @@ function updateRecForm(m) {
   var pg = document.getElementById('recPersonGroup');
   var tg = document.getElementById('recTagGroup');
   if (pg) pg.style.display = m === 'hobby' ? 'block' : 'none';
-  if (tg) tg.style.display = m === 'quick' ? 'none' : 'block';
+  if (tg) tg.style.display = 'block';
   var placeholders = { hobby: '今日の出来事や会話内容...', work: '仕事の記録...', quick: 'メモ...' };
   var ta = document.getElementById('recMemo');
   if (ta) ta.placeholder = placeholders[m] || 'メモ...';
@@ -1511,10 +1511,10 @@ function saveRecord() {
     var rm = r.mode || 'hobby';
     r.date = date; r.memo = memo;
     if (rm === 'hobby') r.peopleIds = selPeople.slice();
-    if (rm !== 'quick') r.tags = selTags.slice();
+    r.tags = selTags.slice();
     r.updatedAt = now;
   } else {
-    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:curMode!=='quick'?selTags.slice():[], createdAt:now, updatedAt:now });
+    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:selTags.slice(), createdAt:now, updatedAt:now });
   }
   if (curMode === 'hobby') recalcLastContact();
   saveDB(); closeModal('recordModal'); refresh();
