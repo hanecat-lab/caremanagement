@@ -275,6 +275,19 @@
     .p-group-badge{display:inline-block;font-size:11px;font-weight:800;background:var(--primary-lt);color:var(--primary);padding:2px 8px;border-radius:20px;}
     .p-contact-row{display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;}
     .p-last-contact{font-size:11px;color:var(--txm);font-weight:600;}
+    .p-icon-wrap{position:relative;flex-shrink:0;}
+    .gender-badge{
+      position:absolute;bottom:-3px;right:-3px;
+      font-size:13px;line-height:1;background:var(--card);
+      border-radius:50%;padding:1px;
+    }
+    .gender-sel{display:flex;gap:7px;flex-wrap:wrap;margin-top:2px;}
+    .gender-opt{
+      padding:7px 14px;border-radius:20px;border:2px solid var(--bd);
+      background:var(--card);color:var(--tx2);font-size:13px;font-weight:700;
+      transition:all .15s;
+    }
+    .gender-opt.sel{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
 
     /* ===== MODAL ===== */
     .modal-overlay{
@@ -641,6 +654,10 @@
       <div class="filter-title" style="display:flex;align-items:center;justify-content:space-between;">👥 グループ<button class="icon-btn" style="font-size:14px;padding:2px 6px;" onclick="renderGroupEditList();openModal('groupEditModal')" title="グループを編集">✏️</button></div>
       <div class="chip-row" id="groupFilterChips"></div>
     </div>
+    <div class="filter-card" style="margin-bottom:10px;">
+      <div class="filter-title">性別</div>
+      <div class="chip-row" id="genderFilterChips"></div>
+    </div>
     <div class="toolbar" style="margin-bottom:12px;">
       <button class="sort-btn active" id="pSortLCD" onclick="setPersonSort('lastContact_desc')">接触↓</button>
       <button class="sort-btn" id="pSortLCA" onclick="setPersonSort('lastContact_asc')">接触↑</button>
@@ -736,6 +753,10 @@
       <div class="chip-row" id="groupSelRow"></div>
     </div>
     <div class="form-group">
+      <label class="form-label">性別</label>
+      <div class="gender-sel" id="genderSelRow"></div>
+    </div>
+    <div class="form-group">
       <label class="form-label">名前</label>
       <input class="form-input" id="pName" type="text" placeholder="山田太郎">
     </div>
@@ -828,10 +849,24 @@ var selPeople  = [];
 var selTags    = [];
 var selLinks   = [];   // [{ label:'', url:'' }]
 var selIcon    = '👤';
+var selGender  = '';
 var sf = { kw: '', personIds: [], tags: [], from: '', to: '' };
 var personFilter = 'all';
+var genderFilter = 'all';
 var personSort   = 'lastContact_desc';
 var selGroup     = 'その他';
+
+var GENDERS = [
+  { val: 'm', label: '🚹 男性' },
+  { val: 'f', label: '🚺 女性' },
+  { val: 'o', label: '✴️ その他' }
+];
+function genderIcon(g) {
+  if (g === 'm') return '🚹';
+  if (g === 'f') return '🚺';
+  if (g === 'o') return '✴️';
+  return '';
+}
 
 var ICONS = [
   '👤','👨','👩','👴','👵','👦','👧','🧑',
@@ -1243,10 +1278,34 @@ function renderGroupFilterChips() {
     return '<button class="filter-chip' + act + '" onclick="setPersonFilter(\'' + g + '\')">' + label + '</button>';
   }).join('');
 }
+function renderGenderFilterChips() {
+  var c = document.getElementById('genderFilterChips');
+  if (!c) return;
+  var opts = [{ val: 'all', label: '全て' }].concat(GENDERS);
+  c.innerHTML = opts.map(function(g){
+    return '<button class="filter-chip' + (genderFilter === g.val ? ' active' : '') + '" onclick="setGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
+  }).join('');
+}
 function setPersonFilter(g) {
   personFilter = g;
   renderGroupFilterChips();
   renderPeopleList();
+}
+function setGenderFilter(v) {
+  genderFilter = v;
+  renderGenderFilterChips();
+  renderPeopleList();
+}
+function renderGenderSel() {
+  var c = document.getElementById('genderSelRow');
+  if (!c) return;
+  c.innerHTML = GENDERS.map(function(g){
+    return '<button class="gender-opt' + (selGender === g.val ? ' sel' : '') + '" onclick="pickGender(\'' + g.val + '\')">' + g.label + '</button>';
+  }).join('');
+}
+function pickGender(v) {
+  selGender = selGender === v ? '' : v;
+  renderGenderSel();
 }
 function setPersonSort(s) {
   personSort = s;
@@ -1268,14 +1327,14 @@ function sortedPeople(arr) {
 function renderPeopleList() {
   var c = document.getElementById('peopleList');
   var people = db.people.filter(function(p){
-    return personFilter === 'all' || (p.group||'その他') === personFilter;
+    var groupOk = personFilter === 'all' || (p.group||'その他') === personFilter;
+    var genOk   = genderFilter === 'all' || (p.gender||'') === genderFilter;
+    return groupOk && genOk;
   });
   var cnt = document.getElementById('peopleCount');
   if (cnt) cnt.textContent = people.length + '人';
   if (!people.length) {
-    c.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>'
-      + (personFilter === 'all' ? 'まだ人物が登録されていません<br>＋ボタンから追加しましょう' : 'このグループに人物はいません')
-      + '</p></div>';
+    c.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>該当する人物がいません</p></div>';
     return;
   }
   c.innerHTML = sortedPeople(people).map(function(p, i){
@@ -1289,8 +1348,9 @@ function renderPeopleList() {
         + '</div>'
       : '';
     var lc = p.lastContactDate ? '最終接触 ' + fmtDate(p.lastContactDate) : '接触記録なし';
+    var gbadge = p.gender ? '<span class="gender-badge">' + genderIcon(p.gender) + '</span>' : '';
     return '<div class="person-card" style="animation-delay:' + (i*30) + 'ms" onclick="showPersonDetail(\'' + p.id + '\')">'
-      + '<div class="p-icon">' + (p.icon||'👤') + '</div>'
+      + '<div class="p-icon-wrap"><div class="p-icon">' + (p.icon||'👤') + '</div>' + gbadge + '</div>'
       + '<div class="p-info">'
       + '<div class="p-name">' + esc(p.name) + '</div>'
       + '<div class="p-contact-row">'
@@ -1304,6 +1364,7 @@ function renderPeopleList() {
 }
 function renderPeople() {
   renderGroupFilterChips();
+  renderGenderFilterChips();
   renderPeopleList();
 }
 
@@ -1538,24 +1599,24 @@ function deleteCurrentRec() {
 
 // ─── PERSON FORM ─────────────────────────────────────────────
 function openAddPerson() {
-  editPerId = null; selIcon = '👤'; selLinks = []; selGroup = 'その他'; fromRec = false;
+  editPerId = null; selIcon = '👤'; selGender = ''; selLinks = []; selGroup = 'その他'; fromRec = false;
   document.getElementById('pModalTitle').textContent = '人物を追加';
   document.getElementById('pName').value = '';
   document.getElementById('pMemo').value = '';
   document.getElementById('delPersonBtn').style.display = 'none';
-  renderIconGrid(); renderGroupSel(); renderLinkList();
+  renderIconGrid(); renderGroupSel(); renderGenderSel(); renderLinkList();
   openModal('personModal');
 }
 function openAddPersonFromRec() { openAddPerson(); fromRec = true; }
 function openEditPerson(id) {
   var p = getPerson(id); if (!p) return;
-  editPerId = id; selIcon = p.icon || '👤'; selGroup = p.group || 'その他'; fromRec = false;
+  editPerId = id; selIcon = p.icon || '👤'; selGender = p.gender || ''; selGroup = p.group || 'その他'; fromRec = false;
   selLinks = (p.links||[]).map(function(lk){ return { label: lk.label||'', url: lk.url||'' }; });
   document.getElementById('pModalTitle').textContent = '人物を編集';
   document.getElementById('pName').value = p.name;
   document.getElementById('pMemo').value = p.memo || '';
   document.getElementById('delPersonBtn').style.display = 'block';
-  renderIconGrid(); renderGroupSel(); renderLinkList();
+  renderIconGrid(); renderGroupSel(); renderGenderSel(); renderLinkList();
   openModal('personModal');
 }
 function renderIconGrid() {
@@ -1652,14 +1713,14 @@ function savePerson() {
   var cleanLinks = selLinks.filter(function(lk){ return lk.url.trim(); });
   if (editPerId) {
     var p = getPerson(editPerId);
-    p.name = name; p.icon = selIcon; p.group = selGroup;
+    p.name = name; p.icon = selIcon; p.group = selGroup; p.gender = selGender;
     p.memo = document.getElementById('pMemo').value.trim();
     p.links = cleanLinks;
     p.updatedAt = now;
     pid = editPerId;
   } else {
     pid = uid();
-    db.people.push({ id:pid, name:name, icon:selIcon, group:selGroup, memo:document.getElementById('pMemo').value.trim(), links:cleanLinks, lastContactDate:'', createdAt:now });
+    db.people.push({ id:pid, name:name, icon:selIcon, group:selGroup, gender:selGender, memo:document.getElementById('pMemo').value.trim(), links:cleanLinks, lastContactDate:'', createdAt:now });
   }
   saveDB(); closeModal('personModal');
   if (fromRec) {
