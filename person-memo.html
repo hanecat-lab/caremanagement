@@ -57,10 +57,10 @@
 
     /* ===== RESET ===== */
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-    html{scroll-behavior:smooth;overscroll-behavior-y:none;}
+    html{scroll-behavior:smooth;overscroll-behavior-y:none;background:var(--bg);}
     body{
       font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN','YuGothic','Yu Gothic',sans-serif;
-      background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;
+      background:var(--bg);color:var(--tx);overflow-x:hidden;
       transition:background .3s,color .3s;
       overscroll-behavior-y:none;
     }
