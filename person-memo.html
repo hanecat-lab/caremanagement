@@ -372,6 +372,14 @@
     }
 
     /* Person select */
+    .psel-filters{margin-bottom:8px;}
+    .psel-filter-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px;}
+    .psel-filter-chip{
+      padding:3px 10px;border-radius:20px;border:1.5px solid var(--bd);
+      background:var(--card);color:var(--tx2);font-size:11px;font-weight:800;
+      transition:all .15s;
+    }
+    .psel-filter-chip.active{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
     .psel-row{display:flex;flex-wrap:wrap;gap:8px}
     .psel-chip{
       padding:8px 14px;border-radius:20px;border:2px solid var(--bd);
@@ -729,6 +737,7 @@
     </div>
     <div class="form-group" id="recPersonGroup">
       <label class="form-label">👤 会った人</label>
+      <div class="psel-filters" id="pselFilters"></div>
       <div class="psel-row" id="pselGrid"></div>
       <button class="add-per-btn" onclick="openAddPersonFromRec()">＋ 新しい人物を追加</button>
     </div>
@@ -877,7 +886,9 @@ var sf = { kw: '', personIds: [], tags: [], from: '', to: '' };
 var personFilter = 'all';
 var genderFilter = 'all';
 var personSort   = 'lastContact_desc';
-var selGroup     = 'その他';
+var selGroup       = 'その他';
+var pselGroupFilter  = 'all';
+var pselGenderFilter = 'all';
 
 var GENDERS = [
   { val: 'm', label: '🚹 男性' },
@@ -1503,6 +1514,7 @@ function deletePersonById(id) {
 // ─── RECORD FORM ─────────────────────────────────────────────
 function openAddRecord() {
   editRecId = null; selPeople = []; selTags = [];
+  pselGroupFilter = 'all'; pselGenderFilter = 'all';
   resetTagSuggest();
   var titles = { hobby: '記録を追加', work: '仕事メモを追加', quick: '一言メモを追加' };
   document.getElementById('recModalTitle').textContent = titles[curMode] || '記録を追加';
@@ -1523,6 +1535,7 @@ function openEditRecord(id) {
   editRecId = id;
   selPeople = (r.peopleIds||[]).slice();
   selTags   = (r.tags||[]).slice();
+  pselGroupFilter = 'all'; pselGenderFilter = 'all';
   resetTagSuggest();
   var em = r.mode || 'hobby';
   var titles = { hobby: '記録を編集', work: '仕事メモを編集', quick: '一言メモを編集' };
@@ -1547,16 +1560,44 @@ function updateRecForm(m) {
   var ta = document.getElementById('recMemo');
   if (ta) ta.placeholder = placeholders[m] || 'メモ...';
 }
+function renderPselFilters() {
+  var fc = document.getElementById('pselFilters');
+  if (!fc) return;
+  var groupOpts = ['all'].concat(db.groups);
+  var groupRow = groupOpts.map(function(g){
+    var label = g === 'all' ? '全て' : g;
+    return '<button class="psel-filter-chip' + (pselGroupFilter === g ? ' active' : '') + '" onclick="setPselGroupFilter(\'' + g + '\')">' + label + '</button>';
+  }).join('');
+  var genOpts = [{ val:'all', label:'全て' }].concat(GENDERS);
+  var genRow = genOpts.map(function(g){
+    return '<button class="psel-filter-chip' + (pselGenderFilter === g.val ? ' active' : '') + '" onclick="setPselGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
+  }).join('');
+  fc.innerHTML = '<div class="psel-filter-row">' + groupRow + '</div>'
+    + '<div class="psel-filter-row">' + genRow + '</div>';
+}
+function setPselGroupFilter(g) { pselGroupFilter = g; renderPselGrid(); }
+function setPselGenderFilter(v) { pselGenderFilter = v; renderPselGrid(); }
 function renderPselGrid() {
+  renderPselFilters();
   var c = document.getElementById('pselGrid');
   if (!db.people.length) {
     c.innerHTML = '<span style="font-size:13px;color:var(--txm);">人物が登録されていません</span>';
     return;
   }
-  c.innerHTML = db.people.map(function(p){
+  var filtered = db.people.filter(function(p){
+    var gok = pselGroupFilter === 'all' || (p.group||'その他') === pselGroupFilter;
+    var sok = pselGenderFilter === 'all' || (p.gender||'') === pselGenderFilter;
+    return gok && sok;
+  });
+  if (!filtered.length) {
+    c.innerHTML = '<span style="font-size:13px;color:var(--txm);">該当する人物がいません</span>';
+    return;
+  }
+  c.innerHTML = filtered.map(function(p){
     var sel = selPeople.indexOf(p.id) >= 0 ? ' sel' : '';
+    var gbadge = p.gender ? genderIcon(p.gender) : '';
     return '<button class="psel-chip' + sel + '" onclick="togglePsel(\'' + p.id + '\')">'
-      + (p.icon||'👤') + ' ' + esc(p.name) + '</button>';
+      + (p.icon||'👤') + gbadge + ' ' + esc(p.name) + '</button>';
   }).join('');
 }
 function togglePsel(id) {
