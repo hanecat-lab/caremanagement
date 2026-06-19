@@ -119,48 +119,66 @@
     }
     .fab:active{transform:scale(.92);box-shadow:0 2px 10px rgba(108,99,255,.3)}
 
-    /* ===== RECORD CARD ===== */
-    .record-card{
-      background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
-      padding:16px;margin-bottom:12px;cursor:pointer;border:1px solid var(--bd);
-      transition:transform .15s,box-shadow .2s;
-      animation:fadeUp .3s ease both;
-    }
-    .record-card:active{transform:scale(.98);box-shadow:0 1px 6px rgba(0,0,0,.06)}
+    /* ===== MEMO CARD ===== */
     @keyframes fadeUp{
-      from{opacity:0;transform:translateY(14px)}
+      from{opacity:0;transform:translateY(10px)}
       to{opacity:1;transform:translateY(0)}
     }
-    .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-    .card-date{
-      font-size:12px;font-weight:800;color:var(--primary);
-      background:var(--primary-lt);padding:3px 10px;border-radius:20px;letter-spacing:.3px;
+    .memo-card{
+      background:var(--card);
+      border-radius:10px;
+      border:1px solid var(--bd);
+      border-left:4px solid var(--primary);
+      box-shadow:0 1px 4px rgba(0,0,0,.05);
+      margin-bottom:10px;
+      overflow:hidden;
+      cursor:pointer;
+      animation:fadeUp .3s ease both;
+      transition:box-shadow .15s,transform .15s;
     }
-    .card-menu{
+    .memo-card:active{transform:scale(.99);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .memo-date-bar{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:9px 12px 8px;
+      background:var(--bg);
+      border-bottom:1px solid var(--bd);
+    }
+    .memo-date-text{
+      font-size:13px;font-weight:700;color:var(--tx2);letter-spacing:.1px;
+    }
+    .memo-edit-btn{
       width:28px;height:28px;border:none;background:none;
-      color:var(--txm);border-radius:6px;font-size:18px;
-      display:flex;align-items:center;justify-content:center;transition:background .15s;
+      color:var(--txm);font-size:15px;line-height:1;
+      border-radius:6px;
+      display:flex;align-items:center;justify-content:center;
+      transition:background .15s,color .15s;flex-shrink:0;
     }
-    .card-menu:active{background:var(--bd)}
-    .card-people{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-    .person-chip{
-      display:inline-flex;align-items:center;gap:4px;
-      background:var(--per-bg);color:var(--per-cl);
-      padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;
-      border:none;transition:transform .15s;
+    .memo-edit-btn:active{background:var(--bd);color:var(--primary)}
+    .memo-body-area{padding:10px 12px 12px;}
+    .memo-people{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+    .memo-person-chip{
+      display:inline-flex;align-items:center;gap:3px;
+      font-size:12px;font-weight:600;
+      color:var(--per-cl);background:var(--per-bg);
+      padding:3px 9px;border-radius:20px;border:none;
+      transition:transform .15s;
     }
-    .person-chip:active{transform:scale(.93)}
-    .card-memo{
-      font-size:14px;line-height:1.75;color:var(--tx);
-      margin-bottom:10px;word-break:break-word;white-space:pre-wrap;
+    .memo-person-chip:active{transform:scale(.93)}
+    .memo-text{
+      font-size:14px;line-height:1.85;color:var(--tx);
+      word-break:break-word;white-space:pre-wrap;
+      margin-bottom:8px;
     }
-    .card-tags{display:flex;flex-wrap:wrap;gap:5px}
-    .tag-chip{
-      display:inline-block;background:var(--tag-bg);color:var(--tag-cl);
-      padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;
-      border:none;transition:transform .15s;letter-spacing:.2px;
+    .memo-tags{display:flex;flex-wrap:wrap;gap:5px;}
+    .memo-tag-chip{
+      display:inline-flex;align-items:center;
+      font-size:11px;font-weight:700;
+      padding:2px 8px;border-radius:4px;
+      background:var(--tag-bg);color:var(--tag-cl);
+      border:1px solid var(--bd);
+      cursor:pointer;transition:transform .15s;
     }
-    .tag-chip:active{transform:scale(.9)}
+    .memo-tag-chip:active{transform:scale(.93)}
 
     /* ===== TOOLBAR ===== */
     .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
@@ -297,6 +315,19 @@
       resize:vertical;min-height:80px;line-height:1.65;
     }
     .form-textarea:focus{border-color:var(--primary)}
+    /* Memo-app ruled textarea */
+    .memo-textarea{
+      font-size:15px;line-height:28px;
+      padding-top:8px;padding-bottom:8px;
+      background-image:repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 27px,
+        var(--bd) 27px,
+        var(--bd) 28px
+      );
+      background-attachment:local;
+    }
 
     /* Tag input */
     .tag-field{
@@ -401,6 +432,12 @@
       transition:transform .15s;
     }
     .btn-sec:active{transform:scale(.95)}
+    .btn-pri{
+      padding:8px 16px;background:var(--primary);color:#fff;
+      border:none;border-radius:var(--rs);font-size:13px;font-weight:800;
+      transition:transform .15s,opacity .2s;
+    }
+    .btn-pri:active{transform:scale(.95);opacity:.9}
     .icon-btn-danger{
       width:36px;height:36px;border:none;
       background:rgba(224,48,48,.1);color:#E03030;
@@ -634,10 +671,10 @@
     </div>
     <div class="form-group">
       <label class="form-label">📝 メモ</label>
-      <textarea class="form-textarea" id="recMemo" placeholder="今日の出来事や会話内容..." style="min-height:130px;"></textarea>
+      <textarea class="form-textarea memo-textarea" id="recMemo" placeholder="今日の出来事や会話内容..." style="min-height:160px;"></textarea>
     </div>
     <button class="btn-primary" onclick="saveRecord()">💾 保存</button>
-    <button class="btn-danger" id="delRecBtn" style="display:none;" onclick="deleteCurrentRec()">🗑️ この記録を削除</button>
+    <button class="btn-del-subtle" id="delRecBtn" style="display:none;width:100%;margin-top:8px;padding:10px;background:none;border:none;color:var(--txm);font-size:13px;font-weight:600;border-radius:var(--rm);transition:color .2s,background .2s;" onmouseover="this.style.color='#E03030'" onmouseout="this.style.color='var(--txm)'" onclick="deleteCurrentRec()">削除する</button>
   </div>
 </div>
 
@@ -849,6 +886,13 @@ function fmtDate(d) {
   var p = d.split('-');
   return p[0] + '/' + p[1] + '/' + p[2];
 }
+function fmtDateLong(d) {
+  if (!d) return '';
+  var p = d.split('-');
+  var dt = new Date(+p[0], +p[1]-1, +p[2]);
+  var days = ['日','月','火','水','木','金','土'];
+  return p[0] + '年' + (+p[1]) + '月' + (+p[2]) + '日（' + days[dt.getDay()] + '）';
+}
 function getPerson(id) {
   for (var i = 0; i < db.people.length; i++) { if (db.people[i].id === id) return db.people[i]; }
   return null;
@@ -961,20 +1005,21 @@ function cardHTML(rec, delay) {
   delay = delay || 0;
   var people = (rec.peopleIds || []).map(getPerson).filter(Boolean);
   var peopleHTML = people.map(function(p){
-    return '<button class="person-chip" onclick="onPersonChip(\'' + p.id + '\',event)">'
-      + (p.icon||'👤') + ' ' + esc(p.name) + '</button>';
+    return '<button class="memo-person-chip" onclick="onPersonChip(\'' + p.id + '\',event)">👤 ' + esc(p.name) + '</button>';
   }).join('');
   var tagsHTML = (rec.tags || []).map(function(t){
-    return '<button class="tag-chip" onclick="onTagChip(\'' + esc(t) + '\',event)">#' + esc(t) + '</button>';
+    return '<button class="memo-tag-chip" onclick="onTagChip(\'' + esc(t) + '\',event)">#' + esc(t) + '</button>';
   }).join('');
-  return '<div class="record-card" style="animation-delay:' + (delay*40) + 'ms" onclick="openEditRecord(\'' + rec.id + '\')">'
-    + '<div class="card-header">'
-    + '<span class="card-date">📅 ' + fmtDate(rec.date) + '</span>'
-    + '<button class="card-menu" onclick="openCtx(event,\'' + rec.id + '\')">&#8943;</button>'
+  var bodyParts = '';
+  if (people.length) bodyParts += '<div class="memo-people">' + peopleHTML + '</div>';
+  if (rec.memo)      bodyParts += '<div class="memo-text">' + esc(rec.memo) + '</div>';
+  if (rec.tags && rec.tags.length) bodyParts += '<div class="memo-tags">' + tagsHTML + '</div>';
+  return '<div class="memo-card" style="animation-delay:' + (delay*40) + 'ms" onclick="openEditRecord(\'' + rec.id + '\')">'
+    + '<div class="memo-date-bar">'
+    + '<span class="memo-date-text">' + fmtDateLong(rec.date) + '</span>'
+    + '<button class="memo-edit-btn" onclick="event.stopPropagation();openEditRecord(\'' + rec.id + '\')" title="編集">✏️</button>'
     + '</div>'
-    + (people.length ? '<div class="card-people">' + peopleHTML + '</div>' : '')
-    + (rec.memo ? '<div class="card-memo">' + esc(rec.memo) + '</div>' : '')
-    + (rec.tags && rec.tags.length ? '<div class="card-tags">' + tagsHTML + '</div>' : '')
+    + (bodyParts ? '<div class="memo-body-area">' + bodyParts + '</div>' : '')
     + '</div>';
 }
 function onPersonChip(id, e) { e.stopPropagation(); showPersonDetail(id); }
