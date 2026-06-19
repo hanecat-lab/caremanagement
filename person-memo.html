@@ -131,6 +131,9 @@
       border-radius:10px;
       border:1px solid var(--bd);
       border-left:4px solid var(--primary);
+    }
+    .memo-card.kotono-card{background:#FAF8F2;border-left-color:#B5922A;}
+    .memo-card{
       box-shadow:0 1px 4px rgba(0,0,0,.05);
       margin-bottom:10px;
       overflow:hidden;
@@ -1208,7 +1211,7 @@ function cardHTML(rec, delay, hideDate) {
   if (rec.memo)      bodyParts += '<div class="memo-text">' + esc(rec.memo) + '</div>';
   if (rec.tags && rec.tags.length) bodyParts += '<div class="memo-tags">' + tagsHTML + '</div>';
   var timeInBar = (!hideDate && rec.mode === 'quick' && rec.time) ? '<span class="memo-date-time">' + rec.time + '</span>' : '';
-  var cls = 'memo-card' + (hideDate ? ' no-datebar' : '');
+  var cls = 'memo-card' + (hideDate ? ' no-datebar' : '') + (rec.mode === 'kotono' ? ' kotono-card' : '');
   return '<div class="' + cls + '" style="animation-delay:' + (delay*40) + 'ms" onclick="openEditRecord(\'' + rec.id + '\')">'
     + '<div class="memo-date-bar">'
     + '<span class="memo-date-text">' + fmtDateLong(rec.date) + timeInBar + '</span>'
