@@ -484,6 +484,18 @@
     .data-sec-title{font-size:12px;font-weight:800;color:var(--tx2);margin-bottom:10px}
     .data-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 
+    /* ===== DATE SEPARATOR ===== */
+    .date-sep{
+      display:flex;align-items:center;gap:10px;
+      margin:18px 0 8px;
+      color:var(--tx2);font-size:13px;font-weight:700;letter-spacing:.2px;
+    }
+    .date-sep:first-child{margin-top:4px}
+    .date-sep::before,.date-sep::after{
+      content:'';flex:1;height:1px;background:var(--bd);
+    }
+    .memo-card.no-datebar .memo-date-bar{display:none}
+
     /* ===== EMPTY STATE ===== */
     .empty{text-align:center;padding:56px 20px;color:var(--txm)}
     .empty-icon{font-size:48px;margin-bottom:12px}
@@ -1003,7 +1015,7 @@ function sorted(arr) {
 }
 
 // ─── CARD HTML ───────────────────────────────────────────────
-function cardHTML(rec, delay) {
+function cardHTML(rec, delay, hideDate) {
   delay = delay || 0;
   var people = (rec.peopleIds || []).map(getPerson).filter(Boolean);
   var peopleHTML = people.map(function(p){
@@ -1016,7 +1028,8 @@ function cardHTML(rec, delay) {
   if (people.length) bodyParts += '<div class="memo-people">' + peopleHTML + '</div>';
   if (rec.memo)      bodyParts += '<div class="memo-text">' + esc(rec.memo) + '</div>';
   if (rec.tags && rec.tags.length) bodyParts += '<div class="memo-tags">' + tagsHTML + '</div>';
-  return '<div class="memo-card" style="animation-delay:' + (delay*40) + 'ms" onclick="openEditRecord(\'' + rec.id + '\')">'
+  var cls = 'memo-card' + (hideDate ? ' no-datebar' : '');
+  return '<div class="' + cls + '" style="animation-delay:' + (delay*40) + 'ms" onclick="openEditRecord(\'' + rec.id + '\')">'
     + '<div class="memo-date-bar">'
     + '<span class="memo-date-text">' + fmtDateLong(rec.date) + '</span>'
     + '<button class="memo-edit-btn" onclick="event.stopPropagation();openEditRecord(\'' + rec.id + '\')" title="編集">✏️</button>'
@@ -1041,7 +1054,17 @@ function renderHome() {
     c.innerHTML = '<div class="empty"><div class="empty-icon">📝</div><p>まだ記録がありません<br>＋ボタンから追加しましょう</p></div>';
     return;
   }
-  c.innerHTML = recs.map(function(r, i){ return cardHTML(r, i); }).join('');
+  var html = '';
+  var lastDate = null;
+  var delay = 0;
+  recs.forEach(function(r) {
+    if (r.date !== lastDate) {
+      html += '<div class="date-sep">' + fmtDateLong(r.date) + '</div>';
+      lastDate = r.date;
+    }
+    html += cardHTML(r, delay++, true);
+  });
+  c.innerHTML = html;
 }
 
 // ─── SEARCH ──────────────────────────────────────────────────
