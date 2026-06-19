@@ -469,6 +469,12 @@
     .scroll-top.vis{display:flex}
     .scroll-top:active{transform:scale(.9)}
 
+    /* ===== MODE TABS ===== */
+    .mode-tabs{display:flex;gap:8px;margin-bottom:14px;background:var(--card);padding:10px 12px;border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bd);}
+    .mode-tab{flex:1;padding:8px 0;border-radius:20px;border:2px solid var(--bd);background:var(--card);color:var(--tx2);font-size:13px;font-weight:700;transition:all .2s;}
+    .mode-tab.active{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
+    .mode-tab:active{transform:scale(.95)}
+
     /* ===== VIEWS ===== */
     .view{display:none}
     .view.active{display:block}
@@ -495,6 +501,13 @@
 <!-- MAIN -->
 <main class="main-content">
 
+  <!-- MODE TABS -->
+  <div class="mode-tabs" id="modeTabs">
+    <button class="mode-tab active" id="modeTabHobby" onclick="setMode('hobby')">趣味</button>
+    <button class="mode-tab" id="modeTabWork" onclick="setMode('work')">仕事</button>
+    <button class="mode-tab" id="modeTabQuick" onclick="setMode('quick')">一言メモ</button>
+  </div>
+
   <!-- HOME -->
   <div class="view active" id="viewHome">
     <div class="toolbar">
@@ -508,11 +521,11 @@
   <!-- SEARCH -->
   <div class="view" id="viewSearch">
     <input class="search-input" id="searchKw" type="text" placeholder="🔍 キーワードで検索..." oninput="onSearch()">
-    <div class="filter-card">
+    <div class="filter-card" id="personFilterCard">
       <div class="filter-title">👤 人物</div>
       <div class="chip-row" id="personFilterChips"></div>
     </div>
-    <div class="filter-card">
+    <div class="filter-card" id="tagFilterCard">
       <div class="filter-title">🏷️ タグ</div>
       <div class="chip-row" id="tagFilterChips"></div>
     </div>
@@ -597,12 +610,12 @@
       <label class="form-label">📅 日付</label>
       <input class="form-input" id="recDate" type="date">
     </div>
-    <div class="form-group">
+    <div class="form-group" id="recPersonGroup">
       <label class="form-label">👤 会った人</label>
       <div class="psel-row" id="pselGrid"></div>
       <button class="add-per-btn" onclick="openAddPersonFromRec()">＋ 新しい人物を追加</button>
     </div>
-    <div class="form-group">
+    <div class="form-group" id="recTagGroup">
       <label class="form-label">🏷️ タグ（Enter で追加）</label>
       <div class="tag-field" id="tagField" onclick="focusTagInput()"></div>
     </div>
@@ -691,6 +704,7 @@
 // ─── STATE ───────────────────────────────────────────────────
 var db = { records: [], people: [], settings: { theme: 'light' } };
 var curView    = 'home';
+var curMode    = 'hobby';
 var curSort    = 'newest';
 var editRecId  = null;
 var editPerId  = null;
@@ -716,7 +730,11 @@ var ICONS = [
 function loadDB() {
   try {
     var s = localStorage.getItem('hanecat_memo_v1');
-    if (s) { db = JSON.parse(s); db.settings = db.settings || { theme: 'light' }; }
+    if (s) {
+      db = JSON.parse(s);
+      db.settings = db.settings || { theme: 'light' };
+      db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
+    }
   } catch(e) {}
 }
 function saveDB() {
@@ -800,7 +818,8 @@ function getRec(id) {
 }
 function allTags() {
   var s = {};
-  db.records.forEach(function(r){ (r.tags||[]).forEach(function(t){ s[t]=1; }); });
+  db.records.filter(function(r){ return (r.mode||'hobby') === curMode; })
+    .forEach(function(r){ (r.tags||[]).forEach(function(t){ s[t]=1; }); });
   return Object.keys(s).sort();
 }
 function esc(s) {
@@ -858,8 +877,21 @@ function showView(v) {
   var fab = document.getElementById('fab');
   fab.style.display = 'flex';
   fab.onclick = v === 'people' ? openAddPerson : openAddRecord;
+  document.getElementById('modeTabs').style.display = v === 'people' ? 'none' : 'flex';
 
   window.scrollTo({ top: 0 });
+  refresh();
+}
+function setMode(m) {
+  curMode = m;
+  db.settings.mode = m; saveDB();
+  var tabs = { hobby: 'modeTabHobby', work: 'modeTabWork', quick: 'modeTabQuick' };
+  document.querySelectorAll('.mode-tab').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById(tabs[m]).classList.add('active');
+  sf = { kw: '', personIds: [], tags: [], from: '', to: '' };
+  var kw = document.getElementById('searchKw'); if(kw) kw.value = '';
+  var df = document.getElementById('dateFrom'); if(df) df.value = '';
+  var dt = document.getElementById('dateTo');   if(dt) dt.value = '';
   refresh();
 }
 function refresh() {
@@ -914,7 +946,7 @@ function onTagChip(tag, e) {
 
 // ─── HOME ────────────────────────────────────────────────────
 function renderHome() {
-  var recs = sorted(db.records);
+  var recs = sorted(db.records.filter(function(r){ return (r.mode||'hobby') === curMode; }));
   document.getElementById('homeCount').textContent = recs.length + '件';
   var c = document.getElementById('timeline');
   if (!recs.length) {
@@ -926,8 +958,12 @@ function renderHome() {
 
 // ─── SEARCH ──────────────────────────────────────────────────
 function renderSearch() {
-  renderPersonFilterChips();
-  renderTagFilterChips();
+  var pfc = document.getElementById('personFilterCard');
+  var tfc = document.getElementById('tagFilterCard');
+  if (pfc) pfc.style.display = curMode === 'hobby' ? 'block' : 'none';
+  if (tfc) tfc.style.display = curMode === 'quick' ? 'none' : 'block';
+  if (curMode === 'hobby') renderPersonFilterChips();
+  if (curMode !== 'quick') renderTagFilterChips();
   renderSearchResults();
 }
 function renderPersonFilterChips() {
@@ -971,7 +1007,7 @@ function onSearch() {
   renderSearchResults();
 }
 function filteredRecs() {
-  var recs = db.records.slice();
+  var recs = db.records.filter(function(r){ return (r.mode||'hobby') === curMode; });
   if (sf.kw) {
     var kw = sf.kw.toLowerCase();
     recs = recs.filter(function(r){
@@ -1008,7 +1044,7 @@ function renderSearchResults() {
 function renderCalendar() {
   document.getElementById('calMonthLabel').textContent = calYear + '年' + (calMonth+1) + '月';
   var recDates = {};
-  db.records.forEach(function(r){ recDates[r.date] = true; });
+  db.records.filter(function(r){ return (r.mode||'hobby') === curMode; }).forEach(function(r){ recDates[r.date] = true; });
   var todayStr = today();
   var dow  = ['日','月','火','水','木','金','土'];
   var fd   = new Date(calYear, calMonth, 1).getDay();
@@ -1044,7 +1080,7 @@ function renderCalDayRecs() {
     document.getElementById('calDayRecords').innerHTML = '';
     return;
   }
-  var recs = sorted(db.records.filter(function(r){ return r.date === calSelDate; }));
+  var recs = sorted(db.records.filter(function(r){ return r.date === calSelDate && (r.mode||'hobby') === curMode; }));
   document.getElementById('calSelLabel').textContent =
     '📅 ' + fmtDate(calSelDate) + ' の記録（' + recs.length + '件）';
   var c = document.getElementById('calDayRecords');
@@ -1144,10 +1180,12 @@ function deletePersonById(id) {
 // ─── RECORD FORM ─────────────────────────────────────────────
 function openAddRecord() {
   editRecId = null; selPeople = []; selTags = [];
-  document.getElementById('recModalTitle').textContent = '記録を追加';
+  var titles = { hobby: '記録を追加', work: '仕事メモを追加', quick: '一言メモを追加' };
+  document.getElementById('recModalTitle').textContent = titles[curMode] || '記録を追加';
   document.getElementById('recDate').value = today();
   document.getElementById('recMemo').value = '';
   document.getElementById('delRecBtn').style.display = 'none';
+  updateRecForm();
   renderPselGrid(); renderTagChips();
   openModal('recordModal');
   setTimeout(function(){ var el = document.getElementById('recMemo'); if(el) el.focus(); }, 350);
@@ -1157,12 +1195,25 @@ function openEditRecord(id) {
   editRecId = id;
   selPeople = (r.peopleIds||[]).slice();
   selTags   = (r.tags||[]).slice();
-  document.getElementById('recModalTitle').textContent = '記録を編集';
+  var em = r.mode || 'hobby';
+  var titles = { hobby: '記録を編集', work: '仕事メモを編集', quick: '一言メモを編集' };
+  document.getElementById('recModalTitle').textContent = titles[em] || '記録を編集';
   document.getElementById('recDate').value = r.date;
   document.getElementById('recMemo').value = r.memo || '';
   document.getElementById('delRecBtn').style.display = 'block';
+  updateRecForm(em);
   renderPselGrid(); renderTagChips();
   openModal('recordModal');
+}
+function updateRecForm(m) {
+  m = m || curMode;
+  var pg = document.getElementById('recPersonGroup');
+  var tg = document.getElementById('recTagGroup');
+  if (pg) pg.style.display = m === 'hobby' ? 'block' : 'none';
+  if (tg) tg.style.display = m === 'quick' ? 'none' : 'block';
+  var placeholders = { hobby: '今日の出来事や会話内容...', work: '仕事の記録...', quick: 'メモ...' };
+  var ta = document.getElementById('recMemo');
+  if (ta) ta.placeholder = placeholders[m] || 'メモ...';
 }
 function renderPselGrid() {
   var c = document.getElementById('pselGrid');
@@ -1233,12 +1284,13 @@ function saveRecord() {
   var now  = new Date().toISOString();
   if (editRecId) {
     var r = getRec(editRecId);
+    var rm = r.mode || 'hobby';
     r.date = date; r.memo = memo;
-    r.peopleIds = selPeople.slice();
-    r.tags = selTags.slice();
+    if (rm === 'hobby') r.peopleIds = selPeople.slice();
+    if (rm !== 'quick') r.tags = selTags.slice();
     r.updatedAt = now;
   } else {
-    db.records.push({ id:uid(), date:date, memo:memo, peopleIds:selPeople.slice(), tags:selTags.slice(), createdAt:now, updatedAt:now });
+    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:curMode!=='quick'?selTags.slice():[], createdAt:now, updatedAt:now });
   }
   saveDB(); closeModal('recordModal'); refresh();
   toast(editRecId ? '更新しました' : '保存しました');
@@ -1386,9 +1438,9 @@ function addSampleData() {
   var d2 = new Date(Date.now()-86400000).toISOString().slice(0,10);
   var d3 = new Date(Date.now()-3*86400000).toISOString().slice(0,10);
   db.records.push(
-    { id:uid(), date:d1, memo:'今日は撮影地について相談した。夜景スポットの候補をいくつか挙げてもらった。', peopleIds:[p1.id,p2.id], tags:['撮影','夜景'], createdAt:now, updatedAt:now },
-    { id:uid(), date:d2, memo:'ランチミーティング。来月のイベント企画について話し合った。進め方がまとまった。', peopleIds:[p1.id], tags:['仕事','企画'], createdAt:now, updatedAt:now },
-    { id:uid(), date:d3, memo:'カフェでデザインの方向性を確認。次回レビューは来週の予定。', peopleIds:[p2.id], tags:['デザイン','打ち合わせ'], createdAt:now, updatedAt:now }
+    { id:uid(), mode:'hobby', date:d1, memo:'今日は撮影地について相談した。夜景スポットの候補をいくつか挙げてもらった。', peopleIds:[p1.id,p2.id], tags:['撮影','夜景'], createdAt:now, updatedAt:now },
+    { id:uid(), mode:'hobby', date:d2, memo:'ランチミーティング。来月のイベント企画について話し合った。進め方がまとまった。', peopleIds:[p1.id], tags:['仕事','企画'], createdAt:now, updatedAt:now },
+    { id:uid(), mode:'hobby', date:d3, memo:'カフェでデザインの方向性を確認。次回レビューは来週の予定。', peopleIds:[p2.id], tags:['デザイン','打ち合わせ'], createdAt:now, updatedAt:now }
   );
   saveDB();
 }
@@ -1396,6 +1448,12 @@ function addSampleData() {
 // ─── INIT ────────────────────────────────────────────────────
 loadDB();
 applyTheme();
+curMode = (db.settings && db.settings.mode) || 'hobby';
+(function(m){
+  var tabs = {hobby:'modeTabHobby',work:'modeTabWork',quick:'modeTabQuick'};
+  document.querySelectorAll('.mode-tab').forEach(function(el){el.classList.remove('active');});
+  var el = document.getElementById(tabs[m]); if(el) el.classList.add('active');
+})(curMode);
 if (!db.records.length && !db.people.length) addSampleData();
 showView('home');
 </script>
