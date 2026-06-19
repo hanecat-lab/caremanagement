@@ -614,6 +614,7 @@
   <div class="mode-tabs" id="modeTabs">
     <button class="mode-tab active" id="modeTabHobby" onclick="setMode('hobby')">趣味</button>
     <button class="mode-tab" id="modeTabQuick" onclick="setMode('quick')">一言メモ</button>
+    <button class="mode-tab" id="modeTabKotono" onclick="setMode('kotono')">言の葉</button>
   </div>
 
   <!-- HOME -->
@@ -1137,7 +1138,7 @@ function showView(v) {
 function setMode(m) {
   curMode = m;
   db.settings.mode = m; saveDB();
-  var tabs = { hobby: 'modeTabHobby', quick: 'modeTabQuick' };
+  var tabs = { hobby: 'modeTabHobby', quick: 'modeTabQuick', kotono: 'modeTabKotono' };
   document.querySelectorAll('.mode-tab').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById(tabs[m]).classList.add('active');
   var prevKw = sf.kw;
@@ -1236,6 +1237,7 @@ function renderSearch() {
   if (pfc) pfc.style.display = curMode === 'hobby' ? 'block' : 'none';
   if (tfc) tfc.style.display = 'block';
   if (curMode === 'hobby') renderPersonFilterChips();
+  else { var pfr = document.getElementById('personFilterRows'); if(pfr) pfr.innerHTML=''; }
   renderTagFilterChips();
   renderSearchResults();
 }
@@ -1554,7 +1556,7 @@ function openAddRecord() {
   editRecId = null; selPeople = []; selTags = [];
   pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false;
   resetTagSuggest();
-  var titles = { hobby: '記録を追加', work: '仕事メモを追加', quick: '一言メモを追加' };
+  var titles = { hobby: '記録を追加', work: '仕事メモを追加', quick: '一言メモを追加', kotono: '言の葉を追加' };
   document.getElementById('recModalTitle').textContent = titles[curMode] || '記録を追加';
   document.getElementById('recDate').value = today();
   document.getElementById('recMemo').value = '';
@@ -1576,7 +1578,7 @@ function openEditRecord(id) {
   pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false;
   resetTagSuggest();
   var em = r.mode || 'hobby';
-  var titles = { hobby: '記録を編集', work: '仕事メモを編集', quick: '一言メモを編集' };
+  var titles = { hobby: '記録を編集', work: '仕事メモを編集', quick: '一言メモを編集', kotono: '言の葉を編集' };
   document.getElementById('recModalTitle').textContent = titles[em] || '記録を編集';
   document.getElementById('recDate').value = r.date;
   document.getElementById('recMemo').value = r.memo || '';
@@ -1593,8 +1595,8 @@ function updateRecForm(m) {
   var tmg = document.getElementById('recTimeGroup');
   if (pg) pg.style.display = m === 'hobby' ? 'block' : 'none';
   if (tg) tg.style.display = 'block';
-  if (tmg) tmg.style.display = m === 'quick' ? 'block' : 'none';
-  var placeholders = { hobby: '今日の出来事や会話内容...', work: '仕事の記録...', quick: 'メモ...' };
+  if (tmg) tmg.style.display = (m === 'quick' || m === 'kotono') ? 'block' : 'none';
+  var placeholders = { hobby: '今日の出来事や会話内容...', work: '仕事の記録...', quick: 'メモ...', kotono: 'メモ...' };
   var ta = document.getElementById('recMemo');
   if (ta) ta.placeholder = placeholders[m] || 'メモ...';
 }
@@ -1746,10 +1748,11 @@ function saveRecord() {
     r.date = date; r.memo = memo;
     if (rm === 'hobby') r.peopleIds = selPeople.slice();
     r.tags = selTags.slice();
-    if (rm === 'quick') r.time = timeVal;
+    if (rm === 'quick' || rm === 'kotono') r.time = timeVal;
     r.updatedAt = now;
   } else {
-    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:selTags.slice(), time:curMode==='quick'?timeVal:'', createdAt:now, updatedAt:now });
+    var isQuickLike = curMode === 'quick' || curMode === 'kotono';
+    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:selTags.slice(), time:isQuickLike?timeVal:'', createdAt:now, updatedAt:now });
   }
   if (curMode === 'hobby') recalcLastContact();
   saveDB(); closeModal('recordModal'); refresh();
@@ -1966,7 +1969,7 @@ loadDB();
 applyTheme();
 curMode = (db.settings && db.settings.mode === 'work') ? 'hobby' : ((db.settings && db.settings.mode) || 'hobby');
 (function(m){
-  var tabs = {hobby:'modeTabHobby',quick:'modeTabQuick'};
+  var tabs = {hobby:'modeTabHobby',quick:'modeTabQuick',kotono:'modeTabKotono'};
   document.querySelectorAll('.mode-tab').forEach(function(el){el.classList.remove('active');});
   var el = document.getElementById(tabs[m]); if(el) el.classList.add('active');
 })(curMode);
