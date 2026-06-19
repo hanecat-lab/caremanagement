@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#6C63FF">
+  <meta name="theme-color" content="#7B6148">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13,46 +13,46 @@
   <style>
     /* ===== CSS VARIABLES ===== */
     :root {
-      --primary: #6C63FF;
-      --primary-dk: #5A52E0;
-      --primary-lt: #EEEEFF;
-      --accent: #FF6584;
-      --bg: #F0F2F8;
-      --card: #FFFFFF;
-      --hdr: #FFFFFF;
-      --nav: #FFFFFF;
-      --tx: #1A1A2E;
-      --tx2: #4A5060;
-      --txm: #9AA3B2;
-      --bd: #E4E8F0;
-      --sh: 0 2px 16px rgba(108,99,255,.08),0 1px 4px rgba(0,0,0,.05);
-      --sh-lg: 0 8px 32px rgba(108,99,255,.16),0 2px 8px rgba(0,0,0,.09);
-      --r: 20px;
-      --rm: 14px;
-      --rs: 10px;
-      --tag-bg: #EEEEFF;
-      --tag-cl: #6C63FF;
-      --per-bg: #FFF0F4;
-      --per-cl: #D03060;
+      --primary: #7B6148;
+      --primary-dk: #6A5038;
+      --primary-lt: #EDE6DB;
+      --accent: #C4956A;
+      --bg: #E8E3D8;
+      --card: #F4EFE8;
+      --hdr: #F4EFE8;
+      --nav: #F4EFE8;
+      --tx: #2C2218;
+      --tx2: #786A5E;
+      --txm: #ACA498;
+      --bd: #D4CDC4;
+      --sh: 0 1px 4px rgba(44,34,24,.07),0 1px 2px rgba(0,0,0,.04);
+      --sh-lg: 0 4px 20px rgba(44,34,24,.12),0 2px 8px rgba(0,0,0,.06);
+      --r: 18px;
+      --rm: 12px;
+      --rs: 8px;
+      --tag-bg: #EAE4DA;
+      --tag-cl: #7B6148;
+      --per-bg: #F5EAE0;
+      --per-cl: #9B5C38;
     }
     [data-theme="dark"] {
-      --primary: #7C73FF;
-      --primary-dk: #6A62EE;
-      --primary-lt: #1E1D3F;
-      --bg: #0D0D1A;
-      --card: #1A1A2E;
-      --hdr: #12121F;
-      --nav: #12121F;
-      --tx: #E8ECF4;
-      --tx2: #8890A4;
-      --txm: #565E70;
-      --bd: #242438;
-      --sh: 0 2px 16px rgba(0,0,0,.4),0 1px 4px rgba(0,0,0,.3);
-      --sh-lg: 0 8px 32px rgba(0,0,0,.6);
-      --tag-bg: #1E1D4A;
-      --tag-cl: #9A93FF;
-      --per-bg: #2A1520;
-      --per-cl: #FF8FA8;
+      --primary: #C4A880;
+      --primary-dk: #B89A6C;
+      --primary-lt: #2E2818;
+      --bg: #1C1812;
+      --card: #252018;
+      --hdr: #201C14;
+      --nav: #201C14;
+      --tx: #EDE5D8;
+      --tx2: #A89888;
+      --txm: #786E60;
+      --bd: #3C3428;
+      --sh: 0 2px 12px rgba(0,0,0,.4),0 1px 4px rgba(0,0,0,.3);
+      --sh-lg: 0 6px 28px rgba(0,0,0,.55);
+      --tag-bg: #2A2418;
+      --tag-cl: #C4A880;
+      --per-bg: #2E1E14;
+      --per-cl: #D4A070;
     }
 
     /* ===== RESET ===== */
@@ -114,10 +114,10 @@
       width:56px;height:56px;background:var(--primary);color:#fff;
       border:none;border-radius:50%;font-size:26px;z-index:91;
       display:flex;align-items:center;justify-content:center;
-      box-shadow:0 4px 20px rgba(108,99,255,.45);
+      box-shadow:0 4px 20px rgba(123,97,72,.4);
       transition:transform .2s,box-shadow .2s;
     }
-    .fab:active{transform:scale(.92);box-shadow:0 2px 10px rgba(108,99,255,.3)}
+    .fab:active{transform:scale(.92);box-shadow:0 2px 10px rgba(123,97,72,.25)}
 
     /* ===== MEMO CARD ===== */
     @keyframes fadeUp{
@@ -416,10 +416,10 @@
     .btn-primary{
       width:100%;padding:15px;background:var(--primary);color:#fff;
       border:none;border-radius:var(--rm);font-size:16px;font-weight:800;
-      box-shadow:0 4px 16px rgba(108,99,255,.35);transition:transform .15s,box-shadow .2s;
+      box-shadow:0 4px 16px rgba(123,97,72,.3);transition:transform .15s,box-shadow .2s;
       margin-top:6px;
     }
-    .btn-primary:active{transform:scale(.97);box-shadow:0 2px 8px rgba(108,99,255,.2)}
+    .btn-primary:active{transform:scale(.97);box-shadow:0 2px 8px rgba(123,97,72,.18)}
     .btn-danger{
       width:100%;padding:13px;background:transparent;color:#E03030;
       border:2px solid #E03030;border-radius:var(--rm);font-size:14px;font-weight:800;
