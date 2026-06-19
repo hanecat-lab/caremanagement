@@ -1264,20 +1264,14 @@ function renderSearch() {
 function renderPersonFilterRows() {
   var fc = document.getElementById('personFilterRows');
   if (!fc) return;
-  var hasFilter = sfGroupFilter !== 'all' || sfGenderFilter !== 'all';
-  var lbl = (sfFiltersOpen ? '▾ 閉じる' : '▸ グループ・性別で絞り込む') + (!sfFiltersOpen && hasFilter ? ' ●' : '');
-  var rows = '';
-  if (sfFiltersOpen) {
-    rows += '<div class="psel-filter-row" style="margin-bottom:6px;">' + ['all'].concat(db.groups).map(function(g){
-      return '<button class="psel-filter-chip' + (sfGroupFilter === g ? ' active' : '') + '" onclick="setSFGroupFilter(\'' + g + '\')">' + (g === 'all' ? '全て' : g) + '</button>';
-    }).join('') + '</div>';
-    rows += '<div class="psel-filter-row" style="margin-bottom:8px;">' + [{ val:'all', label:'全て' }].concat(GENDERS).map(function(g){
-      return '<button class="psel-filter-chip' + (sfGenderFilter === g.val ? ' active' : '') + '" onclick="setSFGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
-    }).join('') + '</div>';
-  }
-  fc.innerHTML = '<button class="psel-filter-toggle' + (hasFilter ? ' on' : '') + '" onclick="toggleSFFilters()">' + lbl + '</button>' + rows;
+  var rows = '<div class="psel-filter-row" style="margin-bottom:6px;">' + ['all'].concat(db.groups).map(function(g){
+    return '<button class="psel-filter-chip' + (sfGroupFilter === g ? ' active' : '') + '" onclick="setSFGroupFilter(\'' + g + '\')">' + (g === 'all' ? '全て' : g) + '</button>';
+  }).join('') + '</div>';
+  rows += '<div class="psel-filter-row" style="margin-bottom:8px;">' + [{ val:'all', label:'全て' }].concat(GENDERS).map(function(g){
+    return '<button class="psel-filter-chip' + (sfGenderFilter === g.val ? ' active' : '') + '" onclick="setSFGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
+  }).join('') + '</div>';
+  fc.innerHTML = rows;
 }
-function toggleSFFilters() { sfFiltersOpen = !sfFiltersOpen; renderPersonFilterChips(); }
 function setSFGroupFilter(g) { sfGroupFilter = g; renderPersonFilterChips(); }
 function setSFGenderFilter(v) { sfGenderFilter = v; renderPersonFilterChips(); }
 function renderPersonFilterChips() {
@@ -1631,20 +1625,14 @@ function updateRecForm(m) {
 function renderPselFilters() {
   var fc = document.getElementById('pselFilters');
   if (!fc) return;
-  var hasFilter = pselGroupFilter !== 'all' || pselGenderFilter !== 'all';
-  var lbl = (pselFiltersOpen ? '▾ 閉じる' : '▸ グループ・性別で絞り込む') + (!pselFiltersOpen && hasFilter ? ' ●' : '');
-  var rows = '';
-  if (pselFiltersOpen) {
-    rows += '<div class="psel-filter-row">' + ['all'].concat(db.groups).map(function(g){
-      return '<button class="psel-filter-chip' + (pselGroupFilter === g ? ' active' : '') + '" onclick="setPselGroupFilter(\'' + g + '\')">' + (g === 'all' ? '全て' : g) + '</button>';
-    }).join('') + '</div>';
-    rows += '<div class="psel-filter-row">' + [{ val:'all', label:'全て' }].concat(GENDERS).map(function(g){
-      return '<button class="psel-filter-chip' + (pselGenderFilter === g.val ? ' active' : '') + '" onclick="setPselGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
-    }).join('') + '</div>';
-  }
-  fc.innerHTML = '<button class="psel-filter-toggle' + (hasFilter ? ' on' : '') + '" onclick="togglePselFilters()">' + lbl + '</button>' + rows;
+  var rows = '<div class="psel-filter-row">' + ['all'].concat(db.groups).map(function(g){
+    return '<button class="psel-filter-chip' + (pselGroupFilter === g ? ' active' : '') + '" onclick="setPselGroupFilter(\'' + g + '\')">' + (g === 'all' ? '全て' : g) + '</button>';
+  }).join('') + '</div>';
+  rows += '<div class="psel-filter-row">' + [{ val:'all', label:'全て' }].concat(GENDERS).map(function(g){
+    return '<button class="psel-filter-chip' + (pselGenderFilter === g.val ? ' active' : '') + '" onclick="setPselGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
+  }).join('') + '</div>';
+  fc.innerHTML = rows;
 }
-function togglePselFilters() { pselFiltersOpen = !pselFiltersOpen; renderPselGrid(); }
 function setPselGroupFilter(g) { pselGroupFilter = g; renderPselGrid(); }
 function setPselGenderFilter(v) { pselGenderFilter = v; renderPselGrid(); }
 function renderPselGrid() {
