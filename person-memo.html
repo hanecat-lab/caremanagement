@@ -1489,8 +1489,8 @@ function renderGroupEditList() {
   if (!c) return;
   c.innerHTML = db.groups.map(function(g, i){
     return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
-      + '<input class="form-input" type="text" value="' + esc(g) + '" style="flex:1;" oninput="renameGroup(' + i + ',this.value)">'
-      + '<button class="btn-danger" style="padding:4px 10px;min-height:0;" onclick="deleteGroup(' + i + ')">削除</button>'
+      + '<input class="form-input" type="text" value="' + esc(g) + '" style="flex:1;padding:10px 12px;" oninput="renameGroup(' + i + ',this.value)">'
+      + '<button style="flex-shrink:0;width:34px;height:34px;border:none;background:rgba(180,40,40,.08);color:#B02828;font-size:16px;border-radius:8px;cursor:pointer;transition:background .15s;" onclick="deleteGroup(' + i + ')">🗑</button>'
       + '</div>';
   }).join('');
 }
