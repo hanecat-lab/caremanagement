@@ -7,7 +7,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <title>人物記録メモ</title>
+  <title>Linkage</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <style>
@@ -567,7 +567,7 @@
 
 <!-- HEADER -->
 <header class="app-header" id="appHeader">
-  <h1 id="headerTitle">📝 人物記録メモ</h1>
+  <h1 id="headerTitle">📝 Linkage</h1>
   <div class="hdr-actions">
     <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="テーマ切替">🌙</button>
     <button class="icon-btn" onclick="openModal('dataModal')" title="データ管理">💾</button>
@@ -994,7 +994,7 @@ function showView(v) {
   document.getElementById('nav' + cap(v)).classList.add('active');
   curView = v;
 
-  var titles = { home: '📝 人物記録メモ', search: '🔍 検索', calendar: '📅 カレンダー', people: '👥 人物' };
+  var titles = { home: '📝 Linkage', search: '🔍 検索', calendar: '📅 カレンダー', people: '👥 人物' };
   document.getElementById('headerTitle').textContent = titles[v] || '';
 
   var fab = document.getElementById('fab');
