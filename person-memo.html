@@ -1414,7 +1414,7 @@ function renderGroupSel() {
   var c = document.getElementById('groupSelRow');
   if (!c) return;
   c.innerHTML = GROUPS.map(function(g){
-    return '<button class="filter-chip' + (g === selGroup ? ' active' : '') + '" onclick="pickGroup('' + g + '')">' + g + '</button>';
+    return '<button class="filter-chip' + (g === selGroup ? ' active' : '') + '" onclick="pickGroup(\'' + g + '\')">' + g + '</button>';
   }).join('');
 }
 function pickGroup(g) { selGroup = g; renderGroupSel(); }
