@@ -1272,8 +1272,8 @@ function renderPersonFilterRows() {
   }).join('') + '</div>';
   fc.innerHTML = rows;
 }
-function setSFGroupFilter(g) { sfGroupFilter = g; renderPersonFilterChips(); }
-function setSFGenderFilter(v) { sfGenderFilter = v; renderPersonFilterChips(); }
+function setSFGroupFilter(g) { sfGroupFilter = g; sfPeopleOpen = true; renderPersonFilterChips(); }
+function setSFGenderFilter(v) { sfGenderFilter = v; sfPeopleOpen = true; renderPersonFilterChips(); }
 function renderPersonFilterChips() {
   renderPersonFilterRows();
   var wrap = document.getElementById('personPeopleWrap');
@@ -1633,8 +1633,8 @@ function renderPselFilters() {
   }).join('') + '</div>';
   fc.innerHTML = rows;
 }
-function setPselGroupFilter(g) { pselGroupFilter = g; renderPselGrid(); }
-function setPselGenderFilter(v) { pselGenderFilter = v; renderPselGrid(); }
+function setPselGroupFilter(g) { pselGroupFilter = g; pselOpen = true; renderPselGrid(); }
+function setPselGenderFilter(v) { pselGenderFilter = v; pselOpen = true; renderPselGrid(); }
 function renderPselGrid() {
   renderPselFilters();
   var wrap = document.getElementById('pselPeopleWrap');
