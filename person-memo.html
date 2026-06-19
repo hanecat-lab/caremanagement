@@ -57,11 +57,12 @@
 
     /* ===== RESET ===== */
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-    html{scroll-behavior:smooth}
+    html{scroll-behavior:smooth;overscroll-behavior-y:none;}
     body{
       font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN','YuGothic','Yu Gothic',sans-serif;
       background:var(--bg);color:var(--tx);min-height:100vh;overflow-x:hidden;
       transition:background .3s,color .3s;
+      overscroll-behavior-y:none;
     }
     button{font-family:inherit;cursor:pointer}
     input,textarea{font-family:inherit}
@@ -86,8 +87,9 @@
 
     /* ===== MAIN ===== */
     .main-content{
-      margin-top:56px;margin-bottom:76px;
-      padding:14px;max-width:620px;margin-left:auto;margin-right:auto;
+      margin-top:56px;
+      padding:14px 14px calc(64px + env(safe-area-inset-bottom,0px) + 14px);
+      max-width:620px;margin-left:auto;margin-right:auto;
     }
 
     /* ===== BOTTOM NAV ===== */
