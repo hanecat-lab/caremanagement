@@ -580,7 +580,6 @@
   <!-- MODE TABS -->
   <div class="mode-tabs" id="modeTabs">
     <button class="mode-tab active" id="modeTabHobby" onclick="setMode('hobby')">趣味</button>
-    <button class="mode-tab" id="modeTabWork" onclick="setMode('work')">仕事</button>
     <button class="mode-tab" id="modeTabQuick" onclick="setMode('quick')">一言メモ</button>
   </div>
 
@@ -1008,7 +1007,7 @@ function showView(v) {
 function setMode(m) {
   curMode = m;
   db.settings.mode = m; saveDB();
-  var tabs = { hobby: 'modeTabHobby', work: 'modeTabWork', quick: 'modeTabQuick' };
+  var tabs = { hobby: 'modeTabHobby', quick: 'modeTabQuick' };
   document.querySelectorAll('.mode-tab').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById(tabs[m]).classList.add('active');
   sf = { kw: '', personIds: [], tags: [], from: '', to: '' };
@@ -1730,9 +1729,9 @@ function addSampleData() {
 // ─── INIT ────────────────────────────────────────────────────
 loadDB();
 applyTheme();
-curMode = (db.settings && db.settings.mode) || 'hobby';
+curMode = (db.settings && db.settings.mode === 'work') ? 'hobby' : ((db.settings && db.settings.mode) || 'hobby');
 (function(m){
-  var tabs = {hobby:'modeTabHobby',work:'modeTabWork',quick:'modeTabQuick'};
+  var tabs = {hobby:'modeTabHobby',quick:'modeTabQuick'};
   document.querySelectorAll('.mode-tab').forEach(function(el){el.classList.remove('active');});
   var el = document.getElementById(tabs[m]); if(el) el.classList.add('active');
 })(curMode);
