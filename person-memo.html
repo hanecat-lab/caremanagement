@@ -499,6 +499,7 @@
     .data-sec{background:var(--bg);border-radius:var(--rm);padding:14px;margin-bottom:12px}
     .data-sec-title{font-size:12px;font-weight:800;color:var(--tx2);margin-bottom:10px}
     .data-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .data-note{font-size:11px;color:var(--txm);margin-bottom:10px;line-height:1.6;}
 
     /* ===== TAG SUGGESTIONS ===== */
     .tag-suggest-toggle{
@@ -810,8 +811,19 @@
       <div class="data-sec-title">📂 JSONファイル</div>
       <div class="data-btn-row">
         <button class="btn-sec" onclick="exportJSON()">📤 エクスポート</button>
-        <button class="btn-sec" onclick="document.getElementById('fileInput').click()">📥 インポート</button>
+        <button class="btn-sec" onclick="document.getElementById('fileInput').click()">📥 インポート（上書き）</button>
       </div>
+      <button class="btn-sec" style="width:100%;margin-top:8px;" onclick="document.getElementById('mergeFileInput').click()">🔀 マージインポート（追記）</button>
+    </div>
+    <div class="data-sec">
+      <div class="data-sec-title">📦 アーカイブ（期間指定エクスポート＋削除）</div>
+      <div class="data-note">指定期間の記録をファイルに書き出してアプリから削除します。後からマージインポートで戻せます。</div>
+      <div class="date-row" style="margin-bottom:8px;">
+        <input class="date-inp" id="archiveFrom" type="date">
+        <span class="date-tilde">〜</span>
+        <input class="date-inp" id="archiveTo" type="date">
+      </div>
+      <button class="btn-sec" style="width:100%;" onclick="exportArchive()">📤 この期間をエクスポートして削除</button>
     </div>
     <div class="data-sec">
       <div class="data-sec-title">🎨 テーマ</div>
@@ -828,6 +840,7 @@
 </div>
 
 <input type="file" id="fileInput" accept=".json" style="display:none" onchange="importJSON(event)">
+<input type="file" id="mergeFileInput" accept=".json" style="display:none" onchange="mergeImportJSON(event)">
 
 <!-- SCRIPT -->
 <script>
@@ -929,6 +942,55 @@ function importJSON(e) {
   };
   r.readAsText(f);
   e.target.value = '';
+}
+function mergeImportJSON(e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  e.target.value = '';
+  var r = new FileReader();
+  r.onload = function(ev) {
+    try {
+      var d = JSON.parse(ev.target.result);
+      if (!d.records || !d.people) { toast('無効なファイル形式です'); return; }
+      var existRecIds = {};
+      db.records.forEach(function(r){ existRecIds[r.id] = 1; });
+      var added = 0;
+      d.records.forEach(function(r){
+        if (!existRecIds[r.id]) { db.records.push(r); added++; }
+      });
+      var existPIds = {};
+      db.people.forEach(function(p){ existPIds[p.id] = 1; });
+      d.people.forEach(function(p){
+        if (!existPIds[p.id]) db.people.push(p);
+      });
+      recalcLastContact();
+      saveDB(); refresh();
+      toast(added + '件の記録を追記しました');
+      closeModal('dataModal');
+    } catch(err) { toast('読み込みに失敗しました'); }
+  };
+  r.readAsText(f);
+}
+function exportArchive() {
+  var from = document.getElementById('archiveFrom').value;
+  var to   = document.getElementById('archiveTo').value;
+  if (!from || !to) { toast('期間を指定してください'); return; }
+  if (from > to) { toast('開始日が終了日より後です'); return; }
+  var recs = db.records.filter(function(r){ return r.date >= from && r.date <= to; });
+  if (!recs.length) { toast('該当する記録がありません'); return; }
+  if (!confirm(recs.length + '件の記録をエクスポートしてアプリから削除しますか？\nこの操作は取り消せません。')) return;
+  var blob = new Blob([JSON.stringify({ records: recs, people: db.people, groups: db.groups, settings: db.settings }, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'linkage_archive_' + from + '_' + to + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  db.records = db.records.filter(function(r){ return !(r.date >= from && r.date <= to); });
+  recalcLastContact();
+  saveDB(); refresh();
+  toast(recs.length + '件をアーカイブしました');
+  closeModal('dataModal');
 }
 function clearAll() {
   if (!confirm('全データを削除しますか？\nこの操作は取り消せません。')) return;
