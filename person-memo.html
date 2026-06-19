@@ -1359,7 +1359,7 @@ function deletePersonById(id) {
 // ─── RECORD FORM ─────────────────────────────────────────────
 function openAddRecord() {
   editRecId = null; selPeople = []; selTags = [];
-  tagSuggestOpen = false;
+  resetTagSuggest();
   var titles = { hobby: '記録を追加', work: '仕事メモを追加', quick: '一言メモを追加' };
   document.getElementById('recModalTitle').textContent = titles[curMode] || '記録を追加';
   document.getElementById('recDate').value = today();
@@ -1375,7 +1375,7 @@ function openEditRecord(id) {
   editRecId = id;
   selPeople = (r.peopleIds||[]).slice();
   selTags   = (r.tags||[]).slice();
-  tagSuggestOpen = false;
+  resetTagSuggest();
   var em = r.mode || 'hobby';
   var titles = { hobby: '記録を編集', work: '仕事メモを編集', quick: '一言メモを編集' };
   document.getElementById('recModalTitle').textContent = titles[em] || '記録を編集';
@@ -1432,6 +1432,13 @@ function renderTagChips() {
   renderTagSuggestions();
 }
 var tagSuggestOpen = false;
+function resetTagSuggest() {
+  tagSuggestOpen = false;
+  var list = document.getElementById('tagSuggestList');
+  var btn  = document.getElementById('tagSuggestToggle');
+  if (list) { list.style.display = 'none'; list.innerHTML = ''; }
+  if (btn)  btn.textContent = '▸ 使用中のタグ';
+}
 function toggleTagSuggest() {
   tagSuggestOpen = !tagSuggestOpen;
   var list = document.getElementById('tagSuggestList');
@@ -1531,7 +1538,7 @@ function openAddPerson() {
   renderIconGrid(); renderGroupSel(); renderLinkList();
   openModal('personModal');
 }
-function openAddPersonFromRec() { fromRec = true; openAddPerson(); }
+function openAddPersonFromRec() { openAddPerson(); fromRec = true; }
 function openEditPerson(id) {
   var p = getPerson(id); if (!p) return;
   editPerId = id; selIcon = p.icon || '👤'; selGroup = p.group || 'その他'; fromRec = false;
