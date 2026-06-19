@@ -562,7 +562,7 @@
   <!-- PEOPLE -->
   <div class="view" id="viewPeople">
     <div class="filter-card" style="margin-bottom:10px;">
-      <div class="filter-title">👥 グループ</div>
+      <div class="filter-title" style="display:flex;align-items:center;justify-content:space-between;">👥 グループ<button class="icon-btn" style="font-size:14px;padding:2px 6px;" onclick="renderGroupEditList();openModal('groupEditModal')" title="グループを編集">✏️</button></div>
       <div class="chip-row" id="groupFilterChips"></div>
     </div>
     <div class="toolbar" style="margin-bottom:12px;">
@@ -683,6 +683,22 @@
   </div>
 </div>
 
+<!-- GROUP EDIT MODAL -->
+<div class="modal-overlay" id="groupEditModal" onclick="overlayClose(event,'groupEditModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title">グループを編集</span>
+      <button class="close-btn" onclick="closeModal('groupEditModal')">×</button>
+    </div>
+    <div id="groupEditList" style="padding:0 4px;"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;padding:0 4px;">
+      <input id="newGroupInput" class="form-input" type="text" placeholder="新しいグループ名" style="flex:1;">
+      <button class="btn-pri" onclick="addGroup()">追加</button>
+    </div>
+  </div>
+</div>
+
 <!-- DATA MODAL -->
 <div class="modal-overlay" id="dataModal" onclick="overlayClose(event,'dataModal')">
   <div class="modal">
@@ -738,7 +754,6 @@ var sf = { kw: '', personIds: [], tags: [], from: '', to: '' };
 var personFilter = 'all';
 var personSort   = 'lastContact_desc';
 var selGroup     = 'その他';
-var GROUPS = ['家族','友人','仕事','趣味','その他'];
 
 var ICONS = [
   '👤','👨','👩','👴','👵','👦','👧','🧑',
@@ -755,6 +770,7 @@ function loadDB() {
       db = JSON.parse(s);
       db.settings = db.settings || { theme: 'light' };
       db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
+      db.groups = db.groups || ['家族','友人','仕事','趣味','その他'];
       db.people.forEach(function(p){
         if (!p.group) p.group = 'その他';
         if (p.lastContactDate === undefined) p.lastContactDate = '';
@@ -1117,7 +1133,7 @@ function renderCalDayRecs() {
 // ─── PEOPLE ──────────────────────────────────────────────────
 function renderGroupFilterChips() {
   var c = document.getElementById('groupFilterChips');
-  var opts = ['all'].concat(GROUPS);
+  var opts = ['all'].concat(db.groups);
   var labels = { all: '全て' };
   c.innerHTML = opts.map(function(g){
     var label = labels[g] || g;
@@ -1413,11 +1429,57 @@ function pickIcon(ic) { selIcon = ic; renderIconGrid(); }
 function renderGroupSel() {
   var c = document.getElementById('groupSelRow');
   if (!c) return;
-  c.innerHTML = GROUPS.map(function(g){
+  c.innerHTML = db.groups.map(function(g){
     return '<button class="filter-chip' + (g === selGroup ? ' active' : '') + '" onclick="pickGroup(\'' + g + '\')">' + g + '</button>';
   }).join('');
 }
 function pickGroup(g) { selGroup = g; renderGroupSel(); }
+
+
+// ─── GROUP MANAGEMENT ────────────────────────────────────────
+function renderGroupEditList() {
+  var c = document.getElementById('groupEditList');
+  if (!c) return;
+  c.innerHTML = db.groups.map(function(g, i){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+      + '<input class="form-input" type="text" value="' + esc(g) + '" style="flex:1;" oninput="renameGroup(' + i + ',this.value)">'
+      + '<button class="btn-danger" style="padding:4px 10px;min-height:0;" onclick="deleteGroup(' + i + ')">削除</button>'
+      + '</div>';
+  }).join('');
+}
+function addGroup() {
+  var inp = document.getElementById('newGroupInput');
+  var name = inp.value.trim();
+  if (!name) { toast('グループ名を入力してください'); return; }
+  if (db.groups.indexOf(name) >= 0) { toast('同じ名前のグループがあります'); return; }
+  db.groups.push(name);
+  inp.value = '';
+  saveDB();
+  renderGroupEditList();
+  renderGroupFilterChips();
+  renderGroupSel();
+}
+function renameGroup(idx, newName) {
+  var oldName = db.groups[idx];
+  db.groups[idx] = newName;
+  db.people.forEach(function(p){ if (p.group === oldName) p.group = newName; });
+  if (selGroup === oldName) selGroup = newName;
+  if (personFilter === oldName) personFilter = newName;
+  saveDB();
+  renderGroupFilterChips();
+}
+function deleteGroup(idx) {
+  var name = db.groups[idx];
+  var inUse = db.people.some(function(p){ return p.group === name; });
+  if (inUse) { toast(name + ' は使用中のため削除できません'); return; }
+  db.groups.splice(idx, 1);
+  if (selGroup === name) selGroup = db.groups[0] || 'その他';
+  if (personFilter === name) { personFilter = 'all'; }
+  saveDB();
+  renderGroupEditList();
+  renderGroupFilterChips();
+  renderGroupSel();
+}
 
 // ─── LINK LIST ───────────────────────────────────────────────
 function renderLinkList() {
@@ -1511,7 +1573,7 @@ window.addEventListener('scroll', function(){
 });
 document.addEventListener('keydown', function(e){
   if (e.key === 'Escape') {
-    ['recordModal','personModal','personDetailModal','dataModal'].forEach(closeModal);
+    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal'].forEach(closeModal);
     closeCtx();
   }
 });
