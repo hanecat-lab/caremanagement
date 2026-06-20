@@ -283,6 +283,7 @@
     .p-group-badge{display:inline-block;font-size:11px;font-weight:800;background:var(--primary-lt);color:var(--primary);padding:2px 8px;border-radius:20px;}
     .p-contact-row{display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;}
     .p-last-contact{font-size:11px;color:var(--txm);font-weight:600;}
+    .p-count-badge{font-size:11px;font-weight:800;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:20px;}
     .p-icon-wrap{position:relative;flex-shrink:0;}
     .gender-badge{
       position:absolute;bottom:-3px;right:-3px;
@@ -688,6 +689,7 @@
       <button class="sort-btn active" id="pSortLCD" onclick="setPersonSort('lastContact_desc')">接触↓</button>
       <button class="sort-btn" id="pSortLCA" onclick="setPersonSort('lastContact_asc')">接触↑</button>
       <button class="sort-btn" id="pSortName" onclick="setPersonSort('name')">名前順</button>
+      <button class="sort-btn" id="pSortCount" onclick="setPersonSort('count_desc')">累計↓</button>
       <span class="count-badge" id="peopleCount"></span>
     </div>
     <div id="peopleList"></div>
@@ -1457,13 +1459,19 @@ function pickGender(v) {
 }
 function setPersonSort(s) {
   personSort = s;
-  document.querySelectorAll('#pSortLCD,#pSortLCA,#pSortName').forEach(function(el){ el.classList.remove('active'); });
-  var ids = { lastContact_desc:'pSortLCD', lastContact_asc:'pSortLCA', name:'pSortName' };
+  document.querySelectorAll('#pSortLCD,#pSortLCA,#pSortName,#pSortCount').forEach(function(el){ el.classList.remove('active'); });
+  var ids = { lastContact_desc:'pSortLCD', lastContact_asc:'pSortLCA', name:'pSortName', count_desc:'pSortCount' };
   var el = document.getElementById(ids[s]); if(el) el.classList.add('active');
   renderPeopleList();
 }
-function sortedPeople(arr) {
+function sortedPeople(arr, counts) {
   return arr.slice().sort(function(a, b){
+    if (personSort === 'count_desc') {
+      var ca = (counts && counts[a.id]) || 0;
+      var cb = (counts && counts[b.id]) || 0;
+      if (ca !== cb) return cb - ca;
+      return a.name.localeCompare(b.name, 'ja');
+    }
     if (personSort === 'name') return a.name.localeCompare(b.name, 'ja');
     var da = a.lastContactDate || '';
     var db2 = b.lastContactDate || '';
@@ -1485,7 +1493,11 @@ function renderPeopleList() {
     c.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>該当する人物がいません</p></div>';
     return;
   }
-  c.innerHTML = sortedPeople(people).map(function(p, i){
+  var counts = {};
+  db.records.forEach(function(r){
+    (r.peopleIds||[]).forEach(function(pid){ counts[pid] = (counts[pid]||0) + 1; });
+  });
+  c.innerHTML = sortedPeople(people, counts).map(function(p, i){
     var validLinks = (p.links||[]).filter(function(lk){ return lk.url; });
     var snsHTML = validLinks.length
       ? '<div class="p-sns">'
@@ -1497,12 +1509,15 @@ function renderPeopleList() {
       : '';
     var lc = p.lastContactDate ? '最終接触 ' + fmtDate(p.lastContactDate) : '接触記録なし';
     var gbadge = p.gender ? '<span class="gender-badge">' + genderIcon(p.gender) + '</span>' : '';
+    var total = counts[p.id] || 0;
+    var countBadge = '<span class="p-count-badge">' + total + '回</span>';
     return '<div class="person-card" style="animation-delay:' + (i*30) + 'ms" onclick="showPersonDetail(\'' + p.id + '\')">'
       + '<div class="p-icon-wrap"><div class="p-icon">' + (p.icon||'👤') + '</div>' + gbadge + '</div>'
       + '<div class="p-info">'
       + '<div class="p-name">' + esc(p.name) + '</div>'
       + '<div class="p-contact-row">'
       + '<span class="p-group-badge">' + esc(p.group||'その他') + '</span>'
+      + countBadge
       + '<span class="p-last-contact">' + lc + '</span>'
       + '</div>'
       + snsHTML
