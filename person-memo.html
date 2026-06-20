@@ -1163,14 +1163,23 @@ function allTags() {
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function formatMemo(s) {
+function formatInline(s) {
   return esc(s)
-    .replace(/^##([^\n]+)/mg, '<span class="memo-heading">$1</span>')
     .replace(/==([^=\n]+)==/g, '<mark class="memo-highlight">$1</mark>')
     .replace(/_([^_\n]+?)_/g, '<span class="memo-underline">$1</span>')
     .replace(/！([^！\n]+?)！/g, '<span class="memo-red">$1</span>')
     .replace(/@([^@\n]+?)@/g, '<span class="memo-bold">$1</span>')
     .replace(/？([^？\n]+?)？/g, '<span class="memo-blue">$1</span>');
+}
+function renderMemoSection(s) {
+  var chunks = s.split(/^(##[^\n]*)$/m);
+  return chunks.map(function(chunk) {
+    if (chunk.slice(0,2) === '##') {
+      return '<div class="memo-heading">' + formatInline(chunk.slice(2)) + '</div>';
+    }
+    var t = chunk.replace(/^\n|\n$/g, '');
+    return t ? '<div class="memo-text">' + formatInline(t) + '</div>' : '';
+  }).join('');
 }
 function insertHeading(id) {
   var el = document.getElementById(id);
@@ -1187,10 +1196,9 @@ function insertHeading(id) {
   el.focus();
 }
 function renderMemoHTML(memo) {
-  var parts = memo.split(/^----------+$/m);
-  return parts.map(function(p) {
-    return p ? '<div class="memo-text">' + formatMemo(p) + '</div>' : '';
-  }).join('<hr class="memo-divider">');
+  return memo.split(/^----------+$/m)
+    .map(renderMemoSection)
+    .join('<hr class="memo-divider">');
 }
 function wrapMemoSel(id, before, after) {
   var el = document.getElementById(id);
