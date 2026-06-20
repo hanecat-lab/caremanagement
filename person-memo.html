@@ -582,11 +582,17 @@
     .scroll-top:active{transform:scale(.9)}
 
     /* ===== MODE TABS ===== */
-    .mode-tabs{display:flex;gap:8px;margin-bottom:14px;background:var(--card);padding:10px 12px;border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bd);}
+    .mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;background:var(--card);padding:10px 12px;border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bd);}
     .mode-tab{flex:1;padding:8px 0;border-radius:20px;border:2px solid var(--bd);background:var(--card);color:var(--tx2);font-size:13px;font-weight:700;transition:all .2s;}
     .mode-tab.active{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
     .mode-tab:active{transform:scale(.95)}
     #modeTabKotono.active{border-color:transparent;border-bottom:2.5px solid #B5922A;background:#FAF8F2;color:#B5922A;}
+    #modeTabWork.active{border-color:#4A7B6F;background:#F0F5F3;color:#4A7B6F;}
+    .memo-card.work-card{background:#F0F5F3;border-left-color:#4A7B6F;}
+    .work-type-sel{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+    .work-type-chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--bd);background:#FAF8F2;color:var(--tx2);font-size:13px;font-weight:700;transition:all .15s;cursor:pointer;}
+    .work-type-chip.sel{border-color:#4A7B6F;background:#F0F5F3;color:#4A7B6F;}
+    .work-type-badge{display:inline-block;font-size:11px;font-weight:800;color:#4A7B6F;background:#F0F5F3;padding:2px 8px;border-radius:4px;margin-bottom:6px;border:1px solid rgba(74,123,111,.3);}
 
     /* ===== VIEWS ===== */
     .view{display:none}
@@ -618,6 +624,7 @@
   <div class="mode-tabs" id="modeTabs">
     <button class="mode-tab active" id="modeTabHobby" onclick="setMode('hobby')">趣味</button>
     <button class="mode-tab" id="modeTabQuick" onclick="setMode('quick')">一言メモ</button>
+    <button class="mode-tab" id="modeTabWork" onclick="setMode('work')">仕事メモ</button>
     <button class="mode-tab" id="modeTabKotono" onclick="setMode('kotono')">言の葉</button>
   </div>
 
@@ -746,6 +753,10 @@
     <div class="form-group" id="recTimeGroup" style="display:none;">
       <label class="form-label">⏰ 時刻</label>
       <input class="form-input" id="recTime" type="time">
+    </div>
+    <div class="form-group" id="recWorkTypeGroup" style="display:none;">
+      <label class="form-label">📂 種別</label>
+      <div class="work-type-sel" id="workTypeSel"></div>
     </div>
     <div class="form-group" id="recPersonGroup">
       <label class="form-label">👤 会った人</label>
@@ -1159,7 +1170,7 @@ function showView(v) {
 function setMode(m) {
   curMode = m;
   db.settings.mode = m; saveDB();
-  var tabs = { hobby: 'modeTabHobby', quick: 'modeTabQuick', kotono: 'modeTabKotono' };
+  var tabs = { hobby: 'modeTabHobby', quick: 'modeTabQuick', work: 'modeTabWork', kotono: 'modeTabKotono' };
   document.querySelectorAll('.mode-tab').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById(tabs[m]).classList.add('active');
   var prevKw = sf.kw;
@@ -1206,13 +1217,17 @@ function cardHTML(rec, delay, hideDate) {
     return '<button class="memo-tag-chip" onclick="onTagChip(\'' + esc(t) + '\',event)">' + hashIcon() + esc(t) + '</button>';
   }).join('');
   var bodyParts = '';
-  var timeTag = (rec.mode === 'quick' && rec.time) ? '<span class="memo-time-tag">⏰ ' + rec.time + '</span>' : '';
+  var isQuickLike = rec.mode === 'quick' || rec.mode === 'kotono' || rec.mode === 'work';
+  var timeTag = (isQuickLike && rec.time) ? '<span class="memo-time-tag">⏰ ' + rec.time + '</span>' : '';
+  var wtLabel = rec.workType ? (WORK_TYPES.filter(function(t){ return t.val === rec.workType; })[0] || null) : null;
+  var workTypeBadge = wtLabel ? '<span class="work-type-badge">' + wtLabel.label + '</span>' : '';
+  if (hideDate && workTypeBadge) bodyParts += workTypeBadge;
   if (hideDate && timeTag) bodyParts += timeTag;
   if (people.length) bodyParts += '<div class="memo-people">' + peopleHTML + '</div>';
   if (rec.memo)      bodyParts += '<div class="memo-text">' + esc(rec.memo) + '</div>';
   if (rec.tags && rec.tags.length) bodyParts += '<div class="memo-tags">' + tagsHTML + '</div>';
-  var timeInBar = (!hideDate && rec.mode === 'quick' && rec.time) ? '<span class="memo-date-time">' + rec.time + '</span>' : '';
-  var cls = 'memo-card' + (hideDate ? ' no-datebar' : '') + (rec.mode === 'kotono' ? ' kotono-card' : '');
+  var timeInBar = (!hideDate && isQuickLike && rec.time) ? '<span class="memo-date-time">' + rec.time + '</span>' : '';
+  var cls = 'memo-card' + (hideDate ? ' no-datebar' : '') + (rec.mode === 'kotono' ? ' kotono-card' : '') + (rec.mode === 'work' ? ' work-card' : '');
   return '<div class="' + cls + '" style="animation-delay:' + (delay*40) + 'ms" onclick="openEditRecord(\'' + rec.id + '\')">'
     + '<div class="memo-date-bar">'
     + '<span class="memo-date-text">' + fmtDateLong(rec.date) + timeInBar + '</span>'
@@ -1603,7 +1618,7 @@ function deletePersonById(id) {
 
 // ─── RECORD FORM ─────────────────────────────────────────────
 function openAddRecord() {
-  editRecId = null; selPeople = []; selTags = [];
+  editRecId = null; selPeople = []; selTags = []; selWorkType = '';
   pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false; pselOpen = false;
   resetTagSuggest();
   var titles = { hobby: '記録を追加', work: '仕事メモを追加', quick: '一言メモを追加', kotono: '言の葉を追加' };
@@ -1625,6 +1640,7 @@ function openEditRecord(id) {
   editRecId = id;
   selPeople = (r.peopleIds||[]).slice();
   selTags   = (r.tags||[]).slice();
+  selWorkType = r.workType || '';
   pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false; pselOpen = false;
   resetTagSuggest();
   var em = r.mode || 'hobby';
@@ -1638,17 +1654,38 @@ function openEditRecord(id) {
   renderPselGrid(); renderTagChips();
   openModal('recordModal');
 }
+var WORK_TYPES = [
+  { val: 'idea',  label: '💡 アイデア' },
+  { val: 'memo',  label: '📝 メモ' },
+  { val: 'task',  label: '✅ タスク' },
+  { val: 'issue', label: '🤔 課題' }
+];
+var selWorkType = '';
+function renderWorkTypeChips() {
+  var el = document.getElementById('workTypeSel');
+  if (!el) return;
+  el.innerHTML = WORK_TYPES.map(function(t){
+    return '<button class="work-type-chip' + (selWorkType === t.val ? ' sel' : '') + '" onclick="toggleWorkType(\'' + t.val + '\')">' + t.label + '</button>';
+  }).join('');
+}
+function toggleWorkType(v) {
+  selWorkType = selWorkType === v ? '' : v;
+  renderWorkTypeChips();
+}
 function updateRecForm(m) {
   m = m || curMode;
   var pg = document.getElementById('recPersonGroup');
   var tg = document.getElementById('recTagGroup');
   var tmg = document.getElementById('recTimeGroup');
+  var wtg = document.getElementById('recWorkTypeGroup');
   if (pg) pg.style.display = m === 'hobby' ? 'block' : 'none';
   if (tg) tg.style.display = 'block';
-  if (tmg) tmg.style.display = (m === 'quick' || m === 'kotono') ? 'block' : 'none';
-  var placeholders = { hobby: '今日の出来事や会話内容...', work: '仕事の記録...', quick: 'メモ...', kotono: 'メモ...' };
+  if (tmg) tmg.style.display = (m === 'quick' || m === 'kotono' || m === 'work') ? 'block' : 'none';
+  if (wtg) wtg.style.display = m === 'work' ? 'block' : 'none';
+  var placeholders = { hobby: '今日の出来事や会話内容...', work: '考えたことをメモ...', quick: 'メモ...', kotono: 'メモ...' };
   var ta = document.getElementById('recMemo');
   if (ta) ta.placeholder = placeholders[m] || 'メモ...';
+  if (m === 'work') renderWorkTypeChips();
 }
 function renderPselFilters() {
   var fc = document.getElementById('pselFilters');
@@ -1800,11 +1837,12 @@ function saveRecord() {
     r.date = date; r.memo = memo;
     if (rm === 'hobby') r.peopleIds = selPeople.slice();
     r.tags = selTags.slice();
-    if (rm === 'quick' || rm === 'kotono') r.time = timeVal;
+    if (rm === 'quick' || rm === 'kotono' || rm === 'work') r.time = timeVal;
+    if (rm === 'work') r.workType = selWorkType;
     r.updatedAt = now;
   } else {
-    var isQuickLike = curMode === 'quick' || curMode === 'kotono';
-    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:selTags.slice(), time:isQuickLike?timeVal:'', createdAt:now, updatedAt:now });
+    var isQuickLike = curMode === 'quick' || curMode === 'kotono' || curMode === 'work';
+    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:selTags.slice(), time:isQuickLike?timeVal:'', workType:curMode==='work'?selWorkType:'', createdAt:now, updatedAt:now });
   }
   if (curMode === 'hobby') recalcLastContact();
   saveDB(); closeModal('recordModal'); refresh();
@@ -2019,9 +2057,9 @@ function addSampleData() {
 // ─── INIT ────────────────────────────────────────────────────
 loadDB();
 applyTheme();
-curMode = (db.settings && db.settings.mode === 'work') ? 'hobby' : ((db.settings && db.settings.mode) || 'hobby');
+curMode = (db.settings && db.settings.mode) || 'hobby';
 (function(m){
-  var tabs = {hobby:'modeTabHobby',quick:'modeTabQuick',kotono:'modeTabKotono'};
+  var tabs = {hobby:'modeTabHobby',quick:'modeTabQuick',work:'modeTabWork',kotono:'modeTabKotono'};
   document.querySelectorAll('.mode-tab').forEach(function(el){el.classList.remove('active');});
   var el = document.getElementById(tabs[m]); if(el) el.classList.add('active');
 })(curMode);
