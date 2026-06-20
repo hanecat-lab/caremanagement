@@ -800,7 +800,7 @@
         <span>📝 メモ</span>
         <button onclick="openMemoFullscreen()" style="background:none;border:none;color:var(--primary);font-size:13px;font-weight:800;padding:2px 6px;cursor:pointer;">全画面 ⤢</button>
       </label>
-      <textarea class="form-textarea memo-textarea" id="recMemo" placeholder="今日の出来事や会話内容..." style="min-height:160px;" onfocus="openMemoFullscreen()"></textarea>
+      <textarea class="form-textarea memo-textarea" id="recMemo" placeholder="今日の出来事や会話内容..." style="min-height:160px;"></textarea>
     </div>
     <button class="btn-primary" onclick="saveRecord()">💾 保存</button>
     <button class="btn-del-subtle" id="delRecBtn" style="display:none;width:100%;margin-top:8px;padding:10px;background:none;border:none;color:var(--txm);font-size:13px;font-weight:600;border-radius:var(--rm);transition:color .2s,background .2s;" onmouseover="this.style.color='#E03030'" onmouseout="this.style.color='var(--txm)'" onclick="deleteCurrentRec()">削除する</button>
