@@ -177,16 +177,22 @@
     .memo-red{color:#D94040;font-style:normal;}
     .memo-bold{font-weight:800;font-size:18px;font-style:normal;}
     .memo-blue{color:#7B35CC;font-style:normal;}
+    .memo-highlight{background:#FFF176;color:#333;border-radius:2px;padding:0 2px;}
+    .memo-heading{display:block;font-size:17px;font-weight:800;color:var(--tx);margin:10px 0 2px;}
+    .memo-underline{text-decoration:underline;text-underline-offset:3px;}
     .memo-divider{display:block;border:none;border-top:2px dashed var(--bd);margin:10px 0;}
-    .memo-fmt-bar{display:flex;gap:6px;margin-bottom:6px;}
+    .memo-fmt-bar{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
     .memo-fmt-btn{
-      padding:5px 12px;border-radius:20px;border:1.5px solid var(--bd);
+      padding:5px 10px;border-radius:20px;border:1.5px solid var(--bd);
       background:#FAF8F2;font-size:12px;font-weight:800;cursor:pointer;
-      transition:all .15s;
+      transition:all .15s;white-space:nowrap;
     }
     .memo-fmt-btn.red{color:#D94040;border-color:#D94040;}
     .memo-fmt-btn.bold{font-weight:900;font-size:14px;color:var(--tx);}
     .memo-fmt-btn.blue{color:#7B35CC;border-color:#7B35CC;}
+    .memo-fmt-btn.hl{color:#9A7500;border-color:#E8C840;background:#FFFDE7;}
+    .memo-fmt-btn.head{font-weight:900;color:var(--tx);}
+    .memo-fmt-btn.ul{text-decoration:underline;text-underline-offset:3px;color:var(--tx);}
     .memo-fmt-btn.div{color:var(--txm);letter-spacing:-1px;}
     .memo-work-title{
       font-size:20px;font-weight:800;color:var(--tx);
@@ -826,7 +832,10 @@
         <button class="memo-fmt-btn red" onclick="wrapMemoSel('recMemo','！','！')">！赤！</button>
         <button class="memo-fmt-btn bold" onclick="wrapMemoSel('recMemo','@','@')">@太@</button>
         <button class="memo-fmt-btn blue" onclick="wrapMemoSel('recMemo','？','？')">？紫？</button>
-        <button class="memo-fmt-btn div" onclick="insertDivider('recMemo')" title="段落区切り">┈┈</button>
+        <button class="memo-fmt-btn hl" onclick="wrapMemoSel('recMemo','==','==')">蛍光</button>
+        <button class="memo-fmt-btn head" onclick="insertHeading('recMemo')">見出し</button>
+        <button class="memo-fmt-btn ul" onclick="wrapMemoSel('recMemo','_','_')">下線</button>
+        <button class="memo-fmt-btn div" onclick="insertDivider('recMemo')">┈┈</button>
       </div>
       <textarea class="form-textarea memo-textarea" id="recMemo" placeholder="今日の出来事や会話内容..." style="min-height:160px;"></textarea>
     </div>
@@ -1156,9 +1165,26 @@ function esc(s) {
 }
 function formatMemo(s) {
   return esc(s)
+    .replace(/^##([^\n]+)/mg, '<span class="memo-heading">$1</span>')
+    .replace(/==([^=\n]+)==/g, '<mark class="memo-highlight">$1</mark>')
+    .replace(/_([^_\n]+?)_/g, '<span class="memo-underline">$1</span>')
     .replace(/！([^！\n]+?)！/g, '<span class="memo-red">$1</span>')
     .replace(/@([^@\n]+?)@/g, '<span class="memo-bold">$1</span>')
     .replace(/？([^？\n]+?)？/g, '<span class="memo-blue">$1</span>');
+}
+function insertHeading(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var s = el.selectionStart, v = el.value;
+  var lineStart = v.lastIndexOf('\n', s - 1) + 1;
+  if (v.slice(lineStart, lineStart + 2) === '##') {
+    el.value = v.slice(0, lineStart) + v.slice(lineStart + 2);
+    el.setSelectionRange(Math.max(lineStart, s - 2), Math.max(lineStart, s - 2));
+  } else {
+    el.value = v.slice(0, lineStart) + '##' + v.slice(lineStart);
+    el.setSelectionRange(s + 2, s + 2);
+  }
+  el.focus();
 }
 function renderMemoHTML(memo) {
   var parts = memo.split(/^----------+$/m);
@@ -2164,7 +2190,10 @@ showView('home');
       <button class="memo-fmt-btn red" onclick="wrapMemoSel('memoFsTextarea','！','！')">！赤！</button>
       <button class="memo-fmt-btn bold" onclick="wrapMemoSel('memoFsTextarea','@','@')">@太@</button>
       <button class="memo-fmt-btn blue" onclick="wrapMemoSel('memoFsTextarea','？','？')">？紫？</button>
-      <button class="memo-fmt-btn div" onclick="insertDivider('memoFsTextarea')" title="段落区切り">┈┈</button>
+      <button class="memo-fmt-btn hl" onclick="wrapMemoSel('memoFsTextarea','==','==')">蛍光</button>
+      <button class="memo-fmt-btn head" onclick="insertHeading('memoFsTextarea')">見出し</button>
+      <button class="memo-fmt-btn ul" onclick="wrapMemoSel('memoFsTextarea','_','_')">下線</button>
+      <button class="memo-fmt-btn div" onclick="insertDivider('memoFsTextarea')">┈┈</button>
     </div>
     <button class="memo-fs-done" onclick="closeMemoFullscreen()">完了</button>
   </div>
