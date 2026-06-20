@@ -1130,6 +1130,7 @@
     </div>
   </div>
 
+  <div id="alert-bar-meeting-due" class="alert-bar" style="display:none;background:#e3f0e3;border-color:#5a8a5a;color:#2f6a2f;" onclick="openMeetingDueModal()"></div>
   <div id="alert-bar-uncreated" class="alert-bar" style="display:none;background:#fff3e0;border-color:#f0a040;color:#8a5a00;" onclick="openUncreatedModal()"></div>
   <div id="alert-bar" class="alert-bar" style="display:none;" onclick="openAlertModal()"></div>
 
@@ -1269,6 +1270,18 @@
     <div style="margin-top:14px;display:flex;gap:8px;">
       <button class="btn-primary" id="bed-detail-edit-btn">編集へ</button>
       <button class="btn-cancel" onclick="closeBedDetail()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 次回会議時期モーダル -->
+<div class="modal-overlay" id="meeting-due-modal">
+  <div class="modal">
+    <h2 style="color:#2f6a2f;">📅 次回会議の時期です</h2>
+    <p style="font-size:12px;color:var(--text-sub);margin-bottom:12px;">前回の会議から2ヶ月1週間が経過した利用者です。</p>
+    <div id="meeting-due-list" style="max-height:320px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="closeMeetingDueModal()">閉じる</button>
     </div>
   </div>
 </div>
@@ -2458,6 +2471,54 @@ function getOverdueResidents() {
     }
   });
   return result;
+}
+
+function getMeetingDueResidents() {
+  const now = new Date();
+  const result = [];
+  residents.forEach(function(r) {
+    if (r.infoOnly) return;
+    if (!r.meetings || r.meetings.length === 0) return;
+    // 今日以前の最新会議を取得
+    var today = now.toISOString().slice(0, 10);
+    var pastMeetings = r.meetings.filter(function(m) { return m.date && m.date <= today; });
+    if (pastMeetings.length === 0) return;
+    var latest = pastMeetings[pastMeetings.length - 1];
+    var parts = latest.date.split('-').map(Number);
+    var meetingDate = new Date(parts[0], parts[1] - 1, parts[2]);
+    var diffDays = Math.floor((now - meetingDate) / (1000 * 60 * 60 * 24));
+    // 2ヶ月1週間 = 70日以上
+    if (diffDays >= 70) {
+      result.push({ r: r, meetingDate: latest.date, diffDays: diffDays });
+    }
+  });
+  // 経過日数が多い順
+  result.sort(function(a, b) { return b.diffDays - a.diffDays; });
+  return result;
+}
+
+function openMeetingDueModal() {
+  var due = getMeetingDueResidents();
+  var listEl = document.getElementById('meeting-due-list');
+  if (due.length === 0) {
+    listEl.innerHTML = '<p style="color:var(--text-sub);font-size:13px;">該当はありません。</p>';
+  } else {
+    listEl.innerHTML = due.map(function(item) {
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="closeMeetingDueModal();jumpToRoomEdit(\'' + item.r.id + '\')">' +
+        '<div class="bed-badge">' + esc(item.r.bed) + '</div>' +
+        '<div style="flex:1;">' +
+        '<div style="font-size:13px;">前回会議：' + fmtDate(item.meetingDate) + '</div>' +
+        '<div style="font-size:11px;color:#2f6a2f;font-weight:700;">' + item.diffDays + '日経過</div>' +
+        '</div>' +
+        '<span style="color:var(--text-sub);">›</span>' +
+        '</div>';
+    }).join('');
+  }
+  document.getElementById('meeting-due-modal').classList.add('open');
+}
+
+function closeMeetingDueModal() {
+  document.getElementById('meeting-due-modal').classList.remove('open');
 }
 
 function getUncreatedResidents() {
