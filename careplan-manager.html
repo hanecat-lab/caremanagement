@@ -2377,13 +2377,14 @@ function saveResident(id) {
   // 該当利用者の位置にスクロール
   if (latestM && latestM.date) {
     setTimeout(function() {
-      var badges = document.querySelectorAll('.bed-badge');
-      var target = null;
-      badges.forEach(function(b) {
-        if (b.textContent.trim() === r.bed) target = b;
-      });
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 150);
+      var el = document.querySelector('[data-resident-id="' + r.id + '"]');
+      if (el) {
+        var headerOffset = 120;
+        var rect = el.getBoundingClientRect();
+        var targetY = window.pageYOffset + rect.top - headerOffset;
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+      }
+    }, 250);
   }
 }
 
@@ -2752,7 +2753,7 @@ function renderMonthCard(r, monthKey) {
   }).join('');
 
   return `
-    <div class="resident-card">
+    <div class="resident-card" data-resident-id="${r.id}">
       <div class="card-header" style="cursor:default;">
         <div class="card-header-left">
           <div class="bed-badge" style="cursor:pointer;" onclick="jumpToRoomEdit('${r.id}')">${esc(r.bed)}</div>
@@ -2778,21 +2779,14 @@ function jumpToRoomEdit(residentId) {
   render();
   // 該当カードへスクロール（renderの描画完了を待つ）
   setTimeout(function() {
-    const el = document.getElementById('card-' + residentId)
-      || document.querySelector('[data-resident-id="' + residentId + '"]');
+    const el = document.querySelector('[data-resident-id="' + residentId + '"]');
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } else {
-      // card idがない場合はbed-badgeで探す
-      const badges = document.querySelectorAll('.bed-badge');
-      for (var i = 0; i < badges.length; i++) {
-        if (badges[i].textContent.trim().startsWith(r.bed)) {
-          badges[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
-          break;
-        }
-      }
+      const headerOffset = 120; // 固定ヘッダー分の余白
+      const rect = el.getBoundingClientRect();
+      const targetY = window.pageYOffset + rect.top - headerOffset;
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
     }
-  }, 200);
+  }, 250);
 }
 
 function toggleCreatedMonth(residentId, mIdx, dIdx) {
