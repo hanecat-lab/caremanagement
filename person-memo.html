@@ -686,10 +686,9 @@
       <div class="chip-row" id="genderFilterChips"></div>
     </div>
     <div class="toolbar" style="margin-bottom:12px;">
-      <button class="sort-btn active" id="pSortLCD" onclick="setPersonSort('lastContact_desc')">接触↓</button>
-      <button class="sort-btn" id="pSortLCA" onclick="setPersonSort('lastContact_asc')">接触↑</button>
+      <button class="sort-btn active" id="pSortContact" onclick="setPersonSort('contact')">接触↓</button>
       <button class="sort-btn" id="pSortName" onclick="setPersonSort('name')">名前順</button>
-      <button class="sort-btn" id="pSortCount" onclick="setPersonSort('count_desc')">累計↓</button>
+      <button class="sort-btn" id="pSortCount" onclick="setPersonSort('count')">累計↓</button>
       <span class="count-badge" id="peopleCount"></span>
     </div>
     <div id="peopleList"></div>
@@ -1458,18 +1457,32 @@ function pickGender(v) {
   renderGenderSel();
 }
 function setPersonSort(s) {
-  personSort = s;
-  document.querySelectorAll('#pSortLCD,#pSortLCA,#pSortName,#pSortCount').forEach(function(el){ el.classList.remove('active'); });
-  var ids = { lastContact_desc:'pSortLCD', lastContact_asc:'pSortLCA', name:'pSortName', count_desc:'pSortCount' };
-  var el = document.getElementById(ids[s]); if(el) el.classList.add('active');
+  if (s === 'contact') {
+    personSort = personSort === 'lastContact_desc' ? 'lastContact_asc' : 'lastContact_desc';
+  } else if (s === 'count') {
+    personSort = personSort === 'count_desc' ? 'count_asc' : 'count_desc';
+  } else {
+    personSort = 'name';
+  }
+  var contactBtn = document.getElementById('pSortContact');
+  var nameBtn    = document.getElementById('pSortName');
+  var countBtn   = document.getElementById('pSortCount');
+  [contactBtn, nameBtn, countBtn].forEach(function(el){ if(el) el.classList.remove('active'); });
+  if (personSort === 'lastContact_desc' || personSort === 'lastContact_asc') {
+    if (contactBtn) { contactBtn.classList.add('active'); contactBtn.textContent = '接触' + (personSort === 'lastContact_desc' ? '↓' : '↑'); }
+  } else if (personSort === 'count_desc' || personSort === 'count_asc') {
+    if (countBtn) { countBtn.classList.add('active'); countBtn.textContent = '累計' + (personSort === 'count_desc' ? '↓' : '↑'); }
+  } else {
+    if (nameBtn) nameBtn.classList.add('active');
+  }
   renderPeopleList();
 }
 function sortedPeople(arr, counts) {
   return arr.slice().sort(function(a, b){
-    if (personSort === 'count_desc') {
+    if (personSort === 'count_desc' || personSort === 'count_asc') {
       var ca = (counts && counts[a.id]) || 0;
       var cb = (counts && counts[b.id]) || 0;
-      if (ca !== cb) return cb - ca;
+      if (ca !== cb) return personSort === 'count_desc' ? cb - ca : ca - cb;
       return a.name.localeCompare(b.name, 'ja');
     }
     if (personSort === 'name') return a.name.localeCompare(b.name, 'ja');
