@@ -300,7 +300,7 @@
 
     /* ===== MEMO FULLSCREEN ===== */
     .memo-fs-overlay{
-      position:fixed;inset:0;background:var(--bg);z-index:500;
+      position:fixed;top:0;left:0;right:0;height:100%;background:var(--bg);z-index:500;
       display:flex;flex-direction:column;
       transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
     }
@@ -2102,11 +2102,24 @@ showView('home');
 </div>
 
 <script>
+function memoFsAdjust() {
+  var overlay = document.getElementById('memoFsOverlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  if (window.visualViewport) {
+    overlay.style.top    = window.visualViewport.offsetTop + 'px';
+    overlay.style.height = window.visualViewport.height + 'px';
+  }
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', memoFsAdjust);
+  window.visualViewport.addEventListener('scroll', memoFsAdjust);
+}
 function openMemoFullscreen() {
   var src = document.getElementById('recMemo');
   var overlay = document.getElementById('memoFsOverlay');
   var fsta = document.getElementById('memoFsTextarea');
   if (!src || !overlay || !fsta) return;
+  overlay.style.top = ''; overlay.style.height = '';
   fsta.placeholder = src.placeholder;
   fsta.value = src.value;
   overlay.classList.add('open');
@@ -2117,7 +2130,7 @@ function closeMemoFullscreen() {
   var overlay = document.getElementById('memoFsOverlay');
   var fsta = document.getElementById('memoFsTextarea');
   if (src && fsta) src.value = fsta.value;
-  if (overlay) overlay.classList.remove('open');
+  if (overlay) { overlay.classList.remove('open'); overlay.style.top = ''; overlay.style.height = ''; }
 }
 </script>
 </body>
