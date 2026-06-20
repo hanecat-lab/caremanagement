@@ -1169,7 +1169,8 @@ function formatInline(s) {
     .replace(/_([^_\n]+?)_/g, '<span class="memo-underline">$1</span>')
     .replace(/！([^！\n]+?)！/g, '<span class="memo-red">$1</span>')
     .replace(/@([^@\n]+?)@/g, '<span class="memo-bold">$1</span>')
-    .replace(/？([^？\n]+?)？/g, '<span class="memo-blue">$1</span>');
+    .replace(/？([^？\n]+?)？/g, '<span class="memo-blue">$1</span>')
+    .replace(/\n/g, '<br>');
 }
 function renderMemoSection(s) {
   var chunks = s.split(/^(##[^\n]*)$/m);
