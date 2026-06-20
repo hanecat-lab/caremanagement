@@ -2773,12 +2773,26 @@ function jumpToRoomEdit(residentId) {
   // 該当の部屋フォルダーと利用者カードを開く
   openRooms = new Set([getRoomKey(r.bed)]);
   openCards = new Set([residentId]);
+  openMeetings[residentId] = new Set();
+  switchTab('list');
   render();
-  // 該当カードへスクロール
-  setTimeout(() => {
-    const badge = [...document.querySelectorAll('.bed-badge')].find(b => b.textContent === r.bed);
-    if (badge) badge.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 100);
+  // 該当カードへスクロール（renderの描画完了を待つ）
+  setTimeout(function() {
+    const el = document.getElementById('card-' + residentId)
+      || document.querySelector('[data-resident-id="' + residentId + '"]');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      // card idがない場合はbed-badgeで探す
+      const badges = document.querySelectorAll('.bed-badge');
+      for (var i = 0; i < badges.length; i++) {
+        if (badges[i].textContent.trim().startsWith(r.bed)) {
+          badges[i].scrollIntoView({ behavior: 'smooth', block: 'start' });
+          break;
+        }
+      }
+    }
+  }, 200);
 }
 
 function toggleCreatedMonth(residentId, mIdx, dIdx) {
@@ -3111,7 +3125,7 @@ function render() {
       }
 
       return `
-        <div class="resident-card">
+        <div class="resident-card" data-resident-id="${r.id}">
           <div class="card-header${isOpen ? ' open' : ''}" onclick="toggleCard('${r.id}')">
             <div class="card-header-left">
               <div class="bed-badge"${r.infoOnly && r.meetings && r.meetings.length > 0 ? ' style="background:#d9b94e;"' : ''}>${r.bed}</div>
