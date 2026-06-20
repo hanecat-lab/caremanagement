@@ -181,6 +181,7 @@
     .memo-heading{display:block;font-size:19px;font-weight:800;color:var(--tx);margin:5px 0 3px;}
     .memo-underline{text-decoration:underline;text-underline-offset:3px;}
     .memo-divider{display:block;border:none;border-top:2px dashed var(--bd);margin:5px 0;}
+    .memo-blank{height:1.4em;}
     .memo-fmt-bar{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
     .memo-fmt-btn{
       padding:5px 10px;border-radius:20px;border:1.5px solid var(--bd);
@@ -1172,16 +1173,6 @@ function formatInline(s) {
     .replace(/？([^？\n]+?)？/g, '<span class="memo-blue">$1</span>')
     .replace(/\n/g, '<br>');
 }
-function renderMemoSection(s) {
-  var chunks = s.split(/^(##[^\n]*)$/m);
-  return chunks.map(function(chunk) {
-    if (chunk.slice(0,2) === '##') {
-      return '<div class="memo-heading">' + formatInline(chunk.slice(2)) + '</div>';
-    }
-    var t = chunk.replace(/^\n|\n$/g, '');
-    return t ? '<div class="memo-text">' + formatInline(t) + '</div>' : '';
-  }).join('');
-}
 function insertHeading(id) {
   var el = document.getElementById(id);
   if (!el) return;
@@ -1197,9 +1188,30 @@ function insertHeading(id) {
   el.focus();
 }
 function renderMemoHTML(memo) {
-  return memo.split(/^----------+$/m)
-    .map(renderMemoSection)
-    .join('<hr class="memo-divider">');
+  var lines = memo.split('\n');
+  var html = '';
+  var buf = [];
+  function flushBuf() {
+    if (!buf.length) return;
+    var trail = 0;
+    while (buf.length && buf[buf.length - 1] === '') { buf.pop(); trail++; }
+    if (buf.length) html += '<div class="memo-text">' + formatInline(buf.join('\n')) + '</div>';
+    for (var k = 0; k < trail; k++) html += '<div class="memo-blank"></div>';
+    buf = [];
+  }
+  lines.forEach(function(ln) {
+    if (/^-{10,}$/.test(ln)) {
+      flushBuf();
+      html += '<hr class="memo-divider">';
+    } else if (/^##/.test(ln)) {
+      flushBuf();
+      html += '<div class="memo-heading">' + formatInline(ln.slice(2)) + '</div>';
+    } else {
+      buf.push(ln);
+    }
+  });
+  flushBuf();
+  return html;
 }
 function wrapMemoSel(id, before, after) {
   var el = document.getElementById(id);
