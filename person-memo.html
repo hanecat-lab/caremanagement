@@ -177,9 +177,7 @@
     .memo-red{color:#D94040;font-style:normal;}
     .memo-bold{font-weight:800;font-size:18px;font-style:normal;}
     .memo-blue{color:#7B35CC;font-style:normal;}
-    .memo-divider{border:none;border-top:2px dashed var(--bd);margin:12px 0;}
-    .memo-line-tail{display:flex;align-items:center;gap:8px;line-height:1.85;}
-    .memo-tail-line{flex:1;border-bottom:1.5px dashed var(--bd);height:1px;align-self:center;}
+    .memo-divider{display:block;border:none;border-top:2px dashed var(--bd);margin:12px 0;width:100%;overflow:hidden;height:0;line-height:0;}
     .memo-fmt-bar{display:flex;gap:6px;margin-bottom:6px;}
     .memo-fmt-btn{
       padding:5px 12px;border-radius:20px;border:1.5px solid var(--bd);
@@ -829,7 +827,6 @@
         <button class="memo-fmt-btn bold" onclick="wrapMemoSel('recMemo','@','@')">@太@</button>
         <button class="memo-fmt-btn blue" onclick="wrapMemoSel('recMemo','？','？')">？紫？</button>
         <button class="memo-fmt-btn div" onclick="insertDivider('recMemo')" title="段落区切り">┈┈</button>
-        <button class="memo-fmt-btn div" onclick="insertTailLine('recMemo')" title="行末まで線">文┈┈</button>
       </div>
       <textarea class="form-textarea memo-textarea" id="recMemo" placeholder="今日の出来事や会話内容..." style="min-height:160px;"></textarea>
     </div>
@@ -1159,8 +1156,7 @@ function esc(s) {
 }
 function formatMemo(s) {
   return esc(s)
-    .replace(/^----------+$/mg, '<hr class="memo-divider">')
-    .replace(/^(.+?)---+$/mg, '<span class="memo-line-tail"><span>$1</span><span class="memo-tail-line"></span></span>')
+    .replace(/^----------+$/mg, '<span class="memo-divider"></span>')
     .replace(/！([^！\n]+?)！/g, '<span class="memo-red">$1</span>')
     .replace(/@([^@\n]+?)@/g, '<span class="memo-bold">$1</span>')
     .replace(/？([^？\n]+?)？/g, '<span class="memo-blue">$1</span>');
@@ -1181,19 +1177,6 @@ function insertDivider(id) {
   var ins = (s > 0 && v[s-1] !== '\n' ? '\n' : '') + '----------\n';
   el.value = v.slice(0,s) + ins + v.slice(s);
   el.setSelectionRange(s + ins.length, s + ins.length);
-  el.focus();
-}
-function insertTailLine(id) {
-  var el = document.getElementById(id);
-  if (!el) return;
-  var s = el.selectionStart, v = el.value;
-  var lineStart = v.lastIndexOf('\n', s - 1) + 1;
-  var lineEnd = v.indexOf('\n', s);
-  if (lineEnd === -1) lineEnd = v.length;
-  var line = v.slice(lineStart, lineEnd);
-  var newLine = line.replace(/---+$/, '') + '---';
-  el.value = v.slice(0, lineStart) + newLine + v.slice(lineEnd);
-  el.setSelectionRange(lineStart + newLine.length, lineStart + newLine.length);
   el.focus();
 }
 function hashIcon(size) {
@@ -2176,7 +2159,6 @@ showView('home');
       <button class="memo-fmt-btn bold" onclick="wrapMemoSel('memoFsTextarea','@','@')">@太@</button>
       <button class="memo-fmt-btn blue" onclick="wrapMemoSel('memoFsTextarea','？','？')">？紫？</button>
       <button class="memo-fmt-btn div" onclick="insertDivider('memoFsTextarea')" title="段落区切り">┈┈</button>
-      <button class="memo-fmt-btn div" onclick="insertTailLine('memoFsTextarea')" title="行末まで線">文┈┈</button>
     </div>
     <button class="memo-fs-done" onclick="closeMemoFullscreen()">完了</button>
   </div>
