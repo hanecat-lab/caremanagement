@@ -177,7 +177,7 @@
     .memo-red{color:#D94040;font-style:normal;}
     .memo-bold{font-weight:800;font-size:18px;font-style:normal;}
     .memo-blue{color:#7B35CC;font-style:normal;}
-    .memo-divider{display:inline-block;width:6em;border-top:1.5px dashed var(--bd);vertical-align:middle;margin:0 2px;}
+    .memo-divider{display:block;border:none;border-top:2px dashed var(--bd);margin:10px 0;}
     .memo-fmt-bar{display:flex;gap:6px;margin-bottom:6px;}
     .memo-fmt-btn{
       padding:5px 12px;border-radius:20px;border:1.5px solid var(--bd);
@@ -1156,10 +1156,15 @@ function esc(s) {
 }
 function formatMemo(s) {
   return esc(s)
-    .replace(/\n?----------+\n?/g, '<span class="memo-divider"></span>')
     .replace(/！([^！\n]+?)！/g, '<span class="memo-red">$1</span>')
     .replace(/@([^@\n]+?)@/g, '<span class="memo-bold">$1</span>')
     .replace(/？([^？\n]+?)？/g, '<span class="memo-blue">$1</span>');
+}
+function renderMemoHTML(memo) {
+  var parts = memo.split(/^----------+$/m);
+  return parts.map(function(p) {
+    return p ? '<div class="memo-text">' + formatMemo(p) + '</div>' : '';
+  }).join('<hr class="memo-divider">');
 }
 function wrapMemoSel(id, before, after) {
   var el = document.getElementById(id);
@@ -1174,7 +1179,8 @@ function insertDivider(id) {
   var el = document.getElementById(id);
   if (!el) return;
   var s = el.selectionStart, v = el.value;
-  var ins = (s > 0 && v[s-1] !== '\n' ? '\n' : '') + '----------\n';
+  var pre = (s > 0 && v[s-1] !== '\n') ? '\n' : '';
+  var ins = pre + '----------\n';
   el.value = v.slice(0,s) + ins + v.slice(s);
   el.setSelectionRange(s + ins.length, s + ins.length);
   el.focus();
@@ -1303,7 +1309,7 @@ function cardHTML(rec, delay, hideDate) {
   if (hideDate && timeTag) bodyParts += timeTag;
   if (rec.mode === 'work' && rec.workTitle) bodyParts += '<div class="memo-work-title">' + esc(rec.workTitle) + '</div>';
   if (people.length) bodyParts += '<div class="memo-people">' + peopleHTML + '</div>';
-  if (rec.memo)      bodyParts += '<div class="memo-text">' + formatMemo(rec.memo) + '</div>';
+  if (rec.memo)      bodyParts += renderMemoHTML(rec.memo);
   if (rec.tags && rec.tags.length) bodyParts += '<div class="memo-tags">' + tagsHTML + '</div>';
   var timeInBar = (!hideDate && isQuickLike && rec.time) ? '<span class="memo-date-time">' + rec.time + '</span>' : '';
   var cls = 'memo-card' + (hideDate ? ' no-datebar' : '') + (rec.mode === 'kotono' ? ' kotono-card' : '') + (rec.mode === 'work' ? ' work-card' : '');
