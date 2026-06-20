@@ -174,6 +174,10 @@
       word-break:break-word;white-space:pre-wrap;
       margin-bottom:8px;
     }
+    .memo-work-title{
+      font-size:20px;font-weight:800;color:var(--tx);
+      word-break:break-word;margin-bottom:6px;line-height:1.4;
+    }
     .memo-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:2.5em;}
     .memo-tag-chip{
       display:inline-flex;align-items:center;gap:1px;
@@ -776,6 +780,10 @@
       <label class="form-label">⏰ 時刻</label>
       <input class="form-input" id="recTime" type="time">
     </div>
+    <div class="form-group" id="recWorkTitleGroup" style="display:none;">
+      <label class="form-label">📌 タイトル</label>
+      <input class="form-input" id="recWorkTitle" type="text" placeholder="タイトルを入力...">
+    </div>
     <div class="form-group" id="recWorkTypeGroup" style="display:none;">
       <label class="form-label">📂 種別</label>
       <div class="work-type-sel" id="workTypeSel"></div>
@@ -1248,6 +1256,7 @@ function cardHTML(rec, delay, hideDate) {
   var workTypeBadge = wtLabel ? '<span class="work-type-badge">' + wtLabel.label + '</span>' : '';
   if (hideDate && workTypeBadge) bodyParts += workTypeBadge;
   if (hideDate && timeTag) bodyParts += timeTag;
+  if (rec.mode === 'work' && rec.workTitle) bodyParts += '<div class="memo-work-title">' + esc(rec.workTitle) + '</div>';
   if (people.length) bodyParts += '<div class="memo-people">' + peopleHTML + '</div>';
   if (rec.memo)      bodyParts += '<div class="memo-text">' + esc(rec.memo) + '</div>';
   if (rec.tags && rec.tags.length) bodyParts += '<div class="memo-tags">' + tagsHTML + '</div>';
@@ -1650,6 +1659,7 @@ function openAddRecord() {
   document.getElementById('recModalTitle').textContent = titles[curMode] || '記録を追加';
   document.getElementById('recDate').value = today();
   document.getElementById('recMemo').value = '';
+  var wt = document.getElementById('recWorkTitle'); if (wt) wt.value = '';
   document.getElementById('delRecBtn').style.display = 'none';
   var nt = new Date();
   var hh = (nt.getHours()   < 10 ? '0' : '') + nt.getHours();
@@ -1674,6 +1684,7 @@ function openEditRecord(id) {
   document.getElementById('recDate').value = r.date;
   document.getElementById('recMemo').value = r.memo || '';
   document.getElementById('recTime').value = r.time || '';
+  var wt = document.getElementById('recWorkTitle'); if (wt) wt.value = r.workTitle || '';
   document.getElementById('delRecBtn').style.display = 'block';
   updateRecForm(em);
   renderPselGrid(); renderTagChips();
@@ -1703,10 +1714,12 @@ function updateRecForm(m) {
   var tg = document.getElementById('recTagGroup');
   var tmg = document.getElementById('recTimeGroup');
   var wtg = document.getElementById('recWorkTypeGroup');
+  var wtig = document.getElementById('recWorkTitleGroup');
   if (pg) pg.style.display = m === 'hobby' ? 'block' : 'none';
   if (tg) tg.style.display = 'block';
   if (tmg) tmg.style.display = (m === 'quick' || m === 'kotono' || m === 'work') ? 'block' : 'none';
   if (wtg) wtg.style.display = m === 'work' ? 'block' : 'none';
+  if (wtig) wtig.style.display = m === 'work' ? 'block' : 'none';
   var placeholders = { hobby: '今日の出来事や会話内容...', work: '考えたことをメモ...', quick: 'メモ...', kotono: 'メモ...' };
   var ta = document.getElementById('recMemo');
   if (ta) ta.placeholder = placeholders[m] || 'メモ...';
@@ -1856,6 +1869,7 @@ function saveRecord() {
   var memo = document.getElementById('recMemo').value.trim();
   var now  = new Date().toISOString();
   var timeVal = document.getElementById('recTime').value || '';
+  var workTitleVal = (document.getElementById('recWorkTitle') || {}).value || '';
   if (editRecId) {
     var r = getRec(editRecId);
     var rm = r.mode || 'hobby';
@@ -1863,11 +1877,11 @@ function saveRecord() {
     if (rm === 'hobby') r.peopleIds = selPeople.slice();
     r.tags = selTags.slice();
     if (rm === 'quick' || rm === 'kotono' || rm === 'work') r.time = timeVal;
-    if (rm === 'work') r.workType = selWorkType;
+    if (rm === 'work') { r.workType = selWorkType; r.workTitle = workTitleVal; }
     r.updatedAt = now;
   } else {
     var isQuickLike = curMode === 'quick' || curMode === 'kotono' || curMode === 'work';
-    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:selTags.slice(), time:isQuickLike?timeVal:'', workType:curMode==='work'?selWorkType:'', createdAt:now, updatedAt:now });
+    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:selTags.slice(), time:isQuickLike?timeVal:'', workType:curMode==='work'?selWorkType:'', workTitle:curMode==='work'?workTitleVal:'', createdAt:now, updatedAt:now });
   }
   if (curMode === 'hobby') recalcLastContact();
   saveDB(); closeModal('recordModal'); refresh();
