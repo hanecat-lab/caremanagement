@@ -1156,7 +1156,7 @@ function esc(s) {
 }
 function formatMemo(s) {
   return esc(s)
-    .replace(/----------+/g, '<span class="memo-divider"></span>')
+    .replace(/\n?----------+\n?/g, '<span class="memo-divider"></span>')
     .replace(/！([^！\n]+?)！/g, '<span class="memo-red">$1</span>')
     .replace(/@([^@\n]+?)@/g, '<span class="memo-bold">$1</span>')
     .replace(/？([^？\n]+?)？/g, '<span class="memo-blue">$1</span>');
