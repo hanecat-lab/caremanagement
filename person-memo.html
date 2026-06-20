@@ -174,6 +174,16 @@
       word-break:break-word;white-space:pre-wrap;
       margin-bottom:8px;
     }
+    .memo-red{color:#D94040;font-style:normal;}
+    .memo-bold{font-weight:800;font-style:normal;}
+    .memo-fmt-bar{display:flex;gap:6px;margin-bottom:6px;}
+    .memo-fmt-btn{
+      padding:5px 12px;border-radius:20px;border:1.5px solid var(--bd);
+      background:#FAF8F2;font-size:12px;font-weight:800;cursor:pointer;
+      transition:all .15s;
+    }
+    .memo-fmt-btn.red{color:#D94040;border-color:#D94040;}
+    .memo-fmt-btn.bold{font-weight:900;color:var(--tx);}
     .memo-work-title{
       font-size:20px;font-weight:800;color:var(--tx);
       word-break:break-word;margin-bottom:6px;line-height:1.4;
@@ -808,6 +818,10 @@
         <span>📝 メモ</span>
         <button onclick="openMemoFullscreen()" style="background:none;border:none;color:var(--primary);font-size:13px;font-weight:800;padding:2px 6px;cursor:pointer;">全画面 ⤢</button>
       </label>
+      <div class="memo-fmt-bar">
+        <button class="memo-fmt-btn red" onclick="wrapMemoSel('recMemo','！','！')">！赤！</button>
+        <button class="memo-fmt-btn bold" onclick="wrapMemoSel('recMemo','@','@')">@太@</button>
+      </div>
       <textarea class="form-textarea memo-textarea" id="recMemo" placeholder="今日の出来事や会話内容..." style="min-height:160px;"></textarea>
     </div>
     <button class="btn-primary" onclick="saveRecord()">💾 保存</button>
@@ -1134,6 +1148,20 @@ function allTags() {
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function formatMemo(s) {
+  return esc(s)
+    .replace(/！([^！\n]+?)！/g, '<span class="memo-red">$1</span>')
+    .replace(/@([^@\n]+?)@/g, '<strong class="memo-bold">$1</strong>');
+}
+function wrapMemoSel(id, before, after) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var s = el.selectionStart, e = el.selectionEnd;
+  var v = el.value;
+  el.value = v.slice(0,s) + before + v.slice(s,e) + after + v.slice(e);
+  el.setSelectionRange(s + before.length, e + before.length);
+  el.focus();
+}
 function hashIcon(size) {
   size = size || '0.82em';
   return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:-.05em;flex-shrink:0;margin-right:1px">'
@@ -1258,7 +1286,7 @@ function cardHTML(rec, delay, hideDate) {
   if (hideDate && timeTag) bodyParts += timeTag;
   if (rec.mode === 'work' && rec.workTitle) bodyParts += '<div class="memo-work-title">' + esc(rec.workTitle) + '</div>';
   if (people.length) bodyParts += '<div class="memo-people">' + peopleHTML + '</div>';
-  if (rec.memo)      bodyParts += '<div class="memo-text">' + esc(rec.memo) + '</div>';
+  if (rec.memo)      bodyParts += '<div class="memo-text">' + formatMemo(rec.memo) + '</div>';
   if (rec.tags && rec.tags.length) bodyParts += '<div class="memo-tags">' + tagsHTML + '</div>';
   var timeInBar = (!hideDate && isQuickLike && rec.time) ? '<span class="memo-date-time">' + rec.time + '</span>' : '';
   var cls = 'memo-card' + (hideDate ? ' no-datebar' : '') + (rec.mode === 'kotono' ? ' kotono-card' : '') + (rec.mode === 'work' ? ' work-card' : '');
@@ -2109,7 +2137,10 @@ showView('home');
 <!-- MEMO FULLSCREEN OVERLAY -->
 <div id="memoFsOverlay" class="memo-fs-overlay">
   <div class="memo-fs-header">
-    <span class="memo-fs-title">📝 メモ</span>
+    <div class="memo-fmt-bar" style="margin:0;">
+      <button class="memo-fmt-btn red" onclick="wrapMemoSel('memoFsTextarea','！','！')">！赤！</button>
+      <button class="memo-fmt-btn bold" onclick="wrapMemoSel('memoFsTextarea','@','@')">@太@</button>
+    </div>
     <button class="memo-fs-done" onclick="closeMemoFullscreen()">完了</button>
   </div>
   <textarea id="memoFsTextarea" class="memo-fs-textarea"></textarea>
