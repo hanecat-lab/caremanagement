@@ -2044,13 +2044,95 @@ function deleteMeeting(residentId, origIdx) {
   });
 }
 
+// カード全体の変更検知用スナップショット
+var cardSnapshot = {};
+
+function takeCardSnapshot(id) {
+  const r = residents.find(x => x.id === id);
+  if (!r) return;
+  const snap = {};
+  const bedEl = document.getElementById('bed-' + id);
+  if (bedEl) snap.bed = bedEl.value;
+  const initialEl = document.getElementById('initial-' + id);
+  if (initialEl) snap.initial = initialEl.value;
+  const genderEl = document.getElementById('gender-' + id);
+  if (genderEl) snap.gender = genderEl.value;
+  const clEl = document.getElementById('carelevel-' + id);
+  if (clEl) snap.careLevel = clEl.value;
+  const memoEl = document.getElementById('memo-' + id);
+  if (memoEl) snap.memo = memoEl.value;
+  const assessEl = document.getElementById('assessment-' + id);
+  if (assessEl) snap.assessment = assessEl.value;
+  // 開いている会議のチェック状態
+  snap.meetings = {};
+  (r.meetings || []).forEach(function(m, mIdx) {
+    if (!openMeetings[id] || !openMeetings[id].has(mIdx)) return;
+    var mSnap = { docs: [] };
+    m.docs.forEach(function(doc, dIdx) {
+      var cb = document.getElementById('dc-' + id + '-' + mIdx + '-' + dIdx);
+      var pb = document.getElementById('dp-' + id + '-' + mIdx + '-' + dIdx);
+      mSnap.docs.push({
+        created: cb ? cb.classList.contains('on') : doc.created,
+        printed: pb ? pb.classList.contains('on') : doc.printed
+      });
+    });
+    snap.meetings[mIdx] = mSnap;
+  });
+  cardSnapshot[id] = snap;
+}
+
+function hasUnsavedCardChanges(id) {
+  const snap = cardSnapshot[id];
+  if (!snap) return false;
+  const r = residents.find(x => x.id === id);
+  if (!r) return false;
+  const bedEl = document.getElementById('bed-' + id);
+  if (bedEl && bedEl.value !== (snap.bed || '')) return true;
+  const initialEl = document.getElementById('initial-' + id);
+  if (initialEl && initialEl.value !== (snap.initial || '')) return true;
+  const genderEl = document.getElementById('gender-' + id);
+  if (genderEl && genderEl.value !== (snap.gender || '')) return true;
+  const clEl = document.getElementById('carelevel-' + id);
+  if (clEl && clEl.value !== (snap.careLevel || '')) return true;
+  const memoEl = document.getElementById('memo-' + id);
+  if (memoEl && memoEl.value !== (snap.memo || '')) return true;
+  const assessEl = document.getElementById('assessment-' + id);
+  if (assessEl && assessEl.value !== (snap.assessment || '')) return true;
+  // 会議のチェック状態
+  var changed = false;
+  (r.meetings || []).forEach(function(m, mIdx) {
+    if (!snap.meetings || !snap.meetings[mIdx]) return;
+    m.docs.forEach(function(doc, dIdx) {
+      var cb = document.getElementById('dc-' + id + '-' + mIdx + '-' + dIdx);
+      var pb = document.getElementById('dp-' + id + '-' + mIdx + '-' + dIdx);
+      if (cb && cb.classList.contains('on') !== snap.meetings[mIdx].docs[dIdx].created) changed = true;
+      if (pb && pb.classList.contains('on') !== snap.meetings[mIdx].docs[dIdx].printed) changed = true;
+    });
+  });
+  return changed;
+}
+
 function toggleCard(id) {
   if (openCards.has(id)) {
+    // 閉じるとき：未保存チェック
+    if (hasUnsavedCardChanges(id)) {
+      openUnsavedModal(
+        function() { saveResident(id); },
+        function() {
+          delete cardSnapshot[id];
+          meetingSnapshot = {};
+          openCards.delete(id);
+          render();
+        }
+      );
+      return;
+    }
+    delete cardSnapshot[id];
     openCards.delete(id);
   } else {
     openCards.add(id);
-    // カードを開くときは中の会議を全て閉じた状態にする
     openMeetings[id] = new Set();
+    setTimeout(function() { takeCardSnapshot(id); }, 50);
   }
   render();
 }
@@ -2269,6 +2351,7 @@ function saveResident(id) {
   save();
   openCards.delete(id);
   meetingSnapshot = {};
+  delete cardSnapshot[id];
 
   // 最新会議の月別フォルダーに移動
   const latestM = r.meetings.length > 0 ? r.meetings[r.meetings.length - 1] : null;
@@ -2290,6 +2373,18 @@ function saveResident(id) {
   render();
   if (currentTab === 'map') renderFloorMap();
   showToast('保存しました');
+
+  // 該当利用者の位置にスクロール
+  if (latestM && latestM.date) {
+    setTimeout(function() {
+      var badges = document.querySelectorAll('.bed-badge');
+      var target = null;
+      badges.forEach(function(b) {
+        if (b.textContent.trim() === r.bed) target = b;
+      });
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  }
 }
 
 function latestMeetingAllPrinted(r) {
