@@ -177,7 +177,7 @@
     .memo-red{color:#D94040;font-style:normal;}
     .memo-bold{font-weight:800;font-size:18px;font-style:normal;}
     .memo-blue{color:#7B35CC;font-style:normal;}
-    .memo-divider{display:block;border:none;border-top:2px dashed var(--bd);margin:12px 0;width:100%;overflow:hidden;height:0;line-height:0;}
+    .memo-divider{display:inline-block;width:6em;border-top:1.5px dashed var(--bd);vertical-align:middle;margin:0 2px;}
     .memo-fmt-bar{display:flex;gap:6px;margin-bottom:6px;}
     .memo-fmt-btn{
       padding:5px 12px;border-radius:20px;border:1.5px solid var(--bd);
@@ -1156,7 +1156,7 @@ function esc(s) {
 }
 function formatMemo(s) {
   return esc(s)
-    .replace(/^----------+$/mg, '<span class="memo-divider"></span>')
+    .replace(/----------+/g, '<span class="memo-divider"></span>')
     .replace(/！([^！\n]+?)！/g, '<span class="memo-red">$1</span>')
     .replace(/@([^@\n]+?)@/g, '<span class="memo-bold">$1</span>')
     .replace(/？([^？\n]+?)？/g, '<span class="memo-blue">$1</span>');
