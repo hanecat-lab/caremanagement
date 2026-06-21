@@ -2330,12 +2330,13 @@ function renderBandList() {
       return '<a class="band-link-chip" href="' + esc(lk.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">'
         + esc(lk.label || lk.url) + '</a>';
     }).join('');
+    var catBadges = (Array.isArray(band.category) ? band.category : [band.category || 'バンド']).map(function(c) { return '<span class="band-cat-badge">' + esc(c) + '</span>'; }).join('');
     return '<div class="band-card" style="animation-delay:' + (i * 40) + 'ms" onclick="showBandDetail(\'' + band.id + '\')">'
-      + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
       + '<span class="band-name">' + esc(band.name) + liveBadge + '</span>'
-      + '<div style="flex:1;display:flex;flex-wrap:wrap;gap:4px;">' + linkChips + '</div>'
-      + '<div style="display:flex;gap:4px;margin-left:2em;flex-shrink:0;">' + (Array.isArray(band.category) ? band.category : [band.category || 'バンド']).map(function(c) { return '<span class="band-cat-badge">' + esc(c) + '</span>'; }).join('') + '</div>'
+      + (linkChips ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;flex-shrink:0;">' + linkChips + '</div>' : '')
       + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">' + catBadges + '</div>'
       + (band.memo ? '<div style="font-size:13px;color:var(--txm);margin-bottom:4px;word-break:break-word;">' + esc(band.memo) + '</div>' : '')
       + memRow
       + '</div>';
