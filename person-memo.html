@@ -194,6 +194,16 @@
     .band-member-chip{padding:8px 14px;border-radius:20px;border:2px solid var(--bd);background:var(--card);color:var(--tx);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;}
     .band-member-chip.sel{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
     .band-empty{text-align:center;color:var(--txm);padding:40px 0;font-size:14px;line-height:2;}
+    .live-section{margin-top:14px;}
+    .live-section-hd{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 0;border-top:1px solid var(--bd);}
+    .live-section-title{font-size:13px;font-weight:800;color:var(--txm);}
+    .live-count-badge{font-size:11px;font-weight:800;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:20px;margin-left:6px;}
+    .live-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);}
+    .live-row-date{font-size:12px;color:var(--txm);flex-shrink:0;min-width:70px;}
+    .live-row-title{flex:1;font-size:14px;color:var(--tx);font-weight:700;word-break:break-word;}
+    .live-row-del{color:var(--txm);font-size:18px;padding:0 4px;cursor:pointer;flex-shrink:0;line-height:1;}
+    .live-add-row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;}
+    .live-add-row .form-input{flex:1;min-width:80px;}
     .memo-fmt-bar{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
     .memo-fmt-btn{
       padding:5px 10px;border-radius:20px;border:1.5px solid var(--bd);
@@ -765,6 +775,7 @@
       <div id="peopleList"></div>
     </div>
     <div id="peopleBandView" style="display:none">
+      <button class="btn-sec" style="width:100%;margin-bottom:12px;" onclick="openBandTextImport()">📋 フライヤーから取り込み</button>
       <div id="bandListEl"></div>
     </div>
   </div>
@@ -970,6 +981,30 @@
   </div>
 </div>
 
+<!-- BAND TEXT IMPORT MODAL -->
+<div class="modal-overlay" id="bandTextImportModal" onclick="overlayClose(event,'bandTextImportModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title">フライヤーから取り込み</span>
+      <button class="close-btn" onclick="closeModal('bandTextImportModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">イベント名（任意）</label>
+      <input class="form-input" id="importEventTitle" placeholder="Local Sound Garage">
+    </div>
+    <div class="form-group">
+      <label class="form-label">日付（任意）</label>
+      <input class="form-input" type="date" id="importEventDate">
+    </div>
+    <div class="form-group">
+      <label class="form-label">バンド名（1行1件）</label>
+      <textarea class="form-textarea" id="bandImportText" rows="8" placeholder="The Quasars&#10;DRAW INTO DISORDER&#10;SEX addict&#10;..."></textarea>
+    </div>
+    <button class="btn-primary" onclick="executeBandTextImport()">✅ 追加する</button>
+  </div>
+</div>
+
 <!-- DATA MODAL -->
 <div class="modal-overlay" id="dataModal" onclick="overlayClose(event,'dataModal')">
   <div class="modal">
@@ -1083,6 +1118,7 @@ function loadDB() {
       db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
       db.groups = db.groups || ['家族','友人','仕事','趣味','その他'];
       db.bands  = db.bands  || [];
+      db.bands.forEach(function(b) { b.liveHistory = b.liveHistory || []; });
       db.people.forEach(function(p){
         if (!p.group) p.group = 'その他';
         if (p.lastContactDate === undefined) p.lastContactDate = '';
@@ -2179,9 +2215,11 @@ function renderBandList() {
     var memRow = members.length
       ? '<div class="band-members-row">' + members.join('') + '</div>'
       : '<div style="font-size:12px;color:var(--txm);margin-top:4px;">メンバー未設定</div>';
+    var liveCnt = (band.liveHistory || []).length;
+    var liveBadge = liveCnt ? '<span class="live-count-badge">' + liveCnt + '回</span>' : '';
     return '<div class="band-card" style="animation-delay:' + (i * 40) + 'ms" onclick="showBandDetail(\'' + band.id + '\')">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
-      + '<span class="band-name">' + esc(band.name) + '</span>'
+      + '<span class="band-name">' + esc(band.name) + liveBadge + '</span>'
       + '<span class="band-cat-badge">' + esc(band.category || 'バンド') + '</span>'
       + '</div>'
       + (band.memo ? '<div style="font-size:13px;color:var(--txm);margin-bottom:4px;word-break:break-word;">' + esc(band.memo) + '</div>' : '')
@@ -2217,7 +2255,8 @@ function showBandDetail(id) {
     + linkHtml
     + (members.length
         ? '<div class="form-group"><label class="form-label">メンバー</label>' + members.join('') + '</div>'
-        : '<div style="color:var(--txm);font-size:13px;padding:0 4px 12px;">メンバー未設定</div>');
+        : '<div style="color:var(--txm);font-size:13px;padding:0 4px 12px;">メンバー未設定</div>')
+    + buildLiveSection(id);
   openModal('bandDetailModal');
 }
 function openAddBand() {
@@ -2304,7 +2343,7 @@ function saveBand() {
   } else {
     db.bands.push({ id: uid(), name: name, category: bandCatSel,
       memo: document.getElementById('bandMemo').value.trim(),
-      memberIds: bandMemberSel.slice(), links: cleanLinks, createdAt: now });
+      memberIds: bandMemberSel.slice(), links: cleanLinks, liveHistory: [], createdAt: now });
   }
   saveDB(); closeModal('bandModal'); renderBandList();
   toast(editBandId ? '更新しました' : '追加しました');
@@ -2314,6 +2353,96 @@ function deleteCurrentBand() {
   db.bands = db.bands.filter(function(b) { return b.id !== editBandId; });
   saveDB(); closeModal('bandModal'); renderBandList();
   toast('削除しました');
+}
+
+// ─── LIVE HISTORY ────────────────────────────────────────────
+function buildLiveSection(id) {
+  var band = getBand(id);
+  if (!band) return '';
+  var lives = band.liveHistory || [];
+  var cnt = lives.length;
+  var rows = lives.slice().sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); })
+    .map(function(lv) {
+      return '<div class="live-row">'
+        + '<span class="live-row-date">' + esc(lv.date || '---') + '</span>'
+        + '<span class="live-row-title">' + esc(lv.title || '') + '</span>'
+        + '<span class="live-row-del" onclick="deleteLiveRecord(\'' + id + '\',\'' + lv.id + '\')">×</span>'
+        + '</div>';
+    }).join('');
+  return '<div class="live-section">'
+    + '<div class="live-section-hd" onclick="toggleBandLiveSection(\'' + id + '\')">'
+    + '<span class="live-section-title">ライブ記録 <span class="live-count-badge">' + cnt + '回</span></span>'
+    + '<span id="liveSectionArrow_' + id + '">▶</span>'
+    + '</div>'
+    + '<div id="liveSectionBody_' + id + '" style="display:none">'
+    + rows
+    + '<div class="live-add-row">'
+    + '<input class="form-input" type="date" id="liveAddDate_' + id + '">'
+    + '<input class="form-input" placeholder="イベント名" id="liveAddTitle_' + id + '">'
+    + '<button class="btn-pri" onclick="addLiveRecord(\'' + id + '\')">追加</button>'
+    + '</div>'
+    + '</div>'
+    + '</div>';
+}
+function toggleBandLiveSection(id) {
+  var body = document.getElementById('liveSectionBody_' + id);
+  var arrow = document.getElementById('liveSectionArrow_' + id);
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  arrow.textContent = isOpen ? '▶' : '▼';
+}
+function addLiveRecord(bandId) {
+  var band = getBand(bandId); if (!band) return;
+  var title = document.getElementById('liveAddTitle_' + bandId).value.trim();
+  var date  = document.getElementById('liveAddDate_'  + bandId).value;
+  if (!title && !date) { toast('タイトルまたは日付を入力してください'); return; }
+  band.liveHistory = band.liveHistory || [];
+  band.liveHistory.push({ id: uid(), title: title, date: date, memo: '' });
+  band.updatedAt = new Date().toISOString();
+  saveDB();
+  showBandDetail(bandId);
+  toast('追加しました');
+}
+function deleteLiveRecord(bandId, liveId) {
+  var band = getBand(bandId); if (!band) return;
+  band.liveHistory = (band.liveHistory || []).filter(function(l) { return l.id !== liveId; });
+  band.updatedAt = new Date().toISOString();
+  saveDB();
+  showBandDetail(bandId);
+  toast('削除しました');
+}
+function openBandTextImport() {
+  document.getElementById('bandImportText').value = '';
+  document.getElementById('importEventTitle').value = '';
+  document.getElementById('importEventDate').value = '';
+  openModal('bandTextImportModal');
+}
+function executeBandTextImport() {
+  var names = document.getElementById('bandImportText').value
+    .split('\n').map(function(s) { return s.trim(); }).filter(function(s) { return s.length; });
+  if (!names.length) { toast('バンド名を入力してください'); return; }
+  var title = document.getElementById('importEventTitle').value.trim();
+  var date  = document.getElementById('importEventDate').value;
+  var now = new Date().toISOString();
+  var live = (title || date) ? { id: uid(), title: title, date: date, memo: '' } : null;
+  var added = 0, updated = 0;
+  names.forEach(function(name) {
+    var band = db.bands.find(function(b) { return b.name === name; });
+    if (!band) {
+      band = { id: uid(), name: name, category: 'バンド', memo: '', memberIds: [], links: [], liveHistory: [], createdAt: now };
+      db.bands.push(band);
+      added++;
+    }
+    if (live) {
+      band.liveHistory = band.liveHistory || [];
+      var dup = band.liveHistory.some(function(l) { return l.title === live.title && l.date === live.date; });
+      if (!dup) band.liveHistory.push({ id: uid(), title: live.title, date: live.date, memo: '' });
+      updated++;
+    }
+  });
+  saveDB(); closeModal('bandTextImportModal'); renderBandList();
+  toast(added + '件追加' + (live ? '、ライブ記録 ' + updated + '件更新' : ''));
 }
 
 // ─── LINK LIST ───────────────────────────────────────────────
@@ -2408,7 +2537,7 @@ window.addEventListener('scroll', function(){
 });
 document.addEventListener('keydown', function(e){
   if (e.key === 'Escape') {
-    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal'].forEach(closeModal);
+    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal','bandTextImportModal'].forEach(closeModal);
     closeCtx();
   }
 });
