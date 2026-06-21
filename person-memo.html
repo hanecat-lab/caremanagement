@@ -519,6 +519,9 @@
       transition:opacity .15s;
     }
     .add-link-btn:active{opacity:.7}
+    .band-link-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+    .band-link-chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;background:var(--primary-lt);color:var(--primary);font-size:11px;font-weight:700;text-decoration:none;border:1.5px solid transparent;transition:opacity .15s;}
+    .band-link-chip:active{opacity:.7}
 
     /* ===== PERSON DETAIL LINKS ===== */
     .pd-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 16px}
@@ -2321,6 +2324,16 @@ function renderBandList() {
       : '<div style="font-size:12px;color:var(--txm);margin-top:4px;">メンバー未設定</div>';
     var liveCnt = (band.liveHistory || []).length;
     var liveBadge = liveCnt ? '<span class="live-count-badge">' + liveCnt + '回</span>' : '';
+    var links = (band.links || []).filter(function(lk) { return lk.url; });
+    var linkRow = links.length
+      ? '<div class="band-link-row">'
+        + links.map(function(lk) {
+            return '<a class="band-link-chip" href="' + esc(lk.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">'
+              + esc(lk.label || lk.url)
+              + '</a>';
+          }).join('')
+        + '</div>'
+      : '';
     return '<div class="band-card" style="animation-delay:' + (i * 40) + 'ms" onclick="showBandDetail(\'' + band.id + '\')">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
       + '<span class="band-name">' + esc(band.name) + liveBadge + '</span>'
@@ -2328,6 +2341,7 @@ function renderBandList() {
       + '</div>'
       + (band.memo ? '<div style="font-size:13px;color:var(--txm);margin-bottom:4px;word-break:break-word;">' + esc(band.memo) + '</div>' : '')
       + memRow
+      + linkRow
       + '</div>';
   }).join('');
 }
