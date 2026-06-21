@@ -1123,7 +1123,7 @@ var evTab = 'past';
 var editingLiveKey = null;
 var editingEvKey = null;
 var selBandLinks = [];
-var BAND_CATS    = ['バンド','グループ','ユニット','その他'];
+var BAND_CATS    = ['バンド','アイドル','グループ','ユニット','その他'];
 var sfFiltersOpen    = false;
 var sfPeopleOpen     = false;
 
@@ -2325,23 +2325,18 @@ function renderBandList() {
     var liveCnt = (band.liveHistory || []).length;
     var liveBadge = liveCnt ? '<span class="live-count-badge">' + liveCnt + '回</span>' : '';
     var links = (band.links || []).filter(function(lk) { return lk.url; });
-    var linkRow = links.length
-      ? '<div class="band-link-row">'
-        + links.map(function(lk) {
-            return '<a class="band-link-chip" href="' + esc(lk.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">'
-              + esc(lk.label || lk.url)
-              + '</a>';
-          }).join('')
-        + '</div>'
-      : '';
+    var linkChips = links.map(function(lk) {
+      return '<a class="band-link-chip" href="' + esc(lk.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">'
+        + esc(lk.label || lk.url) + '</a>';
+    }).join('');
     return '<div class="band-card" style="animation-delay:' + (i * 40) + 'ms" onclick="showBandDetail(\'' + band.id + '\')">'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+      + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
       + '<span class="band-name">' + esc(band.name) + liveBadge + '</span>'
-      + '<span class="band-cat-badge">' + esc(band.category || 'バンド') + '</span>'
+      + '<div style="flex:1;display:flex;flex-wrap:wrap;gap:4px;">' + linkChips + '</div>'
+      + '<span style="margin-left:2em;" class="band-cat-badge">' + esc(band.category || 'バンド') + '</span>'
       + '</div>'
       + (band.memo ? '<div style="font-size:13px;color:var(--txm);margin-bottom:4px;word-break:break-word;">' + esc(band.memo) + '</div>' : '')
       + memRow
-      + linkRow
       + '</div>';
   }).join('');
 }
