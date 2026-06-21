@@ -2512,7 +2512,7 @@ function renderEventList() {
       + venueHtml
       + '</div>'
       + '<span class="live-event-cnt">' + ev.bands.length + 'バンド</span>'
-      + '<span class="live-event-arrow" onclick="event.stopPropagation();startEvEdit(\'' + esc(ekey) + '\')">✏️</span>'
+      + '<span class="live-event-arrow" onclick="event.stopPropagation();startEvEdit(\'' + esc(ekey) + '\')">♬</span>'
       + '<span id="' + domId + '_arrow" class="live-event-arrow">▶</span>'
       + '</div>'
       + '<div id="' + domId + '" style="display:none">'
@@ -2653,7 +2653,7 @@ function buildLiveSection(id) {
       + venueHtml
       + '</div>'
       + badge
-      + '<span class="live-row-del" onclick="startEditLive(\'' + id + '\',\'' + lv.id + '\')">✏️</span>'
+      + '<span class="live-row-del" onclick="startEditLive(\'' + id + '\',\'' + lv.id + '\')">♬</span>'
       + '<span class="live-row-del" onclick="deleteLiveRecord(\'' + id + '\',\'' + lv.id + '\')">×</span>'
       + '</div>'
       + coHtml
