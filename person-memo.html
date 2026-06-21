@@ -304,6 +304,18 @@
     .cal-day.sel{background:var(--primary)!important;color:#fff!important}
     .cal-day.sel::after{background:rgba(255,255,255,.75)}
     .cal-sel-label{font-size:13px;font-weight:700;color:var(--tx2);margin:14px 0 10px}
+    .cal-day.has-live::before{content:'';position:absolute;top:3px;width:5px;height:5px;background:var(--accent);border-radius:50%;}
+    .cal-day.sel::before{background:rgba(255,255,255,.75)}
+    .live-event-bar{background:var(--card);border:1px solid var(--bd);border-radius:var(--rm);margin-bottom:10px;overflow:hidden;animation:fadeUp .3s both;}
+    .live-event-bar-hd{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;}
+    .live-event-icon{font-size:16px;flex-shrink:0;}
+    .live-event-title-lg{flex:1;font-size:15px;font-weight:800;color:var(--tx);}
+    .live-event-cnt{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:20px;flex-shrink:0;}
+    .live-event-arrow{color:var(--txm);font-size:12px;flex-shrink:0;}
+    .live-event-bands{border-top:1px solid var(--bd);padding:0 14px;}
+    .live-band-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer;}
+    .live-band-row:last-child{border-bottom:none;}
+    .live-band-name{flex:1;font-size:14px;font-weight:700;color:var(--tx);}
 
     /* ===== PEOPLE ===== */
     .person-card{
@@ -1628,6 +1640,8 @@ function renderCalendar() {
   document.getElementById('calMonthLabel').textContent = calYear + '年' + (calMonth+1) + '月';
   var recDates = {};
   db.records.filter(function(r){ return (r.mode||'hobby') === curMode; }).forEach(function(r){ recDates[r.date] = true; });
+  var liveDates = {};
+  db.bands.forEach(function(b){ (b.liveHistory||[]).forEach(function(lv){ if (lv.date) liveDates[lv.date] = true; }); });
   var todayStr = today();
   var dow  = ['日','月','火','水','木','金','土'];
   var fd   = new Date(calYear, calMonth, 1).getDay();
@@ -1644,6 +1658,7 @@ function renderCalendar() {
     var cls = 'cal-day';
     if (ds === todayStr)   cls += ' today';
     if (recDates[ds])      cls += ' has-rec';
+    if (liveDates[ds])     cls += ' has-live';
     if (ds === calSelDate) cls += ' sel';
     html += '<div class="' + cls + '" onclick="calSelect(\'' + ds + '\')">' + d + '</div>';
   }
@@ -1657,6 +1672,26 @@ function renderCalendar() {
 function calPrev() { calMonth--; if (calMonth < 0) { calMonth=11; calYear--; } renderCalendar(); }
 function calNext() { calMonth++; if (calMonth > 11) { calMonth=0; calYear++; } renderCalendar(); }
 function calSelect(ds) { calSelDate = ds; renderCalendar(); }
+function getLiveEventsByDate(dateStr) {
+  var events = {};
+  db.bands.forEach(function(band) {
+    (band.liveHistory || []).forEach(function(lv) {
+      if (lv.date !== dateStr) return;
+      var key = lv.title || '';
+      if (!events[key]) events[key] = { title: lv.title || '(タイトル未設定)', bands: [] };
+      events[key].bands.push({ id: band.id, name: band.name });
+    });
+  });
+  return Object.keys(events).map(function(k) { return events[k]; });
+}
+function toggleLiveEventBands(domId) {
+  var body = document.getElementById(domId);
+  var arrow = document.getElementById(domId + '_arrow');
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  if (arrow) arrow.textContent = isOpen ? '▶' : '▼';
+}
 function renderCalDayRecs() {
   if (!calSelDate) {
     document.getElementById('calSelLabel').textContent = '日付を選択してください';
@@ -1664,12 +1699,32 @@ function renderCalDayRecs() {
     return;
   }
   var recs = sorted(db.records.filter(function(r){ return r.date === calSelDate && (r.mode||'hobby') === curMode; }));
-  document.getElementById('calSelLabel').textContent =
-    '📅 ' + fmtDate(calSelDate) + ' の記録（' + recs.length + '件）';
-  var c = document.getElementById('calDayRecords');
-  c.innerHTML = recs.length
-    ? recs.map(function(r,i){ return cardHTML(r,i); }).join('')
-    : '<div style="text-align:center;padding:20px;font-size:13px;color:var(--txm);">記録はありません</div>';
+  var lives = getLiveEventsByDate(calSelDate);
+  document.getElementById('calSelLabel').textContent = '📅 ' + fmtDate(calSelDate) + ' の記録（' + recs.length + '件）';
+  var liveHtml = lives.map(function(ev, idx) {
+    var domId = 'liveEv_' + idx;
+    var bandRows = ev.bands.map(function(b) {
+      return '<div class="live-band-row" onclick="showBandDetail(\'' + b.id + '\')">'
+        + '<span class="live-band-name">' + esc(b.name) + '</span>'
+        + '<span style="color:var(--txm);">›</span>'
+        + '</div>';
+    }).join('');
+    return '<div class="live-event-bar">'
+      + '<div class="live-event-bar-hd" onclick="toggleLiveEventBands(\'' + domId + '\')">'
+      + '<span class="live-event-icon">🎸</span>'
+      + '<span class="live-event-title-lg">' + esc(ev.title) + '</span>'
+      + '<span class="live-event-cnt">' + ev.bands.length + 'バンド</span>'
+      + '<span id="' + domId + '_arrow" class="live-event-arrow">▶</span>'
+      + '</div>'
+      + '<div id="' + domId + '" style="display:none">'
+      + '<div class="live-event-bands">' + bandRows + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+  var recsHtml = recs.length
+    ? recs.map(function(r, i) { return cardHTML(r, i); }).join('')
+    : (lives.length ? '' : '<div style="text-align:center;padding:20px;font-size:13px;color:var(--txm);">記録はありません</div>');
+  document.getElementById('calDayRecords').innerHTML = liveHtml + recsHtml;
 }
 
 // ─── PEOPLE ──────────────────────────────────────────────────
