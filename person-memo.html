@@ -775,7 +775,10 @@
       <div id="peopleList"></div>
     </div>
     <div id="peopleBandView" style="display:none">
-      <button class="btn-sec" style="width:100%;margin-bottom:12px;" onclick="openBandTextImport()">📋 フライヤーから取り込み</button>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn-sec" style="flex:1;" onclick="pasteImportFromClipboard()">📋 クリップボードから取り込み</button>
+        <button class="btn-sec" style="flex:1;" onclick="openBandTextImport()">✏️ 手動で入力</button>
+      </div>
       <div id="bandListEl"></div>
     </div>
   </div>
@@ -2411,6 +2414,26 @@ function deleteLiveRecord(bandId, liveId) {
   saveDB();
   showBandDetail(bandId);
   toast('削除しました');
+}
+function pasteImportFromClipboard() {
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    toast('このブラウザはクリップボード読み取りに対応していません');
+    return;
+  }
+  navigator.clipboard.readText().then(function(text) {
+    try {
+      var data = JSON.parse(text);
+      if (!data.bands || !Array.isArray(data.bands)) throw new Error();
+      document.getElementById('bandImportText').value = data.bands.join('\n');
+      document.getElementById('importEventTitle').value = data.event || '';
+      document.getElementById('importEventDate').value = data.date || '';
+      openModal('bandTextImportModal');
+    } catch(e) {
+      toast('クリップボードの形式が正しくありません');
+    }
+  }).catch(function() {
+    toast('クリップボードの読み取りに失敗しました');
+  });
 }
 function openBandTextImport() {
   document.getElementById('bandImportText').value = '';
