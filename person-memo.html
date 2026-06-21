@@ -2414,17 +2414,45 @@ function deleteCurrentBand() {
 }
 
 // ─── LIVE HISTORY ────────────────────────────────────────────
+function getCoLiveBands(excludeId, title, date) {
+  var result = [];
+  db.bands.forEach(function(b) {
+    if (b.id === excludeId) return;
+    if ((b.liveHistory || []).some(function(lv) { return lv.title === title && lv.date === date; }))
+      result.push({ id: b.id, name: b.name });
+  });
+  return result;
+}
 function buildLiveSection(id) {
   var band = getBand(id);
   if (!band) return '';
   var lives = band.liveHistory || [];
   var cnt = lives.length;
   var rows = lives.slice().sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); })
-    .map(function(lv) {
-      return '<div class="live-row">'
+    .map(function(lv, idx) {
+      var domId = 'coLive_' + id + '_' + idx;
+      var coBands = getCoLiveBands(id, lv.title, lv.date);
+      var badge = coBands.length
+        ? '<span class="live-count-badge" style="cursor:pointer;" onclick="toggleLiveEventBands(\'' + domId + '\')">他' + coBands.length + '組</span>'
+        : '';
+      var coHtml = coBands.length
+        ? '<div id="' + domId + '" style="display:none"><div class="live-event-bands">'
+          + coBands.map(function(b) {
+              return '<div class="live-band-row" onclick="showBandDetail(\'' + b.id + '\')">'
+                + '<span class="live-band-name">' + esc(b.name) + '</span>'
+                + '<span style="color:var(--txm);">›</span>'
+                + '</div>';
+            }).join('')
+          + '</div></div>'
+        : '';
+      return '<div>'
+        + '<div class="live-row">'
         + '<span class="live-row-date">' + esc(lv.date || '---') + '</span>'
         + '<span class="live-row-title">' + esc(lv.title || '') + '</span>'
+        + badge
         + '<span class="live-row-del" onclick="deleteLiveRecord(\'' + id + '\',\'' + lv.id + '\')">×</span>'
+        + '</div>'
+        + coHtml
         + '</div>';
     }).join('');
   return '<div class="live-section">'
