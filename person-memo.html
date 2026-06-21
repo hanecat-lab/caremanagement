@@ -1118,6 +1118,7 @@ var bandViewMode = 'bands';
 var bandSearchText = '';
 var evTab = 'past';
 var editingLiveKey = null;
+var editingEvKey = null;
 var selBandLinks = [];
 var BAND_CATS    = ['バンド','グループ','ユニット','その他'];
 var sfFiltersOpen    = false;
@@ -2477,12 +2478,30 @@ function renderEventList() {
   }
   c.innerHTML = tabHtml + events.map(function(ev, idx) {
     var domId = 'evList_' + idx;
+    var ekey = (ev.date || '') + '__' + (ev.title || '');
+    var isEditing = editingEvKey === ekey;
     var bandRows = ev.bands.map(function(b) {
       return '<div class="live-band-row" onclick="showBandDetail(\'' + b.id + '\')">'
         + '<span class="live-band-name">' + esc(b.name) + '</span>'
         + '<span style="color:var(--txm);">›</span>'
         + '</div>';
     }).join('');
+    if (isEditing) {
+      return '<div class="live-event-bar">'
+        + '<div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">'
+        + '<input class="form-input" id="evEditTitle_' + idx + '" value="' + esc(ev.title || '') + '" placeholder="イベント名">'
+        + '<div style="display:flex;gap:8px;">'
+        + '<input class="form-input" type="date" id="evEditDate_' + idx + '" value="' + esc(ev.date || '') + '" style="flex:1;">'
+        + '<input class="form-input" id="evEditVenue_' + idx + '" value="' + esc(ev.venue || '') + '" placeholder="会場" style="flex:2;">'
+        + '</div>'
+        + '<div style="display:flex;gap:8px;">'
+        + '<button class="btn-pri" style="flex:1;" onclick="saveEvEdit(\'' + esc(ekey) + '\',' + idx + ')">✓ 保存</button>'
+        + '<button class="btn-sec" style="flex:1;" onclick="cancelEvEdit()">✗ キャンセル</button>'
+        + '</div>'
+        + '</div>'
+        + '<div class="live-event-bands">' + bandRows + '</div>'
+        + '</div>';
+    }
     var venueHtml = ev.venue ? '<div style="font-size:11px;color:var(--txm);margin-top:2px;">📍 ' + esc(ev.venue) + '</div>' : '';
     return '<div class="live-event-bar">'
       + '<div class="live-event-bar-hd" onclick="toggleLiveEventBands(\'' + domId + '\')">'
@@ -2493,6 +2512,7 @@ function renderEventList() {
       + venueHtml
       + '</div>'
       + '<span class="live-event-cnt">' + ev.bands.length + 'バンド</span>'
+      + '<span class="live-event-arrow" onclick="event.stopPropagation();startEvEdit(\'' + esc(ekey) + '\')">✏️</span>'
       + '<span id="' + domId + '_arrow" class="live-event-arrow">▶</span>'
       + '</div>'
       + '<div id="' + domId + '" style="display:none">'
@@ -2500,6 +2520,25 @@ function renderEventList() {
       + '</div>'
       + '</div>';
   }).join('');
+}
+function startEvEdit(ekey) { editingEvKey = ekey; renderEventList(); }
+function cancelEvEdit() { editingEvKey = null; renderEventList(); }
+function saveEvEdit(oldKey, idx) {
+  var newTitle = document.getElementById('evEditTitle_' + idx).value.trim();
+  var newDate  = document.getElementById('evEditDate_'  + idx).value;
+  var newVenue = document.getElementById('evEditVenue_' + idx).value.trim();
+  var parts = oldKey.split('__');
+  var oldDate = parts[0], oldTitle = parts.slice(1).join('__');
+  db.bands.forEach(function(band) {
+    (band.liveHistory || []).forEach(function(lv) {
+      if (lv.date === oldDate && lv.title === oldTitle) {
+        lv.title = newTitle; lv.date = newDate; lv.venue = newVenue;
+      }
+    });
+  });
+  editingEvKey = null;
+  saveDB(); renderEventList(); renderCalendar();
+  toast('更新しました');
 }
 function toggleBandMember(id) {
   var idx = bandMemberSel.indexOf(id);
