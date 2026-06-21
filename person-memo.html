@@ -2572,6 +2572,18 @@ curMode = (db.settings && db.settings.mode) || 'hobby';
 })(curMode);
 if (!db.records.length && !db.people.length) addSampleData();
 showView('home');
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  var bands = p.get('bands');
+  if (!bands) return;
+  history.replaceState(null, '', window.location.pathname);
+  showView('people');
+  setPeopleSub('band');
+  document.getElementById('bandImportText').value = bands;
+  document.getElementById('importEventTitle').value = p.get('event') || '';
+  document.getElementById('importEventDate').value = p.get('date') || '';
+  openModal('bandTextImportModal');
+})();
 </script>
 
 <!-- MEMO FULLSCREEN OVERLAY -->
