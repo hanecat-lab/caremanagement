@@ -182,6 +182,18 @@
     .memo-underline{text-decoration:underline;text-underline-offset:3px;}
     .memo-divider{display:block;border:none;border-top:2px dashed var(--bd);margin:5px 0;}
     .memo-blank{height:1.4em;}
+    .people-sub-tabs{display:flex;gap:8px;margin:0 0 12px;}
+    .people-sub-tab{flex:1;padding:9px 0;border-radius:var(--rm);border:2px solid var(--bd);background:var(--card);color:var(--txm);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .people-sub-tab.active{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
+    .band-card{background:var(--card);border-radius:var(--rm);border:1px solid var(--bd);padding:14px;margin-bottom:10px;cursor:pointer;animation:fadeUp .3s both;}
+    .band-name{font-size:16px;font-weight:800;color:var(--tx);}
+    .band-cat-badge{display:inline-block;font-size:11px;font-weight:800;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:20px;}
+    .band-members-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+    .band-member-mini{font-size:12px;color:var(--txm);background:var(--bg);border:1px solid var(--bd);border-radius:20px;padding:2px 8px;}
+    .band-member-sel-grid{display:flex;flex-wrap:wrap;gap:8px;}
+    .band-member-chip{padding:8px 14px;border-radius:20px;border:2px solid var(--bd);background:var(--card);color:var(--tx);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .band-member-chip.sel{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
+    .band-empty{text-align:center;color:var(--txm);padding:40px 0;font-size:14px;line-height:2;}
     .memo-fmt-bar{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
     .memo-fmt-btn{
       padding:5px 10px;border-radius:20px;border:1.5px solid var(--bd);
@@ -731,21 +743,30 @@
 
   <!-- PEOPLE -->
   <div class="view" id="viewPeople">
-    <div class="filter-card" style="margin-bottom:10px;">
-      <div class="filter-title" style="display:flex;align-items:center;justify-content:space-between;">👥 グループ<button class="icon-btn" style="font-size:14px;padding:2px 6px;" onclick="renderGroupEditList();openModal('groupEditModal')" title="グループを編集">✏️</button></div>
-      <div class="chip-row" id="groupFilterChips"></div>
+    <div class="people-sub-tabs">
+      <button class="people-sub-tab active" id="peopleSubPerson" onclick="setPeopleSub('person')">人物</button>
+      <button class="people-sub-tab" id="peopleSubBand" onclick="setPeopleSub('band')">バンド/グループ</button>
     </div>
-    <div class="filter-card" style="margin-bottom:10px;">
-      <div class="filter-title">性別</div>
-      <div class="chip-row" id="genderFilterChips"></div>
+    <div id="peoplePersonView">
+      <div class="filter-card" style="margin-bottom:10px;">
+        <div class="filter-title" style="display:flex;align-items:center;justify-content:space-between;">👥 グループ<button class="icon-btn" style="font-size:14px;padding:2px 6px;" onclick="renderGroupEditList();openModal('groupEditModal')" title="グループを編集">✏️</button></div>
+        <div class="chip-row" id="groupFilterChips"></div>
+      </div>
+      <div class="filter-card" style="margin-bottom:10px;">
+        <div class="filter-title">性別</div>
+        <div class="chip-row" id="genderFilterChips"></div>
+      </div>
+      <div class="toolbar" style="margin-bottom:12px;">
+        <button class="sort-btn active" id="pSortContact" onclick="setPersonSort('contact')">接触↓</button>
+        <button class="sort-btn" id="pSortName" onclick="setPersonSort('name')">名前順</button>
+        <button class="sort-btn" id="pSortCount" onclick="setPersonSort('count')">累計↓</button>
+        <span class="count-badge" id="peopleCount"></span>
+      </div>
+      <div id="peopleList"></div>
     </div>
-    <div class="toolbar" style="margin-bottom:12px;">
-      <button class="sort-btn active" id="pSortContact" onclick="setPersonSort('contact')">接触↓</button>
-      <button class="sort-btn" id="pSortName" onclick="setPersonSort('name')">名前順</button>
-      <button class="sort-btn" id="pSortCount" onclick="setPersonSort('count')">累計↓</button>
-      <span class="count-badge" id="peopleCount"></span>
+    <div id="peopleBandView" style="display:none">
+      <div id="bandListEl"></div>
     </div>
-    <div id="peopleList"></div>
   </div>
 
 </main>
@@ -907,6 +928,48 @@
   </div>
 </div>
 
+<!-- BAND MODAL -->
+<div class="modal-overlay" id="bandModal" onclick="overlayClose(event,'bandModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title" id="bandModalTitle">バンド/グループを追加</span>
+      <button class="close-btn" onclick="closeModal('bandModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">カテゴリ</label>
+      <div class="chip-row" id="bandCatRow"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">名前</label>
+      <input class="form-input" id="bandName" type="text" placeholder="バンド名・グループ名">
+    </div>
+    <div class="form-group">
+      <label class="form-label">メモ</label>
+      <textarea class="form-textarea" id="bandMemo" placeholder="活動拠点、好きな曲など..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">メンバー</label>
+      <div class="band-member-sel-grid" id="bandMemberGrid"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🔗 SNS・リンク</label>
+      <div class="link-list" id="bandLinkList"></div>
+      <button class="add-link-btn" onclick="addBandLinkRow()">＋ リンクを追加</button>
+    </div>
+    <button class="btn-primary" onclick="saveBand()">💾 保存</button>
+    <button class="btn-danger" id="delBandBtn" style="display:none;" onclick="deleteCurrentBand()">🗑️ 削除</button>
+  </div>
+</div>
+
+<!-- BAND DETAIL MODAL -->
+<div class="modal-overlay" id="bandDetailModal" onclick="overlayClose(event,'bandDetailModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="bandDetailContent"></div>
+  </div>
+</div>
+
 <!-- DATA MODAL -->
 <div class="modal-overlay" id="dataModal" onclick="overlayClose(event,'dataModal')">
   <div class="modal">
@@ -955,7 +1018,7 @@
 'use strict';
 
 // ─── STATE ───────────────────────────────────────────────────
-var db = { records: [], people: [], settings: { theme: 'light' } };
+var db = { records: [], people: [], bands: [], settings: { theme: 'light' } };
 var curView    = 'home';
 var curMode    = 'hobby';
 var curSort    = 'newest';
@@ -982,6 +1045,12 @@ var pselFiltersOpen  = false;
 var pselOpen         = false;
 var sfGroupFilter    = 'all';
 var sfGenderFilter   = 'all';
+var peopleSub    = 'person';
+var editBandId   = null;
+var bandMemberSel = [];
+var bandCatSel   = 'バンド';
+var selBandLinks = [];
+var BAND_CATS    = ['バンド','グループ','ユニット','その他'];
 var sfFiltersOpen    = false;
 var sfPeopleOpen     = false;
 
@@ -1013,6 +1082,7 @@ function loadDB() {
       db.settings = db.settings || { theme: 'light' };
       db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
       db.groups = db.groups || ['家族','友人','仕事','趣味','その他'];
+      db.bands  = db.bands  || [];
       db.people.forEach(function(p){
         if (!p.group) p.group = 'その他';
         if (p.lastContactDate === undefined) p.lastContactDate = '';
@@ -1292,7 +1362,7 @@ function showView(v) {
 
   var fab = document.getElementById('fab');
   fab.style.display = 'flex';
-  fab.onclick = v === 'people' ? openAddPerson : openAddRecord;
+  fab.onclick = v === 'people' ? (peopleSub === 'band' ? openAddBand : openAddPerson) : openAddRecord;
   document.getElementById('modeTabs').style.display = v === 'people' ? 'none' : 'flex';
 
   window.scrollTo({ top: 0 });
@@ -2075,6 +2145,177 @@ function deleteGroup(idx) {
   renderGroupSel();
 }
 
+// ─── BAND/GROUP MANAGEMENT ───────────────────────────────────
+function getBand(id) {
+  for (var i = 0; i < db.bands.length; i++) { if (db.bands[i].id === id) return db.bands[i]; }
+  return null;
+}
+function setPeopleSub(s) {
+  peopleSub = s;
+  var pv = document.getElementById('peoplePersonView');
+  var bv = document.getElementById('peopleBandView');
+  if (pv) pv.style.display = s === 'person' ? '' : 'none';
+  if (bv) bv.style.display = s === 'band' ? '' : 'none';
+  var sp = document.getElementById('peopleSubPerson');
+  var sb = document.getElementById('peopleSubBand');
+  if (sp) sp.classList.toggle('active', s === 'person');
+  if (sb) sb.classList.toggle('active', s === 'band');
+  var fab = document.getElementById('fab');
+  if (fab) fab.onclick = s === 'band' ? openAddBand : openAddPerson;
+  if (s === 'band') renderBandList();
+}
+function renderBandList() {
+  var c = document.getElementById('bandListEl');
+  if (!c) return;
+  if (!db.bands.length) {
+    c.innerHTML = '<div class="band-empty">バンド/グループがまだありません<br>＋ で追加してください</div>';
+    return;
+  }
+  c.innerHTML = db.bands.map(function(band, i) {
+    var members = (band.memberIds || []).map(function(id) {
+      var p = getPerson(id);
+      return p ? '<span class="band-member-mini">' + esc(p.name) + '</span>' : '';
+    }).filter(Boolean).slice(0, 5);
+    var memRow = members.length
+      ? '<div class="band-members-row">' + members.join('') + '</div>'
+      : '<div style="font-size:12px;color:var(--txm);margin-top:4px;">メンバー未設定</div>';
+    return '<div class="band-card" style="animation-delay:' + (i * 40) + 'ms" onclick="showBandDetail(\'' + band.id + '\')">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+      + '<span class="band-name">' + esc(band.name) + '</span>'
+      + '<span class="band-cat-badge">' + esc(band.category || 'バンド') + '</span>'
+      + '</div>'
+      + (band.memo ? '<div style="font-size:13px;color:var(--txm);margin-bottom:4px;word-break:break-word;">' + esc(band.memo) + '</div>' : '')
+      + memRow
+      + '</div>';
+  }).join('');
+}
+function showBandDetail(id) {
+  var band = getBand(id);
+  if (!band) return;
+  var members = (band.memberIds || []).map(function(mid) {
+    var p = getPerson(mid);
+    if (!p) return '';
+    return '<div class="person-card" style="cursor:pointer;margin-bottom:8px;" onclick="closeModal(\'bandDetailModal\');showPersonDetail(\'' + mid + '\')">'
+      + '<div class="p-icon-wrap"><div class="p-icon">' + esc(p.icon || '👤') + '</div></div>'
+      + '<div class="p-info"><div class="p-name">' + esc(p.name) + '</div></div>'
+      + '</div>';
+  }).filter(Boolean);
+  var links = (band.links || []).filter(function(lk) { return lk.url; });
+  var linkHtml = links.length
+    ? '<div class="form-group">' + links.map(function(lk) {
+        return '<a href="' + esc(lk.url) + '" target="_blank" rel="noopener" style="display:block;color:var(--primary);font-size:14px;margin-bottom:4px;">' + esc(lk.label || lk.url) + '</a>';
+      }).join('') + '</div>'
+    : '';
+  document.getElementById('bandDetailContent').innerHTML =
+    '<div class="modal-head">'
+    + '<div><span class="band-cat-badge">' + esc(band.category || 'バンド') + '</span>&nbsp;<span style="font-size:20px;font-weight:800;">' + esc(band.name) + '</span></div>'
+    + '<div style="display:flex;gap:8px;">'
+    + '<button class="icon-btn" onclick="closeModal(\'bandDetailModal\');openEditBand(\'' + id + '\')">✏️</button>'
+    + '<button class="close-btn" onclick="closeModal(\'bandDetailModal\')">×</button>'
+    + '</div></div>'
+    + (band.memo ? '<div style="font-size:14px;color:var(--txm);padding:0 4px 12px;word-break:break-word;">' + esc(band.memo) + '</div>' : '')
+    + linkHtml
+    + (members.length
+        ? '<div class="form-group"><label class="form-label">メンバー</label>' + members.join('') + '</div>'
+        : '<div style="color:var(--txm);font-size:13px;padding:0 4px 12px;">メンバー未設定</div>');
+  openModal('bandDetailModal');
+}
+function openAddBand() {
+  editBandId = null; bandMemberSel = []; selBandLinks = []; bandCatSel = 'バンド';
+  document.getElementById('bandModalTitle').textContent = 'バンド/グループを追加';
+  document.getElementById('bandName').value = '';
+  document.getElementById('bandMemo').value = '';
+  document.getElementById('delBandBtn').style.display = 'none';
+  renderBandCatChips(); renderBandMemberGrid(); renderBandLinkList();
+  openModal('bandModal');
+}
+function openEditBand(id) {
+  var band = getBand(id);
+  if (!band) return;
+  editBandId = id;
+  bandCatSel = band.category || 'バンド';
+  bandMemberSel = (band.memberIds || []).slice();
+  selBandLinks = (band.links || []).map(function(lk) { return { label: lk.label || '', url: lk.url || '' }; });
+  document.getElementById('bandModalTitle').textContent = 'バンド/グループを編集';
+  document.getElementById('bandName').value = band.name;
+  document.getElementById('bandMemo').value = band.memo || '';
+  document.getElementById('delBandBtn').style.display = 'block';
+  renderBandCatChips(); renderBandMemberGrid(); renderBandLinkList();
+  openModal('bandModal');
+}
+function renderBandCatChips() {
+  var c = document.getElementById('bandCatRow');
+  if (!c) return;
+  c.innerHTML = BAND_CATS.map(function(cat) {
+    return '<button class="filter-chip' + (cat === bandCatSel ? ' active' : '') + '" onclick="pickBandCat(\'' + cat + '\')">' + cat + '</button>';
+  }).join('');
+}
+function pickBandCat(cat) { bandCatSel = cat; renderBandCatChips(); }
+function renderBandMemberGrid() {
+  var c = document.getElementById('bandMemberGrid');
+  if (!c) return;
+  if (!db.people.length) {
+    c.innerHTML = '<div style="font-size:13px;color:var(--txm);">人物が登録されていません</div>';
+    return;
+  }
+  c.innerHTML = db.people.map(function(p) {
+    var sel = bandMemberSel.indexOf(p.id) >= 0;
+    return '<button class="band-member-chip' + (sel ? ' sel' : '') + '" onclick="toggleBandMember(\'' + p.id + '\')">' + esc(p.name) + '</button>';
+  }).join('');
+}
+function toggleBandMember(id) {
+  var idx = bandMemberSel.indexOf(id);
+  if (idx >= 0) bandMemberSel.splice(idx, 1);
+  else bandMemberSel.push(id);
+  renderBandMemberGrid();
+}
+function renderBandLinkList() {
+  var c = document.getElementById('bandLinkList');
+  if (!c) return;
+  if (!selBandLinks.length) { c.innerHTML = ''; return; }
+  c.innerHTML = selBandLinks.map(function(lk, i) {
+    return '<div class="link-row">'
+      + '<input class="link-label-inp" type="text" placeholder="Twitter" value="' + esc(lk.label) + '" oninput="selBandLinks[' + i + '].label=this.value">'
+      + '<input class="link-url-inp" type="url" placeholder="https://..." value="' + esc(lk.url) + '" oninput="selBandLinks[' + i + '].url=this.value">'
+      + '<button class="link-del-btn" onclick="removeBandLinkRow(' + i + ')">×</button>'
+      + '</div>';
+  }).join('');
+}
+function addBandLinkRow() {
+  selBandLinks.push({ label: '', url: '' });
+  renderBandLinkList();
+  setTimeout(function() {
+    var inputs = document.querySelectorAll('#bandLinkList .link-url-inp');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }, 50);
+}
+function removeBandLinkRow(i) { selBandLinks.splice(i, 1); renderBandLinkList(); }
+function saveBand() {
+  var name = document.getElementById('bandName').value.trim();
+  if (!name) { toast('名前を入力してください'); return; }
+  var now = new Date().toISOString();
+  var cleanLinks = selBandLinks.filter(function(lk) { return lk.url.trim(); });
+  if (editBandId) {
+    var band = getBand(editBandId);
+    band.name = name; band.category = bandCatSel;
+    band.memo = document.getElementById('bandMemo').value.trim();
+    band.memberIds = bandMemberSel.slice();
+    band.links = cleanLinks; band.updatedAt = now;
+  } else {
+    db.bands.push({ id: uid(), name: name, category: bandCatSel,
+      memo: document.getElementById('bandMemo').value.trim(),
+      memberIds: bandMemberSel.slice(), links: cleanLinks, createdAt: now });
+  }
+  saveDB(); closeModal('bandModal'); renderBandList();
+  toast(editBandId ? '更新しました' : '追加しました');
+}
+function deleteCurrentBand() {
+  if (!editBandId) return;
+  db.bands = db.bands.filter(function(b) { return b.id !== editBandId; });
+  saveDB(); closeModal('bandModal'); renderBandList();
+  toast('削除しました');
+}
+
 // ─── LINK LIST ───────────────────────────────────────────────
 function renderLinkList() {
   var c = document.getElementById('linkList');
@@ -2167,7 +2408,7 @@ window.addEventListener('scroll', function(){
 });
 document.addEventListener('keydown', function(e){
   if (e.key === 'Escape') {
-    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal'].forEach(closeModal);
+    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal'].forEach(closeModal);
     closeCtx();
   }
 });
