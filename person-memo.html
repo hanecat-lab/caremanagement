@@ -1117,6 +1117,7 @@ var bandMemberGroupFilter = 'all';
 var bandViewMode = 'bands';
 var bandSearchText = '';
 var evTab = 'past';
+var editingLiveKey = null;
 var selBandLinks = [];
 var BAND_CATS    = ['バンド','グループ','ユニット','その他'];
 var sfFiltersOpen    = false;
@@ -2574,9 +2575,20 @@ function buildLiveSection(id) {
     if (au !== bu) return au ? -1 : 1;
     return au ? (a.date || '').localeCompare(b.date || '') : (b.date || '').localeCompare(a.date || '');
   });
+  var isAnyEditing = editingLiveKey && editingLiveKey.indexOf(id + '~~') === 0;
   var rows = sorted.map(function(lv, idx) {
     var domId = 'coLive_' + id + '_' + idx;
     var isUpcoming = (lv.date || '') > todayStr;
+    var isEditing = editingLiveKey === id + '~~' + lv.id;
+    if (isEditing) {
+      return '<div class="live-row" style="flex-wrap:wrap;gap:6px;align-items:center;">'
+        + '<input class="form-input" type="date" id="liveEditDate_' + lv.id + '" value="' + esc(lv.date || '') + '" style="flex:1;min-width:100px;">'
+        + '<input class="form-input" id="liveEditTitle_' + lv.id + '" value="' + esc(lv.title || '') + '" placeholder="イベント名" style="flex:2;min-width:120px;">'
+        + '<input class="form-input" id="liveEditVenue_' + lv.id + '" value="' + esc(lv.venue || '') + '" placeholder="会場" style="flex:2;min-width:120px;">'
+        + '<button class="btn-pri" onclick="saveLiveEdit(\'' + id + '\',\'' + lv.id + '\')">✓</button>'
+        + '<button class="btn-sec" onclick="cancelLiveEdit(\'' + id + '\')">✗</button>'
+        + '</div>';
+    }
     var coBands = getCoLiveBands(id, lv.title, lv.date);
     var badge = coBands.length
       ? '<span class="live-count-badge" style="cursor:pointer;" onclick="toggleLiveEventBands(\'' + domId + '\')">他' + coBands.length + '組</span>'
@@ -2602,6 +2614,7 @@ function buildLiveSection(id) {
       + venueHtml
       + '</div>'
       + badge
+      + '<span class="live-row-del" onclick="startEditLive(\'' + id + '\',\'' + lv.id + '\')">✏️</span>'
       + '<span class="live-row-del" onclick="deleteLiveRecord(\'' + id + '\',\'' + lv.id + '\')">×</span>'
       + '</div>'
       + coHtml
@@ -2610,9 +2623,9 @@ function buildLiveSection(id) {
   return '<div class="live-section">'
     + '<div class="live-section-hd" onclick="toggleBandLiveSection(\'' + id + '\')">'
     + '<span class="live-section-title">ライブ記録 <span class="live-count-badge">' + cnt + '回</span></span>'
-    + '<span id="liveSectionArrow_' + id + '">▶</span>'
+    + '<span id="liveSectionArrow_' + id + '">' + (isAnyEditing ? '▼' : '▶') + '</span>'
     + '</div>'
-    + '<div id="liveSectionBody_' + id + '" style="display:none">'
+    + '<div id="liveSectionBody_' + id + '" style="' + (isAnyEditing ? '' : 'display:none') + '">'
     + rows
     + '<div class="live-add-row" style="flex-wrap:wrap;">'
     + '<input class="form-input" type="date" id="liveAddDate_' + id + '" style="flex:1;min-width:100px;">'
@@ -2630,6 +2643,27 @@ function toggleBandLiveSection(id) {
   var isOpen = body.style.display !== 'none';
   body.style.display = isOpen ? 'none' : '';
   arrow.textContent = isOpen ? '▶' : '▼';
+}
+function startEditLive(bandId, liveId) {
+  editingLiveKey = bandId + '~~' + liveId;
+  showBandDetail(bandId);
+}
+function saveLiveEdit(bandId, liveId) {
+  var band = getBand(bandId); if (!band) return;
+  var lv = (band.liveHistory || []).filter(function(l) { return l.id === liveId; })[0];
+  if (!lv) return;
+  lv.title = document.getElementById('liveEditTitle_' + liveId).value.trim();
+  lv.date  = document.getElementById('liveEditDate_'  + liveId).value;
+  lv.venue = document.getElementById('liveEditVenue_' + liveId).value.trim();
+  band.updatedAt = new Date().toISOString();
+  editingLiveKey = null;
+  saveDB();
+  showBandDetail(bandId);
+  toast('更新しました');
+}
+function cancelLiveEdit(bandId) {
+  editingLiveKey = null;
+  showBandDetail(bandId);
 }
 function addLiveRecord(bandId) {
   var band = getBand(bandId); if (!band) return;
