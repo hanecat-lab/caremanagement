@@ -1115,7 +1115,7 @@ var sfGenderFilter   = 'all';
 var peopleSub    = 'person';
 var editBandId   = null;
 var bandMemberSel = [];
-var bandCatSel   = 'バンド';
+var bandCatSel   = ['バンド'];
 var bandMemberGroupFilter = 'all';
 var bandViewMode = 'bands';
 var bandSearchText = '';
@@ -1123,7 +1123,7 @@ var evTab = 'past';
 var editingLiveKey = null;
 var editingEvKey = null;
 var selBandLinks = [];
-var BAND_CATS    = ['バンド','アイドル','グループ','ユニット','その他'];
+var BAND_CATS    = ['バンド','弾き語り','アイドル','グループ','ユニット','ソロ','その他'];
 var sfFiltersOpen    = false;
 var sfPeopleOpen     = false;
 
@@ -1157,6 +1157,7 @@ function loadDB() {
       db.groups = db.groups || ['家族','友人','仕事','趣味','その他'];
       db.bands  = db.bands  || [];
       db.bands.forEach(function(b) {
+        if (!Array.isArray(b.category)) b.category = b.category ? [b.category] : ['バンド'];
         b.liveHistory = b.liveHistory || [];
         b.liveHistory.forEach(function(lv) { lv.venue = lv.venue || ''; });
       });
@@ -2333,7 +2334,7 @@ function renderBandList() {
       + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
       + '<span class="band-name">' + esc(band.name) + liveBadge + '</span>'
       + '<div style="flex:1;display:flex;flex-wrap:wrap;gap:4px;">' + linkChips + '</div>'
-      + '<span style="margin-left:2em;" class="band-cat-badge">' + esc(band.category || 'バンド') + '</span>'
+      + '<div style="display:flex;gap:4px;margin-left:2em;flex-shrink:0;">' + (Array.isArray(band.category) ? band.category : [band.category || 'バンド']).map(function(c) { return '<span class="band-cat-badge">' + esc(c) + '</span>'; }).join('') + '</div>'
       + '</div>'
       + (band.memo ? '<div style="font-size:13px;color:var(--txm);margin-bottom:4px;word-break:break-word;">' + esc(band.memo) + '</div>' : '')
       + memRow
@@ -2359,7 +2360,7 @@ function showBandDetail(id) {
     : '';
   document.getElementById('bandDetailContent').innerHTML =
     '<div class="modal-head">'
-    + '<div><span class="band-cat-badge">' + esc(band.category || 'バンド') + '</span>&nbsp;<span style="font-size:20px;font-weight:800;">' + esc(band.name) + '</span></div>'
+    + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' + (Array.isArray(band.category) ? band.category : [band.category || 'バンド']).map(function(c) { return '<span class="band-cat-badge">' + esc(c) + '</span>'; }).join('') + '&nbsp;<span style="font-size:20px;font-weight:800;">' + esc(band.name) + '</span></div>'
     + '<div style="display:flex;gap:8px;">'
     + '<button class="icon-btn" onclick="closeModal(\'bandDetailModal\');openEditBand(\'' + id + '\')">✏️</button>'
     + '<button class="close-btn" onclick="closeModal(\'bandDetailModal\')">×</button>'
@@ -2373,7 +2374,7 @@ function showBandDetail(id) {
   openModal('bandDetailModal');
 }
 function openAddBand() {
-  editBandId = null; bandMemberSel = []; selBandLinks = []; bandCatSel = 'バンド'; bandMemberGroupFilter = 'all';
+  editBandId = null; bandMemberSel = []; selBandLinks = []; bandCatSel = ['バンド']; bandMemberGroupFilter = 'all';
   document.getElementById('bandModalTitle').textContent = 'バンド/グループを追加';
   document.getElementById('bandName').value = '';
   document.getElementById('bandMemo').value = '';
@@ -2385,7 +2386,7 @@ function openEditBand(id) {
   var band = getBand(id);
   if (!band) return;
   editBandId = id;
-  bandCatSel = band.category || 'バンド';
+  bandCatSel = Array.isArray(band.category) ? band.category.slice() : [band.category || 'バンド'];
   bandMemberSel = (band.memberIds || []).slice();
   selBandLinks = (band.links || []).map(function(lk) { return { label: lk.label || '', url: lk.url || '' }; });
   document.getElementById('bandModalTitle').textContent = 'バンド/グループを編集';
@@ -2399,10 +2400,16 @@ function renderBandCatChips() {
   var c = document.getElementById('bandCatRow');
   if (!c) return;
   c.innerHTML = BAND_CATS.map(function(cat) {
-    return '<button class="filter-chip' + (cat === bandCatSel ? ' active' : '') + '" onclick="pickBandCat(\'' + cat + '\')">' + cat + '</button>';
+    var active = bandCatSel.indexOf(cat) >= 0;
+    return '<button class="filter-chip' + (active ? ' active' : '') + '" onclick="pickBandCat(\'' + cat + '\')">' + cat + '</button>';
   }).join('');
 }
-function pickBandCat(cat) { bandCatSel = cat; renderBandCatChips(); }
+function pickBandCat(cat) {
+  var idx = bandCatSel.indexOf(cat);
+  if (idx >= 0) { if (bandCatSel.length > 1) bandCatSel.splice(idx, 1); }
+  else bandCatSel.push(cat);
+  renderBandCatChips();
+}
 function renderBandMemberGroupFilter() {
   var c = document.getElementById('bandMemberGroupFilter');
   if (!c) return;
