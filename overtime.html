@@ -578,7 +578,7 @@ function renderDays(){
                 <span class="unit">分</span>
                 <button type="button" class="reset num ${isOv?"show":""}" data-k="${k}" title="自動計算に戻す">↺</button>
               </div>
-              ${eff!=null&&eff>=60?`<span style="font-size:14px;color:var(--sub);">${fmtMin(eff)}</span>`:""}
+              ${eff!=null&&eff>=60?'<span style="font-size:14px;color:var(--sub);">'+fmtMin(eff)+'</span>':""}
             </div>
           </div>
         </div>
@@ -861,7 +861,9 @@ function makeICS(){
     } else {
       const [sh,sm]=m.start.split(":").map(Number);
       const [eh,em]=m.end.split(":").map(Number);
-      lines.push(`DTSTART;TZID=Asia/Tokyo:${ds}T${pad(sh)}${pad(sm)}00`);
+      /* 開始00:00は境界問題で2重登録になるため00:01に補正 */
+      const fixedSm=(sh===0&&sm===0)?1:sm;
+      lines.push(`DTSTART;TZID=Asia/Tokyo:${ds}T${pad(sh)}${pad(fixedSm)}00`);
       /* 終了00:00は翌日扱い */
       let eStr;
       if(eh===0&&em===0){
@@ -1078,12 +1080,12 @@ function renderWidget(){
     </div>`;
 
   /* メモボックス */
-  const memoHTML=`<div class="tc-memo-box">
-    <span class="tc-memo-ttl">🗒</span>
-    ${day&&day.memo
-      ?`<span class="tc-memo-val">${esc(day.memo)}</span>`
-      :`<span class="tc-memo-empty">なし</span>`}
-  </div>`;
+  const memoHTML='<div class="tc-memo-box">'
+    +'<span class="tc-memo-ttl">🗒</span>'
+    +(day&&day.memo
+      ?'<span class="tc-memo-val">'+esc(day.memo)+'</span>'
+      :'<span class="tc-memo-empty">なし</span>')
+    +'</div>';
 
   if(day&&day.shift&&m){
     const timeStr=m.start&&m.end?`${m.start} 〜 ${m.end}`:"";
