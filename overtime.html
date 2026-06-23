@@ -346,6 +346,16 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
     <div class="sec-title" style="margin-top:22px;">シフト取込・タイムカード取込</div>
     <p class="hint">勤務表やタイムカードの写真は、Claudeのチャット画面に画像を貼って「○行目を取り込んで」と伝えるとJSONファイルに変換してもらえます。そのJSONをこちらの「JSONを読み込む」で取り込んでください。</p>
 
+    <div class="sec-title" style="margin-top:22px;">カスタム休日</div>
+    <p class="hint">正月2〜3日など法定外の休日を登録します。夜勤カウントの祝前日・祝日判定に反映されます。</p>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+      <input type="date" id="customHolInput"
+        style="flex:1;border:1.5px solid var(--line);border-radius:9px;padding:6px 10px;font-size:15px;">
+      <button class="big-btn sub" id="customHolAdd"
+        style="flex:0;white-space:nowrap;padding:8px 14px;margin:0;">＋ 追加</button>
+    </div>
+    <div id="customHolList"></div>
+
     <div class="sec-title" style="margin-top:22px;">カレンダー連携</div>
     <p class="hint">登録済みのシフトをiPhoneのカレンダーアプリに取り込みます。カレンダー側で通知を設定すると、当日の朝にシフトをお知らせできます。</p>
     <button class="big-btn sub" id="icsBtn">📅 カレンダーに書き出す（.ics）</button>
@@ -410,6 +420,7 @@ const defaultMaster=[
 let state=store.load()||{};
 if(!state.master||state.master.length===0) state.master=structuredClone(defaultMaster);
 if(!state.days) state.days={};
+if(!state.customHolidays) state.customHolidays=[]; /* カスタム休日: ["2026-01-02",...] */
 /* 旧データ補完: 夜勤フラグ・開始時刻 */
 state.master.forEach(m=>{
   if(m.night===undefined) m.night=/当/.test(m.label)&&!/明/.test(m.label);
@@ -578,7 +589,7 @@ function renderDays(){
                 <span class="unit">分</span>
                 <button type="button" class="reset num ${isOv?"show":""}" data-k="${k}" title="自動計算に戻す">↺</button>
               </div>
-              ${eff!=null&&eff>=60?`<span style="font-size:14px;color:var(--sub);">${fmtMin(eff)}</span>`:""}
+              ${eff!=null&&eff>=60?'<span style="font-size:14px;color:var(--sub);">'+fmtMin(eff)+'</span>':""}
             </div>
           </div>
         </div>
@@ -861,7 +872,9 @@ function makeICS(){
     } else {
       const [sh,sm]=m.start.split(":").map(Number);
       const [eh,em]=m.end.split(":").map(Number);
-      lines.push(`DTSTART;TZID=Asia/Tokyo:${ds}T${pad(sh)}${pad(sm)}00`);
+      /* 開始00:00は境界問題で2重登録になるため00:01に補正 */
+      const fixedSm=(sh===0&&sm===0)?1:sm;
+      lines.push(`DTSTART;TZID=Asia/Tokyo:${ds}T${pad(sh)}${pad(fixedSm)}00`);
       /* 終了00:00は翌日扱い */
       let eStr;
       if(eh===0&&em===0){
@@ -913,6 +926,40 @@ document.getElementById("scrollBottomBtn").addEventListener("click",()=>{
     if(last) last.scrollIntoView({behavior:"smooth", block:"end"});
   }
 });
+/* ---------- カスタム休日 ---------- */
+const WDJ2=["日","月","火","水","木","金","土"];
+function renderCustomHol(){
+  const wrap=document.getElementById("customHolList");
+  if(!wrap) return;
+  const list=state.customHolidays||[];
+  if(!list.length){ wrap.innerHTML='<p style="font-size:13px;color:var(--sub);margin:0;">登録なし</p>'; return; }
+  const sorted=[...list].sort();
+  wrap.innerHTML=sorted.map(k=>{
+    const d=new Date(k+"T00:00:00");
+    const label=`${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${WDJ2[d.getDay()]}）`;
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);">
+      <span style="flex:1;font-size:14px;">${label}</span>
+      <button onclick="removeCustomHol('${k}')"
+        style="border:none;background:none;color:var(--red);font-size:15px;cursor:pointer;padding:4px 8px;">✕</button>
+    </div>`;
+  }).join("");
+}
+function removeCustomHol(k){
+  state.customHolidays=(state.customHolidays||[]).filter(d=>d!==k);
+  saveRender(); renderCustomHol();
+}
+document.getElementById("customHolAdd").addEventListener("click",()=>{
+  const v=document.getElementById("customHolInput").value;
+  if(!v) return;
+  if(!state.customHolidays) state.customHolidays=[];
+  if(!state.customHolidays.includes(v)){
+    state.customHolidays.push(v);
+    saveRender(); renderCustomHol();
+  }
+  document.getElementById("customHolInput").value="";
+});
+renderCustomHol();
+
 const tabs={tabCal:"secCal", tabDays:"secDays", tabMaster:"secMaster", tabData:"secData"};
 for(const t in tabs){
   document.getElementById(t).addEventListener("click",()=>{
@@ -1039,13 +1086,18 @@ function holidaysOf(y){
   holidayCache[y]=set;
   return set;
 }
-function isHoliday(d){ return holidaysOf(d.getFullYear()).has((d.getMonth()+1)+"-"+d.getDate()); }
+function isHoliday(d){
+  const k=keyOf(d);
+  if(state.customHolidays&&state.customHolidays.includes(k)) return true;
+  return holidaysOf(d.getFullYear()).has((d.getMonth()+1)+"-"+d.getDate());
+}
 
-/* 夜勤の区分: sun=日曜・祝日 / sat=土曜・祝前日 / wk=平日 */
+/* 夜勤の区分: sun=日曜・祝日 / sat=土曜・祝前日 / wk=平日
+   翌日が日曜または祝日なら、当日が日曜・祝日でも祝前日として優先 */
 function nightCat(d){
-  if(d.getDay()===0||isHoliday(d)) return "sun";
   const next=new Date(d); next.setDate(next.getDate()+1);
-  if(d.getDay()===6||isHoliday(next)) return "sat";
+  if(next.getDay()===0||isHoliday(next)) return "sat"; /* 翌日が日曜・祝日→祝前日 */
+  if(d.getDay()===0||isHoliday(d)) return "sun";       /* 今日が日曜・祝日 */
   return "wk";
 }
 
@@ -1078,12 +1130,12 @@ function renderWidget(){
     </div>`;
 
   /* メモボックス */
-  const memoHTML=`<div class="tc-memo-box">
-    <span class="tc-memo-ttl">🗒</span>
-    ${day&&day.memo
-      ?`<span class="tc-memo-val">${esc(day.memo)}</span>`
-      :`<span class="tc-memo-empty">なし</span>`}
-  </div>`;
+  const memoHTML='<div class="tc-memo-box">'
+    +'<span class="tc-memo-ttl">🗒</span>'
+    +(day&&day.memo
+      ?'<span class="tc-memo-val">'+esc(day.memo)+'</span>'
+      :'<span class="tc-memo-empty">なし</span>')
+    +'</div>';
 
   if(day&&day.shift&&m){
     const timeStr=m.start&&m.end?`${m.start} 〜 ${m.end}`:"";

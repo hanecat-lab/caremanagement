@@ -1130,6 +1130,7 @@
     </div>
   </div>
 
+  <div id="alert-bar-meeting-due" class="alert-bar" style="display:none;background:#e3f0e3;border-color:#5a8a5a;color:#2f6a2f;" onclick="openMeetingDueModal()"></div>
   <div id="alert-bar-uncreated" class="alert-bar" style="display:none;background:#fff3e0;border-color:#f0a040;color:#8a5a00;" onclick="openUncreatedModal()"></div>
   <div id="alert-bar" class="alert-bar" style="display:none;" onclick="openAlertModal()"></div>
 
@@ -1269,6 +1270,18 @@
     <div style="margin-top:14px;display:flex;gap:8px;">
       <button class="btn-primary" id="bed-detail-edit-btn">編集へ</button>
       <button class="btn-cancel" onclick="closeBedDetail()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- 次回会議時期モーダル -->
+<div class="modal-overlay" id="meeting-due-modal">
+  <div class="modal">
+    <h2 style="color:#2f6a2f;">📅 次回会議の時期です</h2>
+    <p style="font-size:12px;color:var(--text-sub);margin-bottom:12px;">前回の会議から2ヶ月1週間が経過した利用者です。</p>
+    <div id="meeting-due-list" style="max-height:320px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="closeMeetingDueModal()">閉じる</button>
     </div>
   </div>
 </div>
@@ -2044,13 +2057,95 @@ function deleteMeeting(residentId, origIdx) {
   });
 }
 
+// カード全体の変更検知用スナップショット
+var cardSnapshot = {};
+
+function takeCardSnapshot(id) {
+  const r = residents.find(x => x.id === id);
+  if (!r) return;
+  const snap = {};
+  const bedEl = document.getElementById('bed-' + id);
+  if (bedEl) snap.bed = bedEl.value;
+  const initialEl = document.getElementById('initial-' + id);
+  if (initialEl) snap.initial = initialEl.value;
+  const genderEl = document.getElementById('gender-' + id);
+  if (genderEl) snap.gender = genderEl.value;
+  const clEl = document.getElementById('carelevel-' + id);
+  if (clEl) snap.careLevel = clEl.value;
+  const memoEl = document.getElementById('memo-' + id);
+  if (memoEl) snap.memo = memoEl.value;
+  const assessEl = document.getElementById('assessment-' + id);
+  if (assessEl) snap.assessment = assessEl.value;
+  // 開いている会議のチェック状態
+  snap.meetings = {};
+  (r.meetings || []).forEach(function(m, mIdx) {
+    if (!openMeetings[id] || !openMeetings[id].has(mIdx)) return;
+    var mSnap = { docs: [] };
+    m.docs.forEach(function(doc, dIdx) {
+      var cb = document.getElementById('dc-' + id + '-' + mIdx + '-' + dIdx);
+      var pb = document.getElementById('dp-' + id + '-' + mIdx + '-' + dIdx);
+      mSnap.docs.push({
+        created: cb ? cb.classList.contains('on') : doc.created,
+        printed: pb ? pb.classList.contains('on') : doc.printed
+      });
+    });
+    snap.meetings[mIdx] = mSnap;
+  });
+  cardSnapshot[id] = snap;
+}
+
+function hasUnsavedCardChanges(id) {
+  const snap = cardSnapshot[id];
+  if (!snap) return false;
+  const r = residents.find(x => x.id === id);
+  if (!r) return false;
+  const bedEl = document.getElementById('bed-' + id);
+  if (bedEl && bedEl.value !== (snap.bed || '')) return true;
+  const initialEl = document.getElementById('initial-' + id);
+  if (initialEl && initialEl.value !== (snap.initial || '')) return true;
+  const genderEl = document.getElementById('gender-' + id);
+  if (genderEl && genderEl.value !== (snap.gender || '')) return true;
+  const clEl = document.getElementById('carelevel-' + id);
+  if (clEl && clEl.value !== (snap.careLevel || '')) return true;
+  const memoEl = document.getElementById('memo-' + id);
+  if (memoEl && memoEl.value !== (snap.memo || '')) return true;
+  const assessEl = document.getElementById('assessment-' + id);
+  if (assessEl && assessEl.value !== (snap.assessment || '')) return true;
+  // 会議のチェック状態
+  var changed = false;
+  (r.meetings || []).forEach(function(m, mIdx) {
+    if (!snap.meetings || !snap.meetings[mIdx]) return;
+    m.docs.forEach(function(doc, dIdx) {
+      var cb = document.getElementById('dc-' + id + '-' + mIdx + '-' + dIdx);
+      var pb = document.getElementById('dp-' + id + '-' + mIdx + '-' + dIdx);
+      if (cb && cb.classList.contains('on') !== snap.meetings[mIdx].docs[dIdx].created) changed = true;
+      if (pb && pb.classList.contains('on') !== snap.meetings[mIdx].docs[dIdx].printed) changed = true;
+    });
+  });
+  return changed;
+}
+
 function toggleCard(id) {
   if (openCards.has(id)) {
+    // 閉じるとき：未保存チェック
+    if (hasUnsavedCardChanges(id)) {
+      openUnsavedModal(
+        function() { saveResident(id); },
+        function() {
+          delete cardSnapshot[id];
+          meetingSnapshot = {};
+          openCards.delete(id);
+          render();
+        }
+      );
+      return;
+    }
+    delete cardSnapshot[id];
     openCards.delete(id);
   } else {
     openCards.add(id);
-    // カードを開くときは中の会議を全て閉じた状態にする
     openMeetings[id] = new Set();
+    setTimeout(function() { takeCardSnapshot(id); }, 50);
   }
   render();
 }
@@ -2269,6 +2364,7 @@ function saveResident(id) {
   save();
   openCards.delete(id);
   meetingSnapshot = {};
+  delete cardSnapshot[id];
 
   // 最新会議の月別フォルダーに移動
   const latestM = r.meetings.length > 0 ? r.meetings[r.meetings.length - 1] : null;
@@ -2290,6 +2386,19 @@ function saveResident(id) {
   render();
   if (currentTab === 'map') renderFloorMap();
   showToast('保存しました');
+
+  // 該当利用者の位置にスクロール
+  if (latestM && latestM.date) {
+    setTimeout(function() {
+      var el = document.querySelector('[data-resident-id="' + r.id + '"]');
+      if (el) {
+        var headerOffset = 120;
+        var rect = el.getBoundingClientRect();
+        var targetY = window.pageYOffset + rect.top - headerOffset;
+        window.scrollTo({ top: targetY, behavior: 'smooth' });
+      }
+    }, 250);
+  }
 }
 
 function latestMeetingAllPrinted(r) {
@@ -2362,6 +2471,54 @@ function getOverdueResidents() {
     }
   });
   return result;
+}
+
+function getMeetingDueResidents() {
+  const now = new Date();
+  const result = [];
+  residents.forEach(function(r) {
+    if (r.infoOnly) return;
+    if (!r.meetings || r.meetings.length === 0) return;
+    // 今日以前の最新会議を取得
+    var today = now.toISOString().slice(0, 10);
+    var pastMeetings = r.meetings.filter(function(m) { return m.date && m.date <= today; });
+    if (pastMeetings.length === 0) return;
+    var latest = pastMeetings[pastMeetings.length - 1];
+    var parts = latest.date.split('-').map(Number);
+    var meetingDate = new Date(parts[0], parts[1] - 1, parts[2]);
+    var diffDays = Math.floor((now - meetingDate) / (1000 * 60 * 60 * 24));
+    // 2ヶ月1週間 = 70日以上
+    if (diffDays >= 70) {
+      result.push({ r: r, meetingDate: latest.date, diffDays: diffDays });
+    }
+  });
+  // 経過日数が多い順
+  result.sort(function(a, b) { return b.diffDays - a.diffDays; });
+  return result;
+}
+
+function openMeetingDueModal() {
+  var due = getMeetingDueResidents();
+  var listEl = document.getElementById('meeting-due-list');
+  if (due.length === 0) {
+    listEl.innerHTML = '<p style="color:var(--text-sub);font-size:13px;">該当はありません。</p>';
+  } else {
+    listEl.innerHTML = due.map(function(item) {
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer;" onclick="closeMeetingDueModal();jumpToRoomEdit(\'' + item.r.id + '\')">' +
+        '<div class="bed-badge">' + esc(item.r.bed) + '</div>' +
+        '<div style="flex:1;">' +
+        '<div style="font-size:13px;">前回会議：' + fmtDate(item.meetingDate) + '</div>' +
+        '<div style="font-size:11px;color:#2f6a2f;font-weight:700;">' + item.diffDays + '日経過</div>' +
+        '</div>' +
+        '<span style="color:var(--text-sub);">›</span>' +
+        '</div>';
+    }).join('');
+  }
+  document.getElementById('meeting-due-modal').classList.add('open');
+}
+
+function closeMeetingDueModal() {
+  document.getElementById('meeting-due-modal').classList.remove('open');
 }
 
 function getUncreatedResidents() {
@@ -2657,7 +2814,7 @@ function renderMonthCard(r, monthKey) {
   }).join('');
 
   return `
-    <div class="resident-card">
+    <div class="resident-card" data-resident-id="${r.id}">
       <div class="card-header" style="cursor:default;">
         <div class="card-header-left">
           <div class="bed-badge" style="cursor:pointer;" onclick="jumpToRoomEdit('${r.id}')">${esc(r.bed)}</div>
@@ -2678,12 +2835,19 @@ function jumpToRoomEdit(residentId) {
   // 該当の部屋フォルダーと利用者カードを開く
   openRooms = new Set([getRoomKey(r.bed)]);
   openCards = new Set([residentId]);
+  openMeetings[residentId] = new Set();
+  switchTab('list');
   render();
-  // 該当カードへスクロール
-  setTimeout(() => {
-    const badge = [...document.querySelectorAll('.bed-badge')].find(b => b.textContent === r.bed);
-    if (badge) badge.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 100);
+  // 該当カードへスクロール（renderの描画完了を待つ）
+  setTimeout(function() {
+    const el = document.querySelector('[data-resident-id="' + residentId + '"]');
+    if (el) {
+      const headerOffset = 120; // 固定ヘッダー分の余白
+      const rect = el.getBoundingClientRect();
+      const targetY = window.pageYOffset + rect.top - headerOffset;
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+    }
+  }, 250);
 }
 
 function toggleCreatedMonth(residentId, mIdx, dIdx) {
@@ -3016,7 +3180,7 @@ function render() {
       }
 
       return `
-        <div class="resident-card">
+        <div class="resident-card" data-resident-id="${r.id}">
           <div class="card-header${isOpen ? ' open' : ''}" onclick="toggleCard('${r.id}')">
             <div class="card-header-left">
               <div class="bed-badge"${r.infoOnly && r.meetings && r.meetings.length > 0 ? ' style="background:#d9b94e;"' : ''}>${r.bed}</div>

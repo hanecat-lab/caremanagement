@@ -304,6 +304,19 @@
     .cal-day.sel{background:var(--primary)!important;color:#fff!important}
     .cal-day.sel::after{background:rgba(255,255,255,.75)}
     .cal-sel-label{font-size:13px;font-weight:700;color:var(--tx2);margin:14px 0 10px}
+    .cal-day.has-live::before{content:'';position:absolute;top:3px;width:5px;height:5px;background:var(--accent);border-radius:50%;}
+    .cal-day.has-upcoming::after{content:'';position:absolute;bottom:3px;width:5px;height:5px;background:#4caf50;border-radius:50%;}
+    .cal-day.sel::before{background:rgba(255,255,255,.75)}
+    .live-event-bar{background:var(--card);border:1px solid var(--bd);border-radius:var(--rm);margin-bottom:10px;overflow:hidden;animation:fadeUp .3s both;}
+    .live-event-bar-hd{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;}
+    .live-event-icon{font-size:16px;flex-shrink:0;}
+    .live-event-title-lg{flex:1;font-size:15px;font-weight:800;color:var(--tx);}
+    .live-event-cnt{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:20px;flex-shrink:0;}
+    .live-event-arrow{color:var(--txm);font-size:12px;flex-shrink:0;}
+    .live-event-bands{border-top:1px solid var(--bd);padding:0 14px;}
+    .live-band-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer;}
+    .live-band-row:last-child{border-bottom:none;}
+    .live-band-name{flex:1;font-size:14px;font-weight:700;color:var(--tx);}
 
     /* ===== PEOPLE ===== */
     .person-card{
@@ -506,6 +519,9 @@
       transition:opacity .15s;
     }
     .add-link-btn:active{opacity:.7}
+    .band-link-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+    .band-link-chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;background:var(--primary-lt);color:var(--primary);font-size:11px;font-weight:700;text-decoration:none;border:1.5px solid transparent;transition:opacity .15s;}
+    .band-link-chip:active{opacity:.7}
 
     /* ===== PERSON DETAIL LINKS ===== */
     .pd-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 16px}
@@ -662,6 +678,10 @@
     .work-type-chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--bd);background:#FAF8F2;color:var(--tx2);font-size:13px;font-weight:700;transition:all .15s;cursor:pointer;}
     .work-type-chip.sel{border-color:#4A7B6F;background:#F0F5F3;color:#4A7B6F;}
     .work-type-badge{display:inline-block;font-size:11px;font-weight:800;color:#4A7B6F;background:#F0F5F3;padding:2px 8px;border-radius:4px;margin-bottom:6px;border:1px solid rgba(74,123,111,.3);}
+    .work-title-row{display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--bd);cursor:pointer;}
+    .work-title-row:active{background:var(--card);}
+    .work-title-date{font-size:11px;color:var(--txm);flex-shrink:0;width:5.5em;}
+    .work-title-text{flex:1;font-size:14px;font-weight:700;color:var(--tx);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 
     /* ===== VIEWS ===== */
     .view{display:none}
@@ -703,6 +723,10 @@
       <button class="sort-btn active" id="sortNewest" onclick="setSort('newest')">新しい順</button>
       <button class="sort-btn" id="sortOldest" onclick="setSort('oldest')">古い順</button>
       <span class="count-badge" id="homeCount"></span>
+      <div id="workViewToggle" style="display:none;gap:4px;margin-left:4px;">
+        <button class="sort-btn active" id="workViewCard" onclick="setWorkViewMode('card')">カード</button>
+        <button class="sort-btn" id="workViewList" onclick="setWorkViewMode('list')">一覧</button>
+      </div>
     </div>
     <div id="timeline"></div>
   </div>
@@ -775,8 +799,19 @@
       <div id="peopleList"></div>
     </div>
     <div id="peopleBandView" style="display:none">
-      <button class="btn-sec" style="width:100%;margin-bottom:12px;" onclick="openBandTextImport()">📋 フライヤーから取り込み</button>
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <button class="people-sub-tab active" id="bandViewTabBands" onclick="setBandViewMode('bands')">バンド一覧</button>
+        <button class="people-sub-tab" id="bandViewTabEvents" onclick="setBandViewMode('events')">イベント一覧</button>
+      </div>
+      <div id="bandImportButtons" style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn-sec" style="flex:1;" onclick="pasteImportFromClipboard()">📋 クリップボードから取り込み</button>
+        <button class="btn-sec" style="flex:1;" onclick="openBandTextImport()">✏️ 手動で入力</button>
+      </div>
+      <div id="bandSearchWrap" style="margin-bottom:10px;">
+        <input class="search-input" id="bandSearchInput" placeholder="バンド名を検索..." oninput="onBandSearch(this.value)">
+      </div>
       <div id="bandListEl"></div>
+      <div id="eventListEl" style="display:none"></div>
     </div>
   </div>
 
@@ -961,6 +996,7 @@
     </div>
     <div class="form-group">
       <label class="form-label">メンバー</label>
+      <div id="bandMemberGroupFilter" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
       <div class="band-member-sel-grid" id="bandMemberGrid"></div>
     </div>
     <div class="form-group">
@@ -996,6 +1032,10 @@
     <div class="form-group">
       <label class="form-label">日付（任意）</label>
       <input class="form-input" type="date" id="importEventDate">
+    </div>
+    <div class="form-group">
+      <label class="form-label">会場（任意）</label>
+      <input class="form-input" id="importEventVenue" placeholder="WAKAYAMA CLUB GATE">
     </div>
     <div class="form-group">
       <label class="form-label">バンド名（1行1件）</label>
@@ -1083,9 +1123,17 @@ var sfGenderFilter   = 'all';
 var peopleSub    = 'person';
 var editBandId   = null;
 var bandMemberSel = [];
-var bandCatSel   = 'バンド';
+var bandCatSel   = ['バンド'];
+var bandMemberGroupFilter = 'all';
+var bandViewMode = 'bands';
+var bandSearchText = '';
+var evTab = 'past';
+var workViewMode = 'card';
+var WORK_TYPE_ICON = { idea:'💡', memo:'📝', task:'✅', issue:'🤔' };
+var editingLiveKey = null;
+var editingEvKey = null;
 var selBandLinks = [];
-var BAND_CATS    = ['バンド','グループ','ユニット','その他'];
+var BAND_CATS    = ['バンド','弾き語り','アイドル','グループ','ユニット','ソロ','その他'];
 var sfFiltersOpen    = false;
 var sfPeopleOpen     = false;
 
@@ -1118,7 +1166,11 @@ function loadDB() {
       db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
       db.groups = db.groups || ['家族','友人','仕事','趣味','その他'];
       db.bands  = db.bands  || [];
-      db.bands.forEach(function(b) { b.liveHistory = b.liveHistory || []; });
+      db.bands.forEach(function(b) {
+        if (!Array.isArray(b.category)) b.category = b.category ? [b.category] : ['バンド'];
+        b.liveHistory = b.liveHistory || [];
+        b.liveHistory.forEach(function(lv) { lv.venue = lv.venue || ''; });
+      });
       db.people.forEach(function(p){
         if (!p.group) p.group = 'その他';
         if (p.lastContactDate === undefined) p.lastContactDate = '';
@@ -1404,12 +1456,20 @@ function showView(v) {
   window.scrollTo({ top: 0 });
   refresh();
 }
+function setWorkViewMode(m) {
+  workViewMode = m;
+  document.getElementById('workViewCard').classList.toggle('active', m === 'card');
+  document.getElementById('workViewList').classList.toggle('active', m === 'list');
+  renderHome();
+}
 function setMode(m) {
   curMode = m;
   db.settings.mode = m; saveDB();
   var tabs = { hobby: 'modeTabHobby', quick: 'modeTabQuick', work: 'modeTabWork', kotono: 'modeTabKotono' };
   document.querySelectorAll('.mode-tab').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById(tabs[m]).classList.add('active');
+  var wvt = document.getElementById('workViewToggle');
+  if (wvt) wvt.style.display = m === 'work' ? 'flex' : 'none';
   var prevKw = sf.kw;
   sf = { kw: prevKw, personIds: [], tags: [], from: '', to: '' };
   sfGroupFilter = 'all'; sfGenderFilter = 'all'; sfFiltersOpen = false; sfPeopleOpen = false;
@@ -1486,9 +1546,24 @@ function onTagChip(tag, e) {
 function renderHome() {
   var recs = sorted(db.records.filter(function(r){ return (r.mode||'hobby') === curMode; }));
   document.getElementById('homeCount').textContent = recs.length + '件';
+  var wvt = document.getElementById('workViewToggle');
+  if (wvt) wvt.style.display = curMode === 'work' ? 'flex' : 'none';
   var c = document.getElementById('timeline');
   if (!recs.length) {
     c.innerHTML = '<div class="empty"><div class="empty-icon">📝</div><p>まだ記録がありません<br>＋ボタンから追加しましょう</p></div>';
+    return;
+  }
+  if (curMode === 'work' && workViewMode === 'list') {
+    c.innerHTML = '<div style="padding:0 4px;">'
+      + recs.map(function(r) {
+          var icon = WORK_TYPE_ICON[r.workType] || '📝';
+          return '<div class="work-title-row" onclick="openEditRecord(\'' + r.id + '\')">'
+            + '<span class="work-title-date">' + esc(r.date || '') + '</span>'
+            + '<span class="work-type-badge" style="margin-bottom:0;flex-shrink:0;">' + icon + ' ' + esc(r.workType || 'memo') + '</span>'
+            + '<span class="work-title-text">' + esc(r.workTitle || '(タイトルなし)') + '</span>'
+            + '</div>';
+        }).join('')
+      + '</div>';
     return;
   }
   var html = '';
@@ -1626,6 +1701,12 @@ function renderCalendar() {
   var recDates = {};
   db.records.filter(function(r){ return (r.mode||'hobby') === curMode; }).forEach(function(r){ recDates[r.date] = true; });
   var todayStr = today();
+  var liveDates = {}, upcomingDates = {};
+  db.bands.forEach(function(b){ (b.liveHistory||[]).forEach(function(lv){
+    if (!lv.date) return;
+    if (lv.date > todayStr) upcomingDates[lv.date] = true;
+    else liveDates[lv.date] = true;
+  }); });
   var dow  = ['日','月','火','水','木','金','土'];
   var fd   = new Date(calYear, calMonth, 1).getDay();
   var last = new Date(calYear, calMonth+1, 0).getDate();
@@ -1639,9 +1720,11 @@ function renderCalendar() {
     var dd = d < 10 ? '0'+d : ''+d;
     var ds = calYear + '-' + mm + '-' + dd;
     var cls = 'cal-day';
-    if (ds === todayStr)   cls += ' today';
-    if (recDates[ds])      cls += ' has-rec';
-    if (ds === calSelDate) cls += ' sel';
+    if (ds === todayStr)       cls += ' today';
+    if (recDates[ds])          cls += ' has-rec';
+    if (liveDates[ds])         cls += ' has-live';
+    if (upcomingDates[ds])     cls += ' has-upcoming';
+    if (ds === calSelDate)     cls += ' sel';
     html += '<div class="' + cls + '" onclick="calSelect(\'' + ds + '\')">' + d + '</div>';
   }
   var rem = (7 - ((fd + last) % 7)) % 7;
@@ -1654,6 +1737,31 @@ function renderCalendar() {
 function calPrev() { calMonth--; if (calMonth < 0) { calMonth=11; calYear--; } renderCalendar(); }
 function calNext() { calMonth++; if (calMonth > 11) { calMonth=0; calYear++; } renderCalendar(); }
 function calSelect(ds) { calSelDate = ds; renderCalendar(); }
+function getLiveEventsByDate(dateStr) {
+  var events = {}, todayStr = today();
+  db.bands.forEach(function(band) {
+    (band.liveHistory || []).forEach(function(lv) {
+      if (lv.date !== dateStr) return;
+      var key = lv.title || '';
+      if (!events[key]) events[key] = {
+        title: lv.title || '(タイトル未設定)',
+        venue: lv.venue || '',
+        isUpcoming: dateStr > todayStr,
+        bands: []
+      };
+      events[key].bands.push({ id: band.id, name: band.name });
+    });
+  });
+  return Object.keys(events).map(function(k) { return events[k]; });
+}
+function toggleLiveEventBands(domId) {
+  var body = document.getElementById(domId);
+  var arrow = document.getElementById(domId + '_arrow');
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  if (arrow) arrow.textContent = isOpen ? '▶' : '▼';
+}
 function renderCalDayRecs() {
   if (!calSelDate) {
     document.getElementById('calSelLabel').textContent = '日付を選択してください';
@@ -1661,12 +1769,38 @@ function renderCalDayRecs() {
     return;
   }
   var recs = sorted(db.records.filter(function(r){ return r.date === calSelDate && (r.mode||'hobby') === curMode; }));
-  document.getElementById('calSelLabel').textContent =
-    '📅 ' + fmtDate(calSelDate) + ' の記録（' + recs.length + '件）';
-  var c = document.getElementById('calDayRecords');
-  c.innerHTML = recs.length
-    ? recs.map(function(r,i){ return cardHTML(r,i); }).join('')
-    : '<div style="text-align:center;padding:20px;font-size:13px;color:var(--txm);">記録はありません</div>';
+  var lives = getLiveEventsByDate(calSelDate);
+  document.getElementById('calSelLabel').textContent = '📅 ' + fmtDate(calSelDate) + ' の記録（' + recs.length + '件）';
+  var liveHtml = lives.map(function(ev, idx) {
+    var domId = 'liveEv_' + idx;
+    var bandRows = ev.bands.map(function(b) {
+      return '<div class="live-band-row" onclick="showBandDetail(\'' + b.id + '\')">'
+        + '<span class="live-band-name">' + esc(b.name) + '</span>'
+        + '<span style="color:var(--txm);">›</span>'
+        + '</div>';
+    }).join('');
+    var upcomingBadge = ev.isUpcoming ? '<span style="font-size:11px;font-weight:700;color:#4caf50;background:#e8f5e9;padding:2px 7px;border-radius:20px;flex-shrink:0;">🗓️ 予定</span>' : '';
+    var venueHtml = ev.venue ? '<div style="font-size:11px;color:var(--txm);margin-top:2px;">📍 ' + esc(ev.venue) + '</div>' : '';
+    return '<div class="live-event-bar">'
+      + '<div class="live-event-bar-hd" onclick="toggleLiveEventBands(\'' + domId + '\')">'
+      + '<span class="live-event-icon">🎸</span>'
+      + '<div style="flex:1;">'
+      + '<div class="live-event-title-lg">' + esc(ev.title) + '</div>'
+      + venueHtml
+      + '</div>'
+      + upcomingBadge
+      + '<span class="live-event-cnt">' + ev.bands.length + 'バンド</span>'
+      + '<span id="' + domId + '_arrow" class="live-event-arrow">▶</span>'
+      + '</div>'
+      + '<div id="' + domId + '" style="display:none">'
+      + '<div class="live-event-bands">' + bandRows + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+  var recsHtml = recs.length
+    ? recs.map(function(r, i) { return cardHTML(r, i); }).join('')
+    : (lives.length ? '' : '<div style="text-align:center;padding:20px;font-size:13px;color:var(--txm);">記録はありません</div>');
+  document.getElementById('calDayRecords').innerHTML = liveHtml + recsHtml;
 }
 
 // ─── PEOPLE ──────────────────────────────────────────────────
@@ -2203,11 +2337,18 @@ function setPeopleSub(s) {
 function renderBandList() {
   var c = document.getElementById('bandListEl');
   if (!c) return;
-  if (!db.bands.length) {
-    c.innerHTML = '<div class="band-empty">バンド/グループがまだありません<br>＋ で追加してください</div>';
+  var bands = db.bands;
+  if (bandSearchText.trim()) {
+    var q = bandSearchText.trim().toLowerCase();
+    bands = bands.filter(function(b) { return b.name.toLowerCase().indexOf(q) >= 0; });
+  }
+  if (!bands.length) {
+    c.innerHTML = bandSearchText.trim()
+      ? '<div class="band-empty">「' + esc(bandSearchText) + '」に一致するバンドはありません</div>'
+      : '<div class="band-empty">バンド/グループがまだありません<br>＋ で追加してください</div>';
     return;
   }
-  c.innerHTML = db.bands.map(function(band, i) {
+  c.innerHTML = bands.map(function(band, i) {
     var members = (band.memberIds || []).map(function(id) {
       var p = getPerson(id);
       return p ? '<span class="band-member-mini">' + esc(p.name) + '</span>' : '';
@@ -2217,11 +2358,18 @@ function renderBandList() {
       : '<div style="font-size:12px;color:var(--txm);margin-top:4px;">メンバー未設定</div>';
     var liveCnt = (band.liveHistory || []).length;
     var liveBadge = liveCnt ? '<span class="live-count-badge">' + liveCnt + '回</span>' : '';
+    var links = (band.links || []).filter(function(lk) { return lk.url; });
+    var linkChips = links.map(function(lk) {
+      return '<a class="band-link-chip" href="' + esc(lk.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">'
+        + esc(lk.label || lk.url) + '</a>';
+    }).join('');
+    var catBadges = (Array.isArray(band.category) ? band.category : [band.category || 'バンド']).map(function(c) { return '<span class="band-cat-badge">' + esc(c) + '</span>'; }).join('');
     return '<div class="band-card" style="animation-delay:' + (i * 40) + 'ms" onclick="showBandDetail(\'' + band.id + '\')">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
       + '<span class="band-name">' + esc(band.name) + liveBadge + '</span>'
-      + '<span class="band-cat-badge">' + esc(band.category || 'バンド') + '</span>'
+      + (linkChips ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;flex-shrink:0;">' + linkChips + '</div>' : '')
       + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">' + catBadges + '</div>'
       + (band.memo ? '<div style="font-size:13px;color:var(--txm);margin-bottom:4px;word-break:break-word;">' + esc(band.memo) + '</div>' : '')
       + memRow
       + '</div>';
@@ -2246,7 +2394,7 @@ function showBandDetail(id) {
     : '';
   document.getElementById('bandDetailContent').innerHTML =
     '<div class="modal-head">'
-    + '<div><span class="band-cat-badge">' + esc(band.category || 'バンド') + '</span>&nbsp;<span style="font-size:20px;font-weight:800;">' + esc(band.name) + '</span></div>'
+    + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' + (Array.isArray(band.category) ? band.category : [band.category || 'バンド']).map(function(c) { return '<span class="band-cat-badge">' + esc(c) + '</span>'; }).join('') + '&nbsp;<span style="font-size:20px;font-weight:800;">' + esc(band.name) + '</span></div>'
     + '<div style="display:flex;gap:8px;">'
     + '<button class="icon-btn" onclick="closeModal(\'bandDetailModal\');openEditBand(\'' + id + '\')">✏️</button>'
     + '<button class="close-btn" onclick="closeModal(\'bandDetailModal\')">×</button>'
@@ -2260,36 +2408,58 @@ function showBandDetail(id) {
   openModal('bandDetailModal');
 }
 function openAddBand() {
-  editBandId = null; bandMemberSel = []; selBandLinks = []; bandCatSel = 'バンド';
+  editBandId = null; bandMemberSel = []; selBandLinks = []; bandCatSel = ['バンド']; bandMemberGroupFilter = 'all';
   document.getElementById('bandModalTitle').textContent = 'バンド/グループを追加';
   document.getElementById('bandName').value = '';
   document.getElementById('bandMemo').value = '';
   document.getElementById('delBandBtn').style.display = 'none';
-  renderBandCatChips(); renderBandMemberGrid(); renderBandLinkList();
+  renderBandCatChips(); renderBandMemberGroupFilter(); renderBandMemberGrid(); renderBandLinkList();
   openModal('bandModal');
 }
 function openEditBand(id) {
   var band = getBand(id);
   if (!band) return;
   editBandId = id;
-  bandCatSel = band.category || 'バンド';
+  bandCatSel = Array.isArray(band.category) ? band.category.slice() : [band.category || 'バンド'];
   bandMemberSel = (band.memberIds || []).slice();
   selBandLinks = (band.links || []).map(function(lk) { return { label: lk.label || '', url: lk.url || '' }; });
   document.getElementById('bandModalTitle').textContent = 'バンド/グループを編集';
   document.getElementById('bandName').value = band.name;
   document.getElementById('bandMemo').value = band.memo || '';
   document.getElementById('delBandBtn').style.display = 'block';
-  renderBandCatChips(); renderBandMemberGrid(); renderBandLinkList();
+  renderBandCatChips(); renderBandMemberGroupFilter(); renderBandMemberGrid(); renderBandLinkList();
   openModal('bandModal');
 }
 function renderBandCatChips() {
   var c = document.getElementById('bandCatRow');
   if (!c) return;
   c.innerHTML = BAND_CATS.map(function(cat) {
-    return '<button class="filter-chip' + (cat === bandCatSel ? ' active' : '') + '" onclick="pickBandCat(\'' + cat + '\')">' + cat + '</button>';
+    var active = bandCatSel.indexOf(cat) >= 0;
+    return '<button class="filter-chip' + (active ? ' active' : '') + '" onclick="pickBandCat(\'' + cat + '\')">' + cat + '</button>';
   }).join('');
 }
-function pickBandCat(cat) { bandCatSel = cat; renderBandCatChips(); }
+function pickBandCat(cat) {
+  var idx = bandCatSel.indexOf(cat);
+  if (idx >= 0) { if (bandCatSel.length > 1) bandCatSel.splice(idx, 1); }
+  else bandCatSel.push(cat);
+  renderBandCatChips();
+}
+function renderBandMemberGroupFilter() {
+  var c = document.getElementById('bandMemberGroupFilter');
+  if (!c) return;
+  if (!(db.groups || []).length) { c.innerHTML = ''; return; }
+  var groups = ['all'].concat(db.groups);
+  c.innerHTML = groups.map(function(g) {
+    var label = g === 'all' ? '全員' : g;
+    var active = bandMemberGroupFilter === g;
+    return '<button class="filter-chip' + (active ? ' active' : '') + '" onclick="setBandMemberGroup(\'' + esc(g) + '\')">' + esc(label) + '</button>';
+  }).join('');
+}
+function setBandMemberGroup(g) {
+  bandMemberGroupFilter = g;
+  renderBandMemberGroupFilter();
+  renderBandMemberGrid();
+}
 function renderBandMemberGrid() {
   var c = document.getElementById('bandMemberGrid');
   if (!c) return;
@@ -2297,10 +2467,128 @@ function renderBandMemberGrid() {
     c.innerHTML = '<div style="font-size:13px;color:var(--txm);">人物が登録されていません</div>';
     return;
   }
-  c.innerHTML = db.people.map(function(p) {
+  var people = bandMemberGroupFilter === 'all'
+    ? db.people
+    : db.people.filter(function(p) { return p.group === bandMemberGroupFilter; });
+  if (!people.length) {
+    c.innerHTML = '<div style="font-size:13px;color:var(--txm);">該当する人物がいません</div>';
+    return;
+  }
+  c.innerHTML = people.map(function(p) {
     var sel = bandMemberSel.indexOf(p.id) >= 0;
     return '<button class="band-member-chip' + (sel ? ' sel' : '') + '" onclick="toggleBandMember(\'' + p.id + '\')">' + esc(p.name) + '</button>';
   }).join('');
+}
+function setBandViewMode(mode) {
+  bandViewMode = mode;
+  document.getElementById('bandViewTabBands').classList.toggle('active', mode === 'bands');
+  document.getElementById('bandViewTabEvents').classList.toggle('active', mode === 'events');
+  document.getElementById('bandImportButtons').style.display = mode === 'bands' ? 'flex' : 'none';
+  document.getElementById('bandSearchWrap').style.display = mode === 'bands' ? '' : 'none';
+  document.getElementById('bandListEl').style.display = mode === 'bands' ? '' : 'none';
+  document.getElementById('eventListEl').style.display = mode === 'events' ? '' : 'none';
+  if (mode === 'events') renderEventList();
+  else renderBandList();
+}
+function setEvTab(t) {
+  evTab = t;
+  document.getElementById('evTabPast').classList.toggle('active', t === 'past');
+  document.getElementById('evTabUpcoming').classList.toggle('active', t === 'upcoming');
+  renderEventList();
+}
+function onBandSearch(v) { bandSearchText = v; renderBandList(); }
+function renderEventList() {
+  var c = document.getElementById('eventListEl');
+  if (!c) return;
+  var todayStr = today();
+  var evMap = {};
+  db.bands.forEach(function(band) {
+    (band.liveHistory || []).forEach(function(lv) {
+      var key = (lv.date || '') + '__' + (lv.title || '');
+      if (!evMap[key]) evMap[key] = { title: lv.title || '(タイトル未設定)', date: lv.date || '', venue: lv.venue || '', bands: [] };
+      evMap[key].bands.push({ id: band.id, name: band.name });
+    });
+  });
+  var allEvents = Object.keys(evMap).map(function(k) { return evMap[k]; });
+  var events = allEvents.filter(function(ev) {
+    return evTab === 'upcoming' ? ev.date > todayStr : ev.date <= todayStr;
+  }).sort(function(a, b) {
+    return evTab === 'upcoming'
+      ? (a.date || '').localeCompare(b.date || '')
+      : (b.date || '').localeCompare(a.date || '');
+  });
+  var tabHtml = '<div style="display:flex;gap:6px;margin-bottom:10px;">'
+    + '<button class="filter-chip' + (evTab === 'past' ? ' active' : '') + '" id="evTabPast" onclick="setEvTab(\'past\')">過去</button>'
+    + '<button class="filter-chip' + (evTab === 'upcoming' ? ' active' : '') + '" id="evTabUpcoming" onclick="setEvTab(\'upcoming\')">予定</button>'
+    + '</div>';
+  if (!events.length) {
+    c.innerHTML = tabHtml + '<div style="text-align:center;padding:20px;font-size:13px;color:var(--txm);">'
+      + (evTab === 'upcoming' ? '予定はありません' : 'イベント記録がありません') + '</div>';
+    return;
+  }
+  c.innerHTML = tabHtml + events.map(function(ev, idx) {
+    var domId = 'evList_' + idx;
+    var ekey = (ev.date || '') + '__' + (ev.title || '');
+    var isEditing = editingEvKey === ekey;
+    var bandRows = ev.bands.map(function(b) {
+      return '<div class="live-band-row" onclick="showBandDetail(\'' + b.id + '\')">'
+        + '<span class="live-band-name">' + esc(b.name) + '</span>'
+        + '<span style="color:var(--txm);">›</span>'
+        + '</div>';
+    }).join('');
+    if (isEditing) {
+      return '<div class="live-event-bar">'
+        + '<div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">'
+        + '<input class="form-input" id="evEditTitle_' + idx + '" value="' + esc(ev.title || '') + '" placeholder="イベント名">'
+        + '<div style="display:flex;gap:8px;">'
+        + '<input class="form-input" type="date" id="evEditDate_' + idx + '" value="' + esc(ev.date || '') + '" style="flex:1;">'
+        + '<input class="form-input" id="evEditVenue_' + idx + '" value="' + esc(ev.venue || '') + '" placeholder="会場" style="flex:2;">'
+        + '</div>'
+        + '<div style="display:flex;gap:8px;">'
+        + '<button class="btn-pri" style="flex:1;" onclick="saveEvEdit(\'' + esc(ekey) + '\',' + idx + ')">✓ 保存</button>'
+        + '<button class="btn-sec" style="flex:1;" onclick="cancelEvEdit()">✗ キャンセル</button>'
+        + '</div>'
+        + '</div>'
+        + '<div class="live-event-bands">' + bandRows + '</div>'
+        + '</div>';
+    }
+    var venueHtml = ev.venue ? '<div style="font-size:11px;color:var(--txm);margin-top:2px;">📍 ' + esc(ev.venue) + '</div>' : '';
+    return '<div class="live-event-bar">'
+      + '<div class="live-event-bar-hd" onclick="toggleLiveEventBands(\'' + domId + '\')">'
+      + '<span class="live-event-icon">' + (evTab === 'upcoming' ? '🗓️' : '🎸') + '</span>'
+      + '<div style="flex:1;">'
+      + '<div class="live-event-title-lg">' + esc(ev.title) + '</div>'
+      + '<div style="font-size:11px;color:var(--txm);margin-top:2px;">' + esc(ev.date || '---') + '</div>'
+      + venueHtml
+      + '</div>'
+      + '<span class="live-event-cnt">' + ev.bands.length + 'バンド</span>'
+      + '<span class="live-event-arrow" onclick="event.stopPropagation();startEvEdit(\'' + esc(ekey) + '\')">♬</span>'
+      + '<span id="' + domId + '_arrow" class="live-event-arrow">▶</span>'
+      + '</div>'
+      + '<div id="' + domId + '" style="display:none">'
+      + '<div class="live-event-bands">' + bandRows + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+function startEvEdit(ekey) { editingEvKey = ekey; renderEventList(); }
+function cancelEvEdit() { editingEvKey = null; renderEventList(); }
+function saveEvEdit(oldKey, idx) {
+  var newTitle = document.getElementById('evEditTitle_' + idx).value.trim();
+  var newDate  = document.getElementById('evEditDate_'  + idx).value;
+  var newVenue = document.getElementById('evEditVenue_' + idx).value.trim();
+  var parts = oldKey.split('__');
+  var oldDate = parts[0], oldTitle = parts.slice(1).join('__');
+  db.bands.forEach(function(band) {
+    (band.liveHistory || []).forEach(function(lv) {
+      if (lv.date === oldDate && lv.title === oldTitle) {
+        lv.title = newTitle; lv.date = newDate; lv.venue = newVenue;
+      }
+    });
+  });
+  editingEvKey = null;
+  saveDB(); renderEventList(); renderCalendar();
+  toast('更新しました');
 }
 function toggleBandMember(id) {
   var idx = bandMemberSel.indexOf(id);
@@ -2356,29 +2644,82 @@ function deleteCurrentBand() {
 }
 
 // ─── LIVE HISTORY ────────────────────────────────────────────
+function getCoLiveBands(excludeId, title, date) {
+  var result = [];
+  db.bands.forEach(function(b) {
+    if (b.id === excludeId) return;
+    if ((b.liveHistory || []).some(function(lv) { return lv.title === title && lv.date === date; }))
+      result.push({ id: b.id, name: b.name });
+  });
+  return result;
+}
 function buildLiveSection(id) {
   var band = getBand(id);
   if (!band) return '';
   var lives = band.liveHistory || [];
   var cnt = lives.length;
-  var rows = lives.slice().sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); })
-    .map(function(lv) {
-      return '<div class="live-row">'
-        + '<span class="live-row-date">' + esc(lv.date || '---') + '</span>'
-        + '<span class="live-row-title">' + esc(lv.title || '') + '</span>'
-        + '<span class="live-row-del" onclick="deleteLiveRecord(\'' + id + '\',\'' + lv.id + '\')">×</span>'
+  var todayStr = today();
+  var sorted = lives.slice().sort(function(a, b) {
+    var au = (a.date || '') > todayStr, bu = (b.date || '') > todayStr;
+    if (au !== bu) return au ? -1 : 1;
+    return au ? (a.date || '').localeCompare(b.date || '') : (b.date || '').localeCompare(a.date || '');
+  });
+  var isAnyEditing = editingLiveKey && editingLiveKey.indexOf(id + '~~') === 0;
+  var rows = sorted.map(function(lv, idx) {
+    var domId = 'coLive_' + id + '_' + idx;
+    var isUpcoming = (lv.date || '') > todayStr;
+    var isEditing = editingLiveKey === id + '~~' + lv.id;
+    if (isEditing) {
+      return '<div class="live-row" style="flex-wrap:wrap;gap:6px;align-items:center;">'
+        + '<input class="form-input" type="date" id="liveEditDate_' + lv.id + '" value="' + esc(lv.date || '') + '" style="flex:1;min-width:100px;">'
+        + '<input class="form-input" id="liveEditTitle_' + lv.id + '" value="' + esc(lv.title || '') + '" placeholder="イベント名" style="flex:2;min-width:120px;">'
+        + '<input class="form-input" id="liveEditVenue_' + lv.id + '" value="' + esc(lv.venue || '') + '" placeholder="会場" style="flex:2;min-width:120px;">'
+        + '<button class="btn-pri" onclick="saveLiveEdit(\'' + id + '\',\'' + lv.id + '\')">✓</button>'
+        + '<button class="btn-sec" onclick="cancelLiveEdit(\'' + id + '\')">✗</button>'
         + '</div>';
-    }).join('');
+    }
+    var coBands = getCoLiveBands(id, lv.title, lv.date);
+    var badge = coBands.length
+      ? '<span class="live-count-badge" style="cursor:pointer;" onclick="toggleLiveEventBands(\'' + domId + '\')">他' + coBands.length + '組</span>'
+      : '';
+    var upBadge = isUpcoming ? '<span style="font-size:10px;font-weight:700;color:#4caf50;background:#e8f5e9;padding:1px 6px;border-radius:20px;flex-shrink:0;">予定</span>' : '';
+    var coHtml = coBands.length
+      ? '<div id="' + domId + '" style="display:none"><div class="live-event-bands">'
+        + coBands.map(function(b) {
+            return '<div class="live-band-row" onclick="showBandDetail(\'' + b.id + '\')">'
+              + '<span class="live-band-name">' + esc(b.name) + '</span>'
+              + '<span style="color:var(--txm);">›</span>'
+              + '</div>';
+          }).join('')
+        + '</div></div>'
+      : '';
+    var venueHtml = lv.venue ? '<span style="font-size:11px;color:var(--txm);">📍' + esc(lv.venue) + '</span>' : '';
+    return '<div>'
+      + '<div class="live-row">'
+      + upBadge
+      + '<span class="live-row-date">' + esc(lv.date || '---') + '</span>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div class="live-row-title">' + esc(lv.title || '') + '</div>'
+      + venueHtml
+      + '</div>'
+      + badge
+      + '<span class="live-row-del" onclick="startEditLive(\'' + id + '\',\'' + lv.id + '\')">♬</span>'
+      + '<span class="live-row-del" onclick="deleteLiveRecord(\'' + id + '\',\'' + lv.id + '\')">×</span>'
+      + '</div>'
+      + coHtml
+      + '</div>';
+  }).join('');
   return '<div class="live-section">'
     + '<div class="live-section-hd" onclick="toggleBandLiveSection(\'' + id + '\')">'
     + '<span class="live-section-title">ライブ記録 <span class="live-count-badge">' + cnt + '回</span></span>'
-    + '<span id="liveSectionArrow_' + id + '">▶</span>'
+    + '<span id="liveSectionArrow_' + id + '">' + (isAnyEditing ? '▼' : '▶') + '</span>'
     + '</div>'
-    + '<div id="liveSectionBody_' + id + '" style="display:none">'
+    + '<div id="liveSectionBody_' + id + '" style="' + (isAnyEditing ? '' : 'display:none') + '">'
     + rows
-    + '<div class="live-add-row">'
-    + '<input class="form-input" type="date" id="liveAddDate_' + id + '">'
-    + '<input class="form-input" placeholder="イベント名" id="liveAddTitle_' + id + '">'
+    + '<div class="live-add-row" style="flex-wrap:wrap;">'
+    + '<input class="form-input" type="date" id="liveAddDate_' + id + '" style="flex:1;min-width:100px;">'
+    + '<input class="form-input" placeholder="イベント名" id="liveAddTitle_' + id + '" style="flex:2;min-width:120px;">'
+    + '<input class="form-input" placeholder="会場" id="liveAddVenue_' + id + '" style="flex:2;min-width:120px;">'
     + '<button class="btn-pri" onclick="addLiveRecord(\'' + id + '\')">追加</button>'
     + '</div>'
     + '</div>'
@@ -2392,13 +2733,35 @@ function toggleBandLiveSection(id) {
   body.style.display = isOpen ? 'none' : '';
   arrow.textContent = isOpen ? '▶' : '▼';
 }
+function startEditLive(bandId, liveId) {
+  editingLiveKey = bandId + '~~' + liveId;
+  showBandDetail(bandId);
+}
+function saveLiveEdit(bandId, liveId) {
+  var band = getBand(bandId); if (!band) return;
+  var lv = (band.liveHistory || []).filter(function(l) { return l.id === liveId; })[0];
+  if (!lv) return;
+  lv.title = document.getElementById('liveEditTitle_' + liveId).value.trim();
+  lv.date  = document.getElementById('liveEditDate_'  + liveId).value;
+  lv.venue = document.getElementById('liveEditVenue_' + liveId).value.trim();
+  band.updatedAt = new Date().toISOString();
+  editingLiveKey = null;
+  saveDB();
+  showBandDetail(bandId);
+  toast('更新しました');
+}
+function cancelLiveEdit(bandId) {
+  editingLiveKey = null;
+  showBandDetail(bandId);
+}
 function addLiveRecord(bandId) {
   var band = getBand(bandId); if (!band) return;
   var title = document.getElementById('liveAddTitle_' + bandId).value.trim();
   var date  = document.getElementById('liveAddDate_'  + bandId).value;
+  var venue = document.getElementById('liveAddVenue_' + bandId).value.trim();
   if (!title && !date) { toast('タイトルまたは日付を入力してください'); return; }
   band.liveHistory = band.liveHistory || [];
-  band.liveHistory.push({ id: uid(), title: title, date: date, memo: '' });
+  band.liveHistory.push({ id: uid(), title: title, date: date, venue: venue, memo: '' });
   band.updatedAt = new Date().toISOString();
   saveDB();
   showBandDetail(bandId);
@@ -2412,10 +2775,32 @@ function deleteLiveRecord(bandId, liveId) {
   showBandDetail(bandId);
   toast('削除しました');
 }
+function pasteImportFromClipboard() {
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    toast('このブラウザはクリップボード読み取りに対応していません');
+    return;
+  }
+  navigator.clipboard.readText().then(function(text) {
+    try {
+      var data = JSON.parse(text);
+      if (!data.bands || !Array.isArray(data.bands)) throw new Error();
+      document.getElementById('bandImportText').value = data.bands.join('\n');
+      document.getElementById('importEventTitle').value = data.event || '';
+      document.getElementById('importEventDate').value = data.date || '';
+      document.getElementById('importEventVenue').value = data.venue || '';
+      openModal('bandTextImportModal');
+    } catch(e) {
+      toast('クリップボードの形式が正しくありません');
+    }
+  }).catch(function() {
+    toast('クリップボードの読み取りに失敗しました');
+  });
+}
 function openBandTextImport() {
   document.getElementById('bandImportText').value = '';
   document.getElementById('importEventTitle').value = '';
   document.getElementById('importEventDate').value = '';
+  document.getElementById('importEventVenue').value = '';
   openModal('bandTextImportModal');
 }
 function executeBandTextImport() {
@@ -2424,8 +2809,9 @@ function executeBandTextImport() {
   if (!names.length) { toast('バンド名を入力してください'); return; }
   var title = document.getElementById('importEventTitle').value.trim();
   var date  = document.getElementById('importEventDate').value;
+  var venue = document.getElementById('importEventVenue').value.trim();
   var now = new Date().toISOString();
-  var live = (title || date) ? { id: uid(), title: title, date: date, memo: '' } : null;
+  var live = (title || date) ? { id: uid(), title: title, date: date, venue: venue, memo: '' } : null;
   var added = 0, updated = 0;
   names.forEach(function(name) {
     var band = db.bands.find(function(b) { return b.name === name; });
@@ -2437,7 +2823,7 @@ function executeBandTextImport() {
     if (live) {
       band.liveHistory = band.liveHistory || [];
       var dup = band.liveHistory.some(function(l) { return l.title === live.title && l.date === live.date; });
-      if (!dup) band.liveHistory.push({ id: uid(), title: live.title, date: live.date, memo: '' });
+      if (!dup) band.liveHistory.push({ id: uid(), title: live.title, date: live.date, venue: live.venue || '', memo: '' });
       updated++;
     }
   });
