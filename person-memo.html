@@ -678,6 +678,10 @@
     .work-type-chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--bd);background:#FAF8F2;color:var(--tx2);font-size:13px;font-weight:700;transition:all .15s;cursor:pointer;}
     .work-type-chip.sel{border-color:#4A7B6F;background:#F0F5F3;color:#4A7B6F;}
     .work-type-badge{display:inline-block;font-size:11px;font-weight:800;color:#4A7B6F;background:#F0F5F3;padding:2px 8px;border-radius:4px;margin-bottom:6px;border:1px solid rgba(74,123,111,.3);}
+    .work-title-row{display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--bd);cursor:pointer;}
+    .work-title-row:active{background:var(--card);}
+    .work-title-date{font-size:11px;color:var(--txm);flex-shrink:0;width:5.5em;}
+    .work-title-text{flex:1;font-size:14px;font-weight:700;color:var(--tx);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
 
     /* ===== VIEWS ===== */
     .view{display:none}
@@ -719,6 +723,10 @@
       <button class="sort-btn active" id="sortNewest" onclick="setSort('newest')">新しい順</button>
       <button class="sort-btn" id="sortOldest" onclick="setSort('oldest')">古い順</button>
       <span class="count-badge" id="homeCount"></span>
+      <div id="workViewToggle" style="display:none;gap:4px;margin-left:4px;">
+        <button class="sort-btn active" id="workViewCard" onclick="setWorkViewMode('card')">カード</button>
+        <button class="sort-btn" id="workViewList" onclick="setWorkViewMode('list')">一覧</button>
+      </div>
     </div>
     <div id="timeline"></div>
   </div>
@@ -1120,6 +1128,8 @@ var bandMemberGroupFilter = 'all';
 var bandViewMode = 'bands';
 var bandSearchText = '';
 var evTab = 'past';
+var workViewMode = 'card';
+var WORK_TYPE_ICON = { idea:'💡', memo:'📝', task:'✅', issue:'🤔' };
 var editingLiveKey = null;
 var editingEvKey = null;
 var selBandLinks = [];
@@ -1446,12 +1456,20 @@ function showView(v) {
   window.scrollTo({ top: 0 });
   refresh();
 }
+function setWorkViewMode(m) {
+  workViewMode = m;
+  document.getElementById('workViewCard').classList.toggle('active', m === 'card');
+  document.getElementById('workViewList').classList.toggle('active', m === 'list');
+  renderHome();
+}
 function setMode(m) {
   curMode = m;
   db.settings.mode = m; saveDB();
   var tabs = { hobby: 'modeTabHobby', quick: 'modeTabQuick', work: 'modeTabWork', kotono: 'modeTabKotono' };
   document.querySelectorAll('.mode-tab').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById(tabs[m]).classList.add('active');
+  var wvt = document.getElementById('workViewToggle');
+  if (wvt) wvt.style.display = m === 'work' ? 'flex' : 'none';
   var prevKw = sf.kw;
   sf = { kw: prevKw, personIds: [], tags: [], from: '', to: '' };
   sfGroupFilter = 'all'; sfGenderFilter = 'all'; sfFiltersOpen = false; sfPeopleOpen = false;
@@ -1528,9 +1546,24 @@ function onTagChip(tag, e) {
 function renderHome() {
   var recs = sorted(db.records.filter(function(r){ return (r.mode||'hobby') === curMode; }));
   document.getElementById('homeCount').textContent = recs.length + '件';
+  var wvt = document.getElementById('workViewToggle');
+  if (wvt) wvt.style.display = curMode === 'work' ? 'flex' : 'none';
   var c = document.getElementById('timeline');
   if (!recs.length) {
     c.innerHTML = '<div class="empty"><div class="empty-icon">📝</div><p>まだ記録がありません<br>＋ボタンから追加しましょう</p></div>';
+    return;
+  }
+  if (curMode === 'work' && workViewMode === 'list') {
+    c.innerHTML = '<div style="padding:0 4px;">'
+      + recs.map(function(r) {
+          var icon = WORK_TYPE_ICON[r.workType] || '📝';
+          return '<div class="work-title-row" onclick="openEditRecord(\'' + r.id + '\')">'
+            + '<span class="work-title-date">' + esc(r.date || '') + '</span>'
+            + '<span class="work-type-badge" style="margin-bottom:0;flex-shrink:0;">' + icon + ' ' + esc(r.workType || 'memo') + '</span>'
+            + '<span class="work-title-text">' + esc(r.workTitle || '(タイトルなし)') + '</span>'
+            + '</div>';
+        }).join('')
+      + '</div>';
     return;
   }
   var html = '';
