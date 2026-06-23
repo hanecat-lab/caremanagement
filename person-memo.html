@@ -1045,6 +1045,14 @@
   </div>
 </div>
 
+<!-- WORK DETAIL MODAL -->
+<div class="modal-overlay" id="workDetailModal" onclick="overlayClose(event,'workDetailModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="workDetailContent"></div>
+  </div>
+</div>
+
 <!-- DATA MODAL -->
 <div class="modal-overlay" id="dataModal" onclick="overlayClose(event,'dataModal')">
   <div class="modal">
@@ -1557,7 +1565,7 @@ function renderHome() {
     c.innerHTML = '<div style="padding:0 4px;">'
       + recs.map(function(r) {
           var icon = WORK_TYPE_ICON[r.workType] || '📝';
-          return '<div class="work-title-row" onclick="openEditRecord(\'' + r.id + '\')">'
+          return '<div class="work-title-row" onclick="showWorkDetail(\'' + r.id + '\')">'
             + '<span class="work-title-date">' + esc(r.date || '') + '</span>'
             + '<span class="work-type-badge" style="margin-bottom:0;flex-shrink:0;">' + icon + ' ' + esc(r.workType || 'memo') + '</span>'
             + '<span class="work-title-text">' + esc(r.workTitle || '(タイトルなし)') + '</span>'
@@ -2007,6 +2015,28 @@ function openAddRecord() {
   renderPselGrid(); renderTagChips();
   openModal('recordModal');
   setTimeout(function(){ var el = document.getElementById('recMemo'); if(el) el.focus(); }, 350);
+}
+function showWorkDetail(id) {
+  var r = getRec(id); if (!r) return;
+  var wtLabel = r.workType ? (WORK_TYPES.filter(function(t){ return t.val === r.workType; })[0] || null) : null;
+  var workTypeBadge = wtLabel ? '<span class="work-type-badge">' + wtLabel.label + '</span>' : '';
+  var timeTag = r.time ? '<span class="memo-time-tag">⏰ ' + r.time + '</span>' : '';
+  document.getElementById('workDetailContent').innerHTML =
+    '<div class="modal-head">'
+    + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' + workTypeBadge + timeTag + '</div>'
+    + '<div style="display:flex;gap:8px;">'
+    + '<button class="icon-btn" onclick="closeModal(\'workDetailModal\');openEditRecord(\'' + id + '\')">✏️</button>'
+    + '<button class="close-btn" onclick="closeModal(\'workDetailModal\')">×</button>'
+    + '</div></div>'
+    + '<div style="font-size:12px;color:var(--txm);margin-bottom:8px;">' + esc(r.date || '') + '</div>'
+    + (r.workTitle ? '<div class="memo-work-title">' + esc(r.workTitle) + '</div>' : '')
+    + (r.memo ? '<div class="memo-body-area">' + renderMemoHTML(r.memo) + '</div>' : '')
+    + (r.tags && r.tags.length
+        ? '<div class="memo-tags" style="margin-top:12px;">'
+          + r.tags.map(function(t){ return '<span class="memo-tag-chip">' + hashIcon() + esc(t) + '</span>'; }).join('')
+          + '</div>'
+        : '');
+  openModal('workDetailModal');
 }
 function openEditRecord(id) {
   var r = getRec(id); if (!r) return;
@@ -2923,7 +2953,7 @@ window.addEventListener('scroll', function(){
 });
 document.addEventListener('keydown', function(e){
   if (e.key === 'Escape') {
-    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal','bandTextImportModal'].forEach(closeModal);
+    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal','bandTextImportModal','workDetailModal'].forEach(closeModal);
     closeCtx();
   }
 });
