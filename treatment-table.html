@@ -195,8 +195,10 @@
 </div>
 
 <div class="toolbar">
+  <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
+  <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
   <button class="btn" onclick="window.print()">🖨 印刷</button>
-  <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（2階／3階は別用紙・A4横向き推奨）</span>
+  <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（フロアは切替でき、最後に開いたフロアで開きます・A4横向き推奨）</span>
 </div>
 
 <div class="sheets" id="sheets"></div>
@@ -223,6 +225,12 @@ function buildFloorDef(from, to) {
 const FLOOR_200 = buildFloorDef(201, 218);
 const FLOOR_300 = buildFloorDef(301, 316);
 
+// フロア切替用の定義
+const FLOORS = {
+  '200': { title: '2階', rooms: FLOOR_200 },
+  '300': { title: '3階', rooms: FLOOR_300 },
+};
+
 // ===== 保存データ（入力値のみ。構成は居室定義から毎回生成）=====
 let store = { cells: {}, margins: {} };
 
@@ -234,6 +242,7 @@ function load() {
   if (!store || typeof store !== 'object') store = {};
   if (!store.cells) store.cells = {};
   if (!store.margins) store.margins = {};
+  if (!FLOORS[store.activeFloor]) store.activeFloor = '200';
 }
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
@@ -303,11 +312,25 @@ function sheetHtml(title, key, rooms) {
   </div>`;
 }
 
+function setFloor(key) {
+  if (!FLOORS[key]) return;
+  store.activeFloor = key;
+  save();
+  render();
+}
+
+function updateFloorButtons() {
+  Object.keys(FLOORS).forEach(key => {
+    const btn = document.getElementById('floor-' + key);
+    if (btn) btn.classList.toggle('secondary', key !== store.activeFloor);
+  });
+}
+
 function render() {
+  updateFloorButtons();
   const container = document.getElementById('sheets');
-  container.innerHTML =
-    sheetHtml('2階', '200', FLOOR_200) +
-    sheetHtml('3階', '300', FLOOR_300);
+  const { title, rooms } = FLOORS[store.activeFloor];
+  container.innerHTML = sheetHtml(title, store.activeFloor, rooms);
 
   // 値の流し込み（特殊文字対策で value は DOM 経由）＋高さ調整
   container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
