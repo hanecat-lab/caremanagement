@@ -306,8 +306,8 @@ function sheetHtml(title, key, rooms) {
 function render() {
   const container = document.getElementById('sheets');
   container.innerHTML =
-    sheetHtml('200番台（2階）', '200', FLOOR_200) +
-    sheetHtml('300番台（3階）', '300', FLOOR_300);
+    sheetHtml('2階', '200', FLOOR_200) +
+    sheetHtml('3階', '300', FLOOR_300);
 
   // 値の流し込み（特殊文字対策で value は DOM 経由）＋高さ調整
   container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
