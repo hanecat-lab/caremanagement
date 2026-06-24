@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>利用者別処置表</title>
+<style>
+  :root {
+    --bg: #f0ede8;
+    --panel: #ffffff;
+    --border: #ddd9d0;
+    --line: #999;
+    --text: #2c2a26;
+    --text-sub: #7a7568;
+    --accent: #3d6b8a;
+    --accent-light: #e8f0f5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .app-header {
+    background: var(--accent);
+    color: #fff;
+    padding: 12px 16px;
+  }
+  .app-header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+  .btn.secondary {
+    background: #fff;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .hint { font-size: 11px; color: var(--text-sub); }
+
+  .sheets { padding: 0 16px 24px; }
+
+  .sheet {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 18px;
+  }
+  .sheet-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+  .sheet-title {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .sheet-del {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-sub);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 12px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+
+  /* 左右で行の高さを独立させるため、左右を別テーブルにして横並びにする */
+  .columns {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .col { flex: 1; min-width: 0; }
+
+  table.tx {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  table.tx th, table.tx td {
+    border: 1px solid var(--line);
+    padding: 0;
+    vertical-align: top;
+  }
+  table.tx th {
+    background: var(--accent-light);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    padding: 4px 2px;
+  }
+  .c-room { width: 20%; }
+  .c-name { width: 24%; }
+  .c-tx   { width: 56%; }
+
+  .cell-input, .cell-area {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    color: var(--text);
+    background: transparent;
+    padding: 4px 5px;
+  }
+  .cell-input {
+    font-size: 12px;
+    text-align: center;
+    height: 100%;
+  }
+  .cell-area {
+    font-size: 12px;
+    line-height: 1.4;
+    resize: none;
+    overflow: hidden;
+    min-height: 26px;
+    display: block;
+  }
+
+  .margin-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+  }
+  .margin-cell {
+    flex: 1;
+    border: 1px solid var(--line);
+    min-height: 70px;
+  }
+  .margin-label {
+    font-size: 10px;
+    color: var(--text-sub);
+    padding: 3px 5px 0;
+  }
+  .margin-area {
+    width: 100%;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow: hidden;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.5;
+    background: transparent;
+    padding: 2px 5px 5px;
+    min-height: 52px;
+    display: block;
+  }
+
+  @media print {
+    @page { size: A4 landscape; margin: 8mm; }
+    body { background: #fff; }
+    .app-header, .toolbar, .sheet-del { display: none !important; }
+    .sheets { padding: 0; }
+    .sheet {
+      border: none;
+      border-radius: 0;
+      padding: 0;
+      margin: 0;
+      page-break-after: always;
+    }
+    .sheet:last-child { page-break-after: auto; }
+    .sheet-head { justify-content: center; margin-bottom: 6px; }
+    .cell-input, .cell-area, .margin-area { color: #000; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>利用者別処置表</h1>
+</div>
+
+<div class="toolbar">
+  <button class="btn" onclick="window.print()">🖨 印刷</button>
+  <button class="btn secondary" onclick="addPage()">＋ ページ追加</button>
+  <span class="hint">各セルに直接入力でき、内容は自動保存されます（A4横向き推奨）</span>
+</div>
+
+<div class="sheets" id="sheets"></div>
+
+<script>
+const STORAGE_KEY = 'treatment_table_v1';
+const ROWS_PER_COL = 9; // 片側あたりの行数
+
+let state = { pages: [] };
+
+function blankRow() { return { room: '', name: '', tx: '' }; }
+function blankPage() {
+  return {
+    left:  Array.from({ length: ROWS_PER_COL }, blankRow),
+    right: Array.from({ length: ROWS_PER_COL }, blankRow),
+    marginL: '',
+    marginR: ''
+  };
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state = JSON.parse(raw);
+  } catch (e) { state = { pages: [] }; }
+  if (!state || !Array.isArray(state.pages)) state = { pages: [] };
+  // 旧データや欠損の補完
+  state.pages.forEach(p => {
+    p.left  = normalizeCol(p.left);
+    p.right = normalizeCol(p.right);
+    if (p.marginL === undefined) p.marginL = '';
+    if (p.marginR === undefined) p.marginR = '';
+  });
+  if (state.pages.length === 0) state.pages.push(blankPage());
+}
+
+function normalizeCol(col) {
+  const c = Array.isArray(col) ? col : [];
+  for (let i = 0; i < ROWS_PER_COL; i++) {
+    if (!c[i]) c[i] = blankRow();
+    else {
+      if (c[i].room === undefined) c[i].room = '';
+      if (c[i].name === undefined) c[i].name = '';
+      if (c[i].tx === undefined) c[i].tx = '';
+    }
+  }
+  return c.slice(0, ROWS_PER_COL);
+}
+
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+function esc(s) {
+  return (s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function render() {
+  const container = document.getElementById('sheets');
+  const total = state.pages.length;
+
+  container.innerHTML = state.pages.map((page, pi) => {
+    const title = total > 1 ? `利用者別処置表（${pi + 1}／${total}）` : '利用者別処置表';
+    return `<div class="sheet">
+      <div class="sheet-head">
+        <div class="sheet-title">${title}</div>
+        ${total > 1 ? `<button class="sheet-del" onclick="removePage(${pi})">このページを削除</button>` : ''}
+      </div>
+      <div class="columns">
+        <div class="col">${colHtml(page.left, pi, 'left')}</div>
+        <div class="col">${colHtml(page.right, pi, 'right')}</div>
+      </div>
+      <div class="margin-row">
+        <div class="margin-cell">
+          <div class="margin-label">余白</div>
+          <textarea class="margin-area" data-pi="${pi}" data-margin="L"></textarea>
+        </div>
+        <div class="margin-cell">
+          <div class="margin-label">余白</div>
+          <textarea class="margin-area" data-pi="${pi}" data-margin="R"></textarea>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // 値の流し込み（特殊文字対策で value は DOM 経由）＋高さ調整
+  state.pages.forEach((page, pi) => {
+    ['left', 'right'].forEach(side => {
+      page[side].forEach((row, ri) => {
+        const base = `[data-pi="${pi}"][data-side="${side}"][data-ri="${ri}"]`;
+        const roomEl = container.querySelector(`${base}[data-field="room"]`);
+        const nameEl = container.querySelector(`${base}[data-field="name"]`);
+        const txEl   = container.querySelector(`${base}[data-field="tx"]`);
+        if (roomEl) roomEl.value = row.room || '';
+        if (nameEl) nameEl.value = row.name || '';
+        if (txEl)   { txEl.value = row.tx || ''; autoGrow(txEl); }
+      });
+    });
+    container.querySelectorAll(`.margin-area[data-pi="${pi}"]`).forEach(el => {
+      el.value = (el.getAttribute('data-margin') === 'L') ? page.marginL : page.marginR;
+      autoGrow(el);
+    });
+  });
+
+  bindEvents(container);
+}
+
+function colHtml(col, pi, side) {
+  let rows = '';
+  for (let ri = 0; ri < ROWS_PER_COL; ri++) {
+    const attr = `data-pi="${pi}" data-side="${side}" data-ri="${ri}"`;
+    rows += `<tr>
+        <td><input class="cell-input" type="text" ${attr} data-field="room"></td>
+        <td><input class="cell-input" type="text" ${attr} data-field="name"></td>
+        <td><textarea class="cell-area" rows="1" ${attr} data-field="tx"></textarea></td>
+      </tr>`;
+  }
+  return `<table class="tx">
+      <thead><tr>
+        <th class="c-room">号室</th>
+        <th class="c-name">名前</th>
+        <th class="c-tx">処置</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function bindEvents(container) {
+  container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
+    el.addEventListener('input', () => {
+      const pi = +el.dataset.pi, ri = +el.dataset.ri;
+      const side = el.dataset.side, field = el.dataset.field;
+      state.pages[pi][side][ri][field] = el.value;
+      if (el.tagName === 'TEXTAREA') autoGrow(el);
+      save();
+    });
+  });
+  container.querySelectorAll('.margin-area').forEach(el => {
+    el.addEventListener('input', () => {
+      const pi = +el.dataset.pi;
+      if (el.dataset.margin === 'L') state.pages[pi].marginL = el.value;
+      else state.pages[pi].marginR = el.value;
+      autoGrow(el);
+      save();
+    });
+  });
+}
+
+function addPage() {
+  state.pages.push(blankPage());
+  save();
+  render();
+}
+
+function removePage(pi) {
+  if (state.pages.length <= 1) return;
+  if (!confirm('このページを削除しますか？')) return;
+  state.pages.splice(pi, 1);
+  save();
+  render();
+}
+
+load();
+render();
+</script>
+</body>
+</html>

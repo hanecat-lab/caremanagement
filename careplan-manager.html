@@ -1095,137 +1095,6 @@
     align-items: center;
     gap: 8px;
   }
-
-  /* ===== 利用者別処置表 ===== */
-  .treat-toolbar {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-bottom: 12px;
-    flex-wrap: wrap;
-  }
-  .treat-print-btn {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    padding: 8px 16px;
-    cursor: pointer;
-  }
-  .treat-hint { font-size: 11px; color: var(--text-sub); }
-
-  .treat-sheet {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px;
-    margin-bottom: 18px;
-  }
-  .treat-sheet-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--text);
-    text-align: center;
-    margin-bottom: 10px;
-  }
-  /* 左右で行の高さを独立させるため、2つの別テーブルを横並びにする */
-  .treat-columns {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-  }
-  .treat-col { flex: 1; min-width: 0; }
-  .treat-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-  .treat-table th, .treat-table td {
-    border: 1px solid #999;
-    padding: 0;
-    vertical-align: top;
-  }
-  .treat-table th {
-    background: var(--accent-light);
-    color: var(--text);
-    font-size: 11px;
-    font-weight: 700;
-    text-align: center;
-    padding: 4px 2px;
-  }
-  .treat-col-room { width: 18%; }
-  .treat-col-name { width: 22%; }
-  .treat-col-tx   { width: 60%; }
-  .treat-cell-fixed {
-    font-size: 12px;
-    text-align: center;
-    padding: 4px 3px;
-    word-break: break-all;
-  }
-  .treat-tx-input {
-    width: 100%;
-    border: none;
-    outline: none;
-    resize: none;
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 12px;
-    line-height: 1.4;
-    color: var(--text);
-    background: transparent;
-    padding: 4px 5px;
-    box-sizing: border-box;
-    overflow: hidden;
-    min-height: 24px;
-    display: block;
-  }
-  .treat-margin-row {
-    margin-top: 10px;
-    display: flex;
-    gap: 10px;
-  }
-  .treat-margin-cell {
-    flex: 1;
-    border: 1px solid #999;
-    min-height: 70px;
-  }
-  .treat-margin-label {
-    font-size: 10px;
-    color: var(--text-sub);
-    padding: 3px 5px;
-  }
-  .treat-margin-area {
-    width: 100%;
-    border: none;
-    outline: none;
-    resize: none;
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 12px;
-    line-height: 1.5;
-    background: transparent;
-    padding: 2px 5px 5px;
-    box-sizing: border-box;
-    min-height: 50px;
-  }
-
-  @media print {
-    @page { size: A4 landscape; margin: 8mm; }
-    body { background: #fff; }
-    .app-header, .stats-bar, .alert-bar, .tab-bar,
-    #pane-list, #pane-map, .treat-toolbar { display: none !important; }
-    .main { padding: 0 !important; }
-    .treat-sheet {
-      border: none;
-      border-radius: 0;
-      padding: 0;
-      margin: 0;
-      page-break-after: always;
-    }
-    .treat-sheet:last-child { page-break-after: auto; }
-    .treat-tx-input, .treat-margin-area { color: #000; }
-  }
 </style>
 </head>
 <body>
@@ -1269,7 +1138,6 @@
   <div class="tab-bar">
     <button class="tab-btn active" id="tab-list" onclick="switchTab('list')">📋 書類管理</button>
     <button class="tab-btn" id="tab-map" onclick="switchTab('map')">🏠 フロアマップ</button>
-    <button class="tab-btn" id="tab-treat" onclick="switchTab('treat')">💊 処置表</button>
   </div>
 
   <!-- 書類管理タブ -->
@@ -1290,15 +1158,6 @@
   <!-- フロアマップタブ -->
   <div id="pane-map" style="display:none;">
     <div id="floor-map"></div>
-  </div>
-
-  <!-- 利用者別処置表タブ -->
-  <div id="pane-treat" style="display:none;">
-    <div class="treat-toolbar">
-      <button class="treat-print-btn" onclick="window.print()">🖨 印刷</button>
-      <span class="treat-hint">処置欄はセルに直接入力でき、内容は自動保存されます（A4横向き推奨）</span>
-    </div>
-    <div id="treat-sheet"></div>
   </div>
 </div>
 
@@ -1688,7 +1547,6 @@ function load() {
       if (r.initial === undefined) r.initial = '';
       if (r.infoOnly === undefined) r.infoOnly = false;
       if (r.assessmentDate === undefined) r.assessmentDate = '';
-      if (r.treatment === undefined) r.treatment = '';
       // 旧データの短期目標をカードレベルから除去（会議レベルへ移行）
       r.meetings.forEach(m => {
         if (!m.shortGoalStart) m.shortGoalStart = '';
@@ -1841,7 +1699,6 @@ function importData(event) {
         if (r.infoOnly === undefined) r.infoOnly = false;
         if (r.initial === undefined) r.initial = '';
         if (r.assessmentDate === undefined) r.assessmentDate = '';
-        if (r.treatment === undefined) r.treatment = '';
         r.meetings.forEach(m => {
           if (!m.shortGoalStart) m.shortGoalStart = '';
           if (!m.shortGoalEnd) m.shortGoalEnd = '';
@@ -3415,12 +3272,9 @@ function switchTab(tab) {
   currentTab = tab;
   document.getElementById('pane-list').style.display = tab === 'list' ? 'block' : 'none';
   document.getElementById('pane-map').style.display = tab === 'map' ? 'block' : 'none';
-  document.getElementById('pane-treat').style.display = tab === 'treat' ? 'block' : 'none';
   document.getElementById('tab-list').classList.toggle('active', tab === 'list');
   document.getElementById('tab-map').classList.toggle('active', tab === 'map');
-  document.getElementById('tab-treat').classList.toggle('active', tab === 'treat');
   if (tab === 'map') renderFloorMap();
-  if (tab === 'treat') renderTreatmentTable();
 }
 
 function getBedResidents(roomNum) {
@@ -3518,123 +3372,6 @@ function renderFloorMap() {
       <div class="floor-grid">${html300}</div>
     </div>
   `;
-}
-
-// ========== 利用者別処置表 ==========
-
-const TREAT_ROWS_PER_COL = 9;          // 片側あたりの行数
-let treatMargins = {};                 // 余白欄の内容（ページ別に保存）
-
-function loadTreatMargins() {
-  try { treatMargins = JSON.parse(localStorage.getItem('careplan_treat_margins') || '{}') || {}; }
-  catch(e) { treatMargins = {}; }
-}
-function saveTreatMargins() {
-  localStorage.setItem('careplan_treat_margins', JSON.stringify(treatMargins));
-}
-
-// textareaを内容に合わせて自動で高さ調整
-function treatAutoGrow(el) {
-  el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
-}
-
-function onTreatInput(el, id) {
-  const r = residents.find(x => x.id === id);
-  if (r) { r.treatment = el.value; save(); }
-  treatAutoGrow(el);
-}
-
-function onTreatMarginInput(el, key) {
-  treatMargins[key] = el.value;
-  saveTreatMargins();
-  treatAutoGrow(el);
-}
-
-function renderTreatmentTable() {
-  loadTreatMargins();
-  const container = document.getElementById('treat-sheet');
-
-  // 号室順（ベッド位置順）に並べる
-  const sorted = [...residents].sort((a, b) => a.bed.localeCompare(b.bed, 'ja'));
-
-  const perPage = TREAT_ROWS_PER_COL * 2; // 1ページ18名（左9＋右9）
-  const pageCount = Math.max(1, Math.ceil(sorted.length / perPage));
-
-  // 1行分（利用者がいなければ手書き用の空行）
-  function rowHtml(r) {
-    if (!r) {
-      return `<tr>
-          <td class="treat-cell-fixed">&nbsp;</td>
-          <td class="treat-cell-fixed">&nbsp;</td>
-          <td><textarea class="treat-tx-input" rows="1" oninput="treatAutoGrow(this)"></textarea></td>
-        </tr>`;
-    }
-    const room = esc(getRoomKey(r.bed));
-    const name = esc(r.initial || '');
-    return `<tr>
-          <td class="treat-cell-fixed">${room}</td>
-          <td class="treat-cell-fixed">${name}</td>
-          <td><textarea class="treat-tx-input" rows="1" data-tx-id="${r.id}" oninput="onTreatInput(this, '${r.id}')"></textarea></td>
-        </tr>`;
-  }
-
-  // 片側の表（左右を別テーブルにすることで行の高さを独立させる）
-  function colHtml(colResidents) {
-    let rows = '';
-    for (let i = 0; i < TREAT_ROWS_PER_COL; i++) {
-      rows += rowHtml(colResidents[i] || null);
-    }
-    return `<table class="treat-table">
-        <thead><tr>
-          <th class="treat-col-room">号室</th>
-          <th class="treat-col-name">名前</th>
-          <th class="treat-col-tx">処置</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
-  }
-
-  let html = '';
-  for (let p = 0; p < pageCount; p++) {
-    const pageResidents = sorted.slice(p * perPage, (p + 1) * perPage);
-    const left = pageResidents.slice(0, TREAT_ROWS_PER_COL);
-    const right = pageResidents.slice(TREAT_ROWS_PER_COL);
-    const title = pageCount > 1
-      ? `利用者別処置表（${p + 1}／${pageCount}）`
-      : '利用者別処置表';
-
-    html += `<div class="treat-sheet">
-      <div class="treat-sheet-title">${title}</div>
-      <div class="treat-columns">
-        <div class="treat-col">${colHtml(left)}</div>
-        <div class="treat-col">${colHtml(right)}</div>
-      </div>
-      <div class="treat-margin-row">
-        <div class="treat-margin-cell">
-          <div class="treat-margin-label">余白</div>
-          <textarea class="treat-margin-area" data-margin-key="${p}-l" oninput="onTreatMarginInput(this, '${p}-l')"></textarea>
-        </div>
-        <div class="treat-margin-cell">
-          <div class="treat-margin-label">余白</div>
-          <textarea class="treat-margin-area" data-margin-key="${p}-r" oninput="onTreatMarginInput(this, '${p}-r')"></textarea>
-        </div>
-      </div>
-    </div>`;
-  }
-
-  container.innerHTML = html;
-
-  // 値をDOM経由で流し込み（特殊文字対策）＋高さ調整
-  container.querySelectorAll('textarea[data-tx-id]').forEach(el => {
-    const r = residents.find(x => x.id === el.getAttribute('data-tx-id'));
-    el.value = r ? (r.treatment || '') : '';
-    treatAutoGrow(el);
-  });
-  container.querySelectorAll('textarea[data-margin-key]').forEach(el => {
-    el.value = treatMargins[el.getAttribute('data-margin-key')] || '';
-    treatAutoGrow(el);
-  });
 }
 
 function openBedDetail(residentId) {
