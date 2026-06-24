@@ -179,7 +179,7 @@
       border-radius: 0;
       padding: 0;
       margin: 0;
-      page-break-after: always; /* 200番台 / 300番台 を別用紙に */
+      page-break-after: always; /* 2階 / 3階 を別用紙に */
     }
     .sheet:last-child { page-break-after: auto; }
     .cell-input, .cell-area, .margin-area { color: #000; }
@@ -196,7 +196,7 @@
 
 <div class="toolbar">
   <button class="btn" onclick="window.print()">🖨 印刷</button>
-  <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（200番台／300番台は別用紙・A4横向き推奨）</span>
+  <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（2階／3階は別用紙・A4横向き推奨）</span>
 </div>
 
 <div class="sheets" id="sheets"></div>
@@ -306,8 +306,8 @@ function sheetHtml(title, key, rooms) {
 function render() {
   const container = document.getElementById('sheets');
   container.innerHTML =
-    sheetHtml('200番台（2階）', '200', FLOOR_200) +
-    sheetHtml('300番台（3階）', '300', FLOOR_300);
+    sheetHtml('2階', '200', FLOOR_200) +
+    sheetHtml('3階', '300', FLOOR_300);
 
   // 値の流し込み（特殊文字対策で value は DOM 経由）＋高さ調整
   container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
