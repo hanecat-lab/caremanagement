@@ -10,6 +10,7 @@
     --panel: #ffffff;
     --border: #ddd9d0;
     --line: #999;
+    --line-strong: #555;
     --text: #2c2a26;
     --text-sub: #7a7568;
     --accent: #3d6b8a;
@@ -29,11 +30,7 @@
     color: #fff;
     padding: 12px 16px;
   }
-  .app-header h1 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-  }
+  .app-header h1 { margin: 0; font-size: 18px; font-weight: 700; }
 
   .toolbar {
     display: flex;
@@ -69,26 +66,11 @@
     padding: 14px;
     margin-bottom: 18px;
   }
-  .sheet-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-    gap: 8px;
-  }
   .sheet-title {
     font-size: 15px;
     font-weight: 700;
-  }
-  .sheet-del {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text-sub);
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 12px;
-    padding: 4px 10px;
-    cursor: pointer;
+    text-align: center;
+    margin-bottom: 10px;
   }
 
   /* 左右で行の高さを独立させるため、左右を別テーブルにして横並びにする */
@@ -117,9 +99,22 @@
     text-align: center;
     padding: 4px 2px;
   }
-  .c-room { width: 20%; }
-  .c-name { width: 24%; }
+  .c-room { width: 18%; }
+  .c-name { width: 26%; }
   .c-tx   { width: 56%; }
+
+  /* 号室結合セル */
+  td.room-cell {
+    text-align: center;
+    vertical-align: middle;
+    font-size: 13px;
+    font-weight: 700;
+    background: #faf8f4;
+    padding: 2px;
+    word-break: break-all;
+  }
+  /* 居室の区切り線（各居室の先頭行の上罫線を太く） */
+  tr.room-start > td { border-top: 2px solid var(--line-strong); }
 
   .cell-input, .cell-area {
     width: 100%;
@@ -177,17 +172,16 @@
   @media print {
     @page { size: A4 landscape; margin: 8mm; }
     body { background: #fff; }
-    .app-header, .toolbar, .sheet-del { display: none !important; }
+    .app-header, .toolbar { display: none !important; }
     .sheets { padding: 0; }
     .sheet {
       border: none;
       border-radius: 0;
       padding: 0;
       margin: 0;
-      page-break-after: always;
+      page-break-after: always; /* 200番台 / 300番台 を別用紙に */
     }
     .sheet:last-child { page-break-after: auto; }
-    .sheet-head { justify-content: center; margin-bottom: 6px; }
     .cell-input, .cell-area, .margin-area { color: #000; }
   }
 </style>
@@ -200,59 +194,47 @@
 
 <div class="toolbar">
   <button class="btn" onclick="window.print()">🖨 印刷</button>
-  <button class="btn secondary" onclick="addPage()">＋ ページ追加</button>
-  <span class="hint">各セルに直接入力でき、内容は自動保存されます（A4横向き推奨）</span>
+  <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（200番台／300番台は別用紙・A4横向き推奨）</span>
 </div>
 
 <div class="sheets" id="sheets"></div>
 
 <script>
-const STORAGE_KEY = 'treatment_table_v1';
-const ROWS_PER_COL = 9; // 片側あたりの行数
+const STORAGE_KEY = 'treatment_table_v2';
 
-let state = { pages: [] };
-
-function blankRow() { return { room: '', name: '', tx: '' }; }
-function blankPage() {
-  return {
-    left:  Array.from({ length: ROWS_PER_COL }, blankRow),
-    right: Array.from({ length: ROWS_PER_COL }, blankRow),
-    marginL: '',
-    marginR: ''
-  };
+// ===== 居室定義（careplan-manager の buildFloorDef を移植）=====
+// 部屋番号に 4 または 9 を含む部屋は除外。ベッド数は末尾2桁で判定。
+function buildFloorDef(from, to) {
+  const rooms = [];
+  for (let n = from; n <= to; n++) {
+    const s = String(n);
+    if (s.includes('4') || s.includes('9')) continue;
+    const num = parseInt(s.slice(-2) || s);
+    let beds;
+    if (num === 7) beds = 1;
+    else if ((num >= 2 && num <= 6) || n === 316 || n === 301 || n === 212 || n === 213) beds = 2;
+    else beds = 4;
+    rooms.push({ room: String(n), beds });
+  }
+  return rooms;
 }
+const FLOOR_200 = buildFloorDef(201, 218);
+const FLOOR_300 = buildFloorDef(301, 316);
+
+// ===== 保存データ（入力値のみ。構成は居室定義から毎回生成）=====
+let store = { cells: {}, margins: {} };
 
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) state = JSON.parse(raw);
-  } catch (e) { state = { pages: [] }; }
-  if (!state || !Array.isArray(state.pages)) state = { pages: [] };
-  // 旧データや欠損の補完
-  state.pages.forEach(p => {
-    p.left  = normalizeCol(p.left);
-    p.right = normalizeCol(p.right);
-    if (p.marginL === undefined) p.marginL = '';
-    if (p.marginR === undefined) p.marginR = '';
-  });
-  if (state.pages.length === 0) state.pages.push(blankPage());
+    if (raw) store = JSON.parse(raw);
+  } catch (e) { store = { cells: {}, margins: {} }; }
+  if (!store || typeof store !== 'object') store = {};
+  if (!store.cells) store.cells = {};
+  if (!store.margins) store.margins = {};
 }
-
-function normalizeCol(col) {
-  const c = Array.isArray(col) ? col : [];
-  for (let i = 0; i < ROWS_PER_COL; i++) {
-    if (!c[i]) c[i] = blankRow();
-    else {
-      if (c[i].room === undefined) c[i].room = '';
-      if (c[i].name === undefined) c[i].name = '';
-      if (c[i].tx === undefined) c[i].tx = '';
-    }
-  }
-  return c.slice(0, ROWS_PER_COL);
-}
-
 function save() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 }
 
 function autoGrow(el) {
@@ -260,117 +242,101 @@ function autoGrow(el) {
   el.style.height = el.scrollHeight + 'px';
 }
 
-function esc(s) {
-  return (s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-function render() {
-  const container = document.getElementById('sheets');
-  const total = state.pages.length;
-
-  container.innerHTML = state.pages.map((page, pi) => {
-    const title = total > 1 ? `利用者別処置表（${pi + 1}／${total}）` : '利用者別処置表';
-    return `<div class="sheet">
-      <div class="sheet-head">
-        <div class="sheet-title">${title}</div>
-        ${total > 1 ? `<button class="sheet-del" onclick="removePage(${pi})">このページを削除</button>` : ''}
-      </div>
-      <div class="columns">
-        <div class="col">${colHtml(page.left, pi, 'left')}</div>
-        <div class="col">${colHtml(page.right, pi, 'right')}</div>
-      </div>
-      <div class="margin-row">
-        <div class="margin-cell">
-          <div class="margin-label">余白</div>
-          <textarea class="margin-area" data-pi="${pi}" data-margin="L"></textarea>
-        </div>
-        <div class="margin-cell">
-          <div class="margin-label">余白</div>
-          <textarea class="margin-area" data-pi="${pi}" data-margin="R"></textarea>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-
-  // 値の流し込み（特殊文字対策で value は DOM 経由）＋高さ調整
-  state.pages.forEach((page, pi) => {
-    ['left', 'right'].forEach(side => {
-      page[side].forEach((row, ri) => {
-        const base = `[data-pi="${pi}"][data-side="${side}"][data-ri="${ri}"]`;
-        const roomEl = container.querySelector(`${base}[data-field="room"]`);
-        const nameEl = container.querySelector(`${base}[data-field="name"]`);
-        const txEl   = container.querySelector(`${base}[data-field="tx"]`);
-        if (roomEl) roomEl.value = row.room || '';
-        if (nameEl) nameEl.value = row.name || '';
-        if (txEl)   { txEl.value = row.tx || ''; autoGrow(txEl); }
-      });
-    });
-    container.querySelectorAll(`.margin-area[data-pi="${pi}"]`).forEach(el => {
-      el.value = (el.getAttribute('data-margin') === 'L') ? page.marginL : page.marginR;
-      autoGrow(el);
-    });
-  });
-
-  bindEvents(container);
-}
-
-function colHtml(col, pi, side) {
-  let rows = '';
-  for (let ri = 0; ri < ROWS_PER_COL; ri++) {
-    const attr = `data-pi="${pi}" data-side="${side}" data-ri="${ri}"`;
-    rows += `<tr>
-        <td><input class="cell-input" type="text" ${attr} data-field="room"></td>
-        <td><input class="cell-input" type="text" ${attr} data-field="name"></td>
-        <td><textarea class="cell-area" rows="1" ${attr} data-field="tx"></textarea></td>
-      </tr>`;
+// 居室を、左右の床数合計が最も均等になる位置で2列に分割
+function splitRooms(rooms) {
+  const total = rooms.reduce((s, r) => s + r.beds, 0);
+  let best = rooms.length, bestDiff = Infinity, acc = 0;
+  for (let i = 0; i < rooms.length; i++) {
+    acc += rooms[i].beds;
+    const diff = Math.abs(acc - (total - acc));
+    if (diff < bestDiff) { bestDiff = diff; best = i + 1; }
   }
+  return [rooms.slice(0, best), rooms.slice(best)];
+}
+
+// 1列分のテーブルHTML（号室は rowspan で結合、居室ごとに区切り線）
+function colHtml(rooms) {
+  let body = '';
+  rooms.forEach(({ room, beds }) => {
+    for (let i = 0; i < beds; i++) {
+      const startCls = i === 0 ? ' class="room-start"' : '';
+      const roomTd = i === 0
+        ? `<td class="room-cell" rowspan="${beds}">${room}</td>`
+        : '';
+      body += `<tr${startCls}>
+          ${roomTd}
+          <td><input class="cell-input" type="text" data-room="${room}" data-ri="${i}" data-field="name"></td>
+          <td><textarea class="cell-area" rows="1" data-room="${room}" data-ri="${i}" data-field="tx"></textarea></td>
+        </tr>`;
+    }
+  });
   return `<table class="tx">
       <thead><tr>
         <th class="c-room">号室</th>
         <th class="c-name">名前</th>
         <th class="c-tx">処置</th>
       </tr></thead>
-      <tbody>${rows}</tbody>
+      <tbody>${body}</tbody>
     </table>`;
+}
+
+function sheetHtml(title, key, rooms) {
+  const [left, right] = splitRooms(rooms);
+  return `<div class="sheet">
+    <div class="sheet-title">利用者別処置表　${title}</div>
+    <div class="columns">
+      <div class="col">${colHtml(left)}</div>
+      <div class="col">${colHtml(right)}</div>
+    </div>
+    <div class="margin-row">
+      <div class="margin-cell">
+        <div class="margin-label">余白</div>
+        <textarea class="margin-area" data-margin="${key}-L"></textarea>
+      </div>
+      <div class="margin-cell">
+        <div class="margin-label">余白</div>
+        <textarea class="margin-area" data-margin="${key}-R"></textarea>
+      </div>
+    </div>
+  </div>`;
+}
+
+function render() {
+  const container = document.getElementById('sheets');
+  container.innerHTML =
+    sheetHtml('200番台（2階）', '200', FLOOR_200) +
+    sheetHtml('300番台（3階）', '300', FLOOR_300);
+
+  // 値の流し込み（特殊文字対策で value は DOM 経由）＋高さ調整
+  container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
+    const k = `${el.dataset.room}#${el.dataset.ri}#${el.dataset.field}`;
+    el.value = store.cells[k] || '';
+    if (el.tagName === 'TEXTAREA') autoGrow(el);
+  });
+  container.querySelectorAll('.margin-area').forEach(el => {
+    el.value = store.margins[el.dataset.margin] || '';
+    autoGrow(el);
+  });
+
+  bindEvents(container);
 }
 
 function bindEvents(container) {
   container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
     el.addEventListener('input', () => {
-      const pi = +el.dataset.pi, ri = +el.dataset.ri;
-      const side = el.dataset.side, field = el.dataset.field;
-      state.pages[pi][side][ri][field] = el.value;
+      const k = `${el.dataset.room}#${el.dataset.ri}#${el.dataset.field}`;
+      store.cells[k] = el.value;
       if (el.tagName === 'TEXTAREA') autoGrow(el);
       save();
     });
   });
   container.querySelectorAll('.margin-area').forEach(el => {
     el.addEventListener('input', () => {
-      const pi = +el.dataset.pi;
-      if (el.dataset.margin === 'L') state.pages[pi].marginL = el.value;
-      else state.pages[pi].marginR = el.value;
+      store.margins[el.dataset.margin] = el.value;
       autoGrow(el);
       save();
     });
   });
-}
-
-function addPage() {
-  state.pages.push(blankPage());
-  save();
-  render();
-}
-
-function removePage(pi) {
-  if (state.pages.length <= 1) return;
-  if (!confirm('このページを削除しますか？')) return;
-  state.pages.splice(pi, 1);
-  save();
-  render();
 }
 
 load();
