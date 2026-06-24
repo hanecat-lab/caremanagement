@@ -76,7 +76,7 @@
   /* 左右で行の高さを独立させるため、左右を別テーブルにして横並びにする */
   .columns {
     display: flex;
-    gap: 10px;
+    gap: 0;
     align-items: flex-start;
   }
   .col { flex: 1; min-width: 0; }
@@ -142,7 +142,7 @@
   .margin-row {
     margin-top: 10px;
     display: flex;
-    gap: 10px;
+    gap: 0;
   }
   .margin-cell {
     flex: 1;
@@ -301,11 +301,9 @@ function sheetHtml(title, key, rooms) {
     </div>
     <div class="margin-row">
       <div class="margin-cell">
-        <div class="margin-label">余白</div>
         <textarea class="margin-area" data-margin="${key}-L"></textarea>
       </div>
       <div class="margin-cell">
-        <div class="margin-label">余白</div>
         <textarea class="margin-area" data-margin="${key}-R"></textarea>
       </div>
     </div>
