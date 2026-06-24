@@ -992,6 +992,10 @@
       <input class="form-input" id="bandName" type="text" placeholder="バンド名・グループ名">
     </div>
     <div class="form-group">
+      <label class="form-label">読み仮名（任意）</label>
+      <input class="form-input" id="bandYomi" type="text" placeholder="ひらがな or カタカナ">
+    </div>
+    <div class="form-group">
       <label class="form-label">メモ</label>
       <textarea class="form-textarea" id="bandMemo" placeholder="活動拠点、好きな曲など..."></textarea>
     </div>
@@ -1179,6 +1183,7 @@ function loadDB() {
         if (!Array.isArray(b.category)) b.category = b.category ? [b.category] : ['バンド'];
         b.liveHistory = b.liveHistory || [];
         b.liveHistory.forEach(function(lv) { lv.venue = lv.venue || ''; });
+        b.yomi = b.yomi || '';
       });
       db.people.forEach(function(p){
         if (!p.group) p.group = 'その他';
@@ -1331,6 +1336,10 @@ function allTags() {
 function esc(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+function toHiragana(str) {
+  return (str||'').replace(/[ァ-ヶ]/g,function(ch){return String.fromCharCode(ch.charCodeAt(0)-0x60);});
+}
+function normalizeKana(str) { return toHiragana((str||'').toLowerCase()); }
 function formatInline(s) {
   return esc(s)
     .replace(/==([^=\n]+)==/g, '<mark class="memo-highlight">$1</mark>')
@@ -1670,10 +1679,11 @@ function onSearch() {
 function filteredRecs() {
   var recs = db.records.filter(function(r){ return (r.mode||'hobby') === curMode; });
   if (sf.kw) {
-    var kw = sf.kw.toLowerCase();
+    var kw = normalizeKana(sf.kw);
     recs = recs.filter(function(r){
-      return (r.memo||'').toLowerCase().indexOf(kw) >= 0 ||
-        (r.tags||[]).some(function(t){ return t.toLowerCase().indexOf(kw) >= 0; });
+      return normalizeKana(r.memo).indexOf(kw) >= 0 ||
+        normalizeKana(r.workTitle).indexOf(kw) >= 0 ||
+        (r.tags||[]).some(function(t){ return normalizeKana(t).indexOf(kw) >= 0; });
     });
   }
   if (sf.personIds.length) {
@@ -2370,8 +2380,8 @@ function renderBandList() {
   if (!c) return;
   var bands = db.bands;
   if (bandSearchText.trim()) {
-    var q = bandSearchText.trim().toLowerCase();
-    bands = bands.filter(function(b) { return b.name.toLowerCase().indexOf(q) >= 0; });
+    var q = normalizeKana(bandSearchText.trim());
+    bands = bands.filter(function(b) { return normalizeKana(b.name).indexOf(q) >= 0 || normalizeKana(b.yomi).indexOf(q) >= 0; });
   }
   if (!bands.length) {
     c.innerHTML = bandSearchText.trim()
@@ -2442,6 +2452,7 @@ function openAddBand() {
   editBandId = null; bandMemberSel = []; selBandLinks = []; bandCatSel = ['バンド']; bandMemberGroupFilter = 'all';
   document.getElementById('bandModalTitle').textContent = 'バンド/グループを追加';
   document.getElementById('bandName').value = '';
+  document.getElementById('bandYomi').value = '';
   document.getElementById('bandMemo').value = '';
   document.getElementById('delBandBtn').style.display = 'none';
   renderBandCatChips(); renderBandMemberGroupFilter(); renderBandMemberGrid(); renderBandLinkList();
@@ -2456,6 +2467,7 @@ function openEditBand(id) {
   selBandLinks = (band.links || []).map(function(lk) { return { label: lk.label || '', url: lk.url || '' }; });
   document.getElementById('bandModalTitle').textContent = 'バンド/グループを編集';
   document.getElementById('bandName').value = band.name;
+  document.getElementById('bandYomi').value = band.yomi || '';
   document.getElementById('bandMemo').value = band.memo || '';
   document.getElementById('delBandBtn').style.display = 'block';
   renderBandCatChips(); renderBandMemberGroupFilter(); renderBandMemberGrid(); renderBandLinkList();
@@ -2655,12 +2667,12 @@ function saveBand() {
   var cleanLinks = selBandLinks.filter(function(lk) { return lk.url.trim(); });
   if (editBandId) {
     var band = getBand(editBandId);
-    band.name = name; band.category = bandCatSel;
+    band.name = name; band.yomi = document.getElementById('bandYomi').value.trim(); band.category = bandCatSel;
     band.memo = document.getElementById('bandMemo').value.trim();
     band.memberIds = bandMemberSel.slice();
     band.links = cleanLinks; band.updatedAt = now;
   } else {
-    db.bands.push({ id: uid(), name: name, category: bandCatSel,
+    db.bands.push({ id: uid(), name: name, yomi: document.getElementById('bandYomi').value.trim(), category: bandCatSel,
       memo: document.getElementById('bandMemo').value.trim(),
       memberIds: bandMemberSel.slice(), links: cleanLinks, liveHistory: [], createdAt: now });
   }
