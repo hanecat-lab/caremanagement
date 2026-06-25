@@ -1913,8 +1913,12 @@ function renderPeopleList() {
     return;
   }
   var counts = {};
+  var seen = {};
   db.records.forEach(function(r){
-    (r.peopleIds||[]).forEach(function(pid){ counts[pid] = (counts[pid]||0) + 1; });
+    (r.peopleIds||[]).forEach(function(pid){
+      var key = pid + '|' + (r.date||'');
+      if (!seen[key]) { seen[key] = true; counts[pid] = (counts[pid]||0) + 1; }
+    });
   });
   c.innerHTML = sortedPeople(people, counts).map(function(p, i){
     var validLinks = (p.links||[]).filter(function(lk){ return lk.url; });
