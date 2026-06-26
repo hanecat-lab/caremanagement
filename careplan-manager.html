@@ -1355,6 +1355,7 @@
     </button>
 
     <div class="backup-section-label">📥 復元・インポート</div>
+    <div id="quick-restore-area"></div>
     <button class="btn-backup-import" onclick="document.getElementById('file-input-backup').click()">
       📂 バックアップファイルを選択（JSON）
     </button>
@@ -1378,6 +1379,7 @@
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="auto-backup-indicator" style="position:fixed;bottom:8px;right:8px;font-size:10px;color:var(--text-sub);background:rgba(255,255,255,0.85);padding:3px 8px;border-radius:10px;pointer-events:none;z-index:50;display:none;"></div>
 
 <script>
 const DOCS = ["ケアプラン", "担当者会議議事録", "チェックリスト", "支援経過"];
@@ -1673,6 +1675,13 @@ function exportData() {
   a.download = `careplan_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
+  // LocalStorageにもバックアップを保存
+  const backupKey = 'careplan_last_backup';
+  localStorage.setItem(backupKey, JSON.stringify({
+    data: residents,
+    date: new Date().toISOString().slice(0, 10),
+    count: residents.length
+  }));
   closeBackupModal();
   showToast('データを書き出しました');
 }
@@ -1733,7 +1742,62 @@ function openBackupModal() {
   residents.forEach(r => getMonthKeys(r).forEach(k => monthKeys.add(k)));
   document.getElementById('backup-stat-residents').textContent = residents.length;
   document.getElementById('backup-stat-rooms').textContent = monthKeys.size;
+
+  // クイック復元ボタンを表示
+  const area = document.getElementById('quick-restore-area');
+  const backupRaw = localStorage.getItem('careplan_last_backup');
+  if (backupRaw) {
+    try {
+      const backup = JSON.parse(backupRaw);
+      area.innerHTML = `
+        <button class="btn-backup-action" style="background:#e3f0e3;border:1px solid #5a8a5a;color:#2f6a2f;" onclick="quickRestore()">
+          ⚡ 前回のバックアップを復元（${backup.date}・${backup.count}名）
+        </button>
+      `;
+    } catch(e) { area.innerHTML = ''; }
+  } else {
+    area.innerHTML = '<div style="font-size:11px;color:var(--text-sub);margin-bottom:8px;">※ まず一度「JSONファイルに保存」するとクイック復元が使えます</div>';
+  }
+
   document.getElementById('backup-modal').classList.add('open');
+}
+
+function quickRestore() {
+  const backupRaw = localStorage.getItem('careplan_last_backup');
+  if (!backupRaw) { alert('バックアップが見つかりません'); return; }
+  try {
+    const backup = JSON.parse(backupRaw);
+    residents = backup.data;
+    // マイグレーション
+    residents.forEach(r => {
+      if (!r.meetings) r.meetings = [];
+      if (!r.longGoalStart) r.longGoalStart = '';
+      if (!r.longGoalEnd) r.longGoalEnd = '';
+      if (!r.meetingOffset) r.meetingOffset = 1;
+      if (r.assessment === undefined) r.assessment = '';
+      if (r.gender === undefined) r.gender = '';
+      if (r.careLevel === undefined) r.careLevel = '';
+      if (r.memo === undefined) r.memo = '';
+      if (r.infoOnly === undefined) r.infoOnly = false;
+      if (r.initial === undefined) r.initial = '';
+      if (r.assessmentDate === undefined) r.assessmentDate = '';
+      r.meetings.forEach(m => {
+        if (!m.shortGoalStart) m.shortGoalStart = '';
+        if (!m.shortGoalEnd) m.shortGoalEnd = '';
+        if (m.assessment === undefined) m.assessment = '';
+        m.docs.forEach(d => { if (d.created === undefined) d.created = false; });
+        ensureChecklistDoc(m);
+      });
+    });
+    save();
+    openCards = new Set();
+    openMeetings = {};
+    render();
+    closeBackupModal();
+    showToast(`${backup.date}のバックアップを復元しました`);
+  } catch(e) {
+    alert('復元に失敗しました');
+  }
 }
 
 function closeBackupModal() {
@@ -2564,6 +2628,15 @@ function updateAlert() {
     barU.style.display = 'flex';
     barU.innerHTML = `📋 ケアプラン未作成が ${totalU}件 あります<span class="arrow" style="color:#8a5a00;">›</span>`;
   }
+
+  const due = getMeetingDueResidents();
+  const barD = document.getElementById('alert-bar-meeting-due');
+  if (due.length === 0) {
+    barD.style.display = 'none';
+  } else {
+    barD.style.display = 'flex';
+    barD.innerHTML = `📅 次回会議の時期が ${due.length}名 います<span class="arrow" style="color:#2f6a2f;">›</span>`;
+  }
 }
 
 function openUncreatedModal() {
@@ -3237,6 +3310,10 @@ document.getElementById('unsaved-modal').addEventListener('click', function(e) {
   if (e.target === this) closeUnsavedModal();
 });
 
+document.getElementById('meeting-due-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeMeetingDueModal();
+});
+
 document.getElementById('modal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
@@ -3434,8 +3511,39 @@ document.getElementById('bed-detail-modal').addEventListener('click', function(e
   if (e.target === this) closeBedDetail();
 });
 
+function autoBackup() {
+  if (residents.length === 0) return;
+  try {
+    localStorage.setItem('careplan_last_backup', JSON.stringify({
+      data: residents,
+      date: new Date().toISOString().slice(0, 10),
+      count: residents.length
+    }));
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    const indicator = document.getElementById('auto-backup-indicator');
+    if (indicator) {
+      indicator.textContent = '🔄 自動保存 ' + hh + ':' + mm;
+      indicator.style.display = 'block';
+    }
+  } catch(e) {}
+}
+
+// 5分ごとに自動バックアップ
+setInterval(autoBackup, 5 * 60 * 1000);
+
+// 画面から離れるときにも保存（iOS Safari対応）
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') autoBackup();
+});
+window.addEventListener('pagehide', function() { autoBackup(); });
+window.addEventListener('blur', function() { autoBackup(); });
+
 load();
 render();
+// 起動時にも一度バックアップ
+setTimeout(autoBackup, 3000);
 </script>
 </body>
 </html>
