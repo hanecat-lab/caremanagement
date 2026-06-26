@@ -127,9 +127,9 @@
     text-align: center;
     padding: 4px 2px;
   }
-  .c-room { width: 6%; }    /* 3桁の数字 */
-  .c-name { width: 12%; }   /* 名前 */
-  .c-tx   { width: 82%; }   /* 処置を広く */
+  .c-room { width: 9%; }    /* 3桁が1行で並ぶ幅 */
+  .c-name { width: 18%; }   /* 約5文字 */
+  .c-tx   { width: 73%; }   /* 残り（処置） */
 
   /* 号室結合セル */
   td.room-cell {
@@ -139,7 +139,7 @@
     font-weight: 700;
     background: #faf8f4;
     padding: 2px;
-    word-break: break-all;
+    white-space: nowrap;
   }
   /* 居室の区切り線（各居室の先頭行の上罫線を太く） */
   tr.room-start > td { border-top: 2px solid var(--line-strong); }
