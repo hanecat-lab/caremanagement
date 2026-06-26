@@ -216,6 +216,9 @@
 <div class="toolbar">
   <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
   <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
+  <span style="width:1px;height:22px;background:var(--border);margin:0 4px;"></span>
+  <button class="btn secondary" id="day-weekday" onclick="setDay('weekday')">平日</button>
+  <button class="btn secondary" id="day-holiday" onclick="setDay('holiday')">休日</button>
   <button class="btn" onclick="window.print()">🖨 印刷</button>
   <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（フロアは切替でき、最後に開いたフロアで開きます・A4縦向き）</span>
 </div>
@@ -268,7 +271,17 @@ function load() {
   if (!store.margins) store.margins = {};
   if (!store.updated) store.updated = {};
   if (!FLOORS[store.activeFloor]) store.activeFloor = '200';
+  if (store.activeDay !== 'holiday') store.activeDay = 'weekday';
 }
+
+// 処置(tx)・余白・更新日は平日/休日で別管理。号室・名前は共有。
+// 既存データは接尾辞なし＝平日として保持される。
+function daySuffix() { return store.activeDay === 'holiday' ? '#H' : ''; }
+function cellKey(el) {
+  const base = `${el.dataset.room}#${el.dataset.ri}#${el.dataset.field}`;
+  return el.dataset.field === 'tx' ? base + daySuffix() : base;
+}
+function marginKey(el) { return el.dataset.margin + daySuffix(); }
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 }
@@ -289,13 +302,14 @@ function todayMD() {
   const d = new Date();
   return (d.getMonth() + 1) + '/' + d.getDate();
 }
-// タイトル横の更新日ラベル
+// タイトル横の更新日ラベル（平日/休日別）
 function labelFor(key) {
-  return store.updated[key] ? (store.updated[key] + ' 更新') : '未更新';
+  const u = store.updated[key + daySuffix()];
+  return u ? (u + ' 更新') : '未更新';
 }
 // 保存ボタン：更新日をスタンプ（データ自体は入力時に自動保存済み）
 function saveStamp() {
-  store.updated[store.activeFloor] = todayMD();
+  store.updated[store.activeFloor + daySuffix()] = todayMD();
   save();
   render();
 }
@@ -341,7 +355,7 @@ function colHtml(rooms) {
 function sheetHtml(title, key, rooms) {
   const [left, right] = splitRooms(rooms);
   return `<div class="sheet">
-    <div class="sheet-title">利用者別処置表　${title}<span class="title-updated">（${labelFor(key)}）</span></div>
+    <div class="sheet-title">利用者別処置表　${title}・${store.activeDay === 'holiday' ? '休日' : '平日'}<span class="title-updated">（${labelFor(key)}）</span></div>
     <div class="columns">
       <div class="col">${colHtml(left)}</div>
       <div class="col">${colHtml(right)}</div>
@@ -371,8 +385,23 @@ function updateFloorButtons() {
   });
 }
 
+function setDay(day) {
+  if (day !== 'weekday' && day !== 'holiday') return;
+  store.activeDay = day;
+  save();
+  render();
+}
+
+function updateDayButtons() {
+  ['weekday', 'holiday'].forEach(day => {
+    const btn = document.getElementById('day-' + day);
+    if (btn) btn.classList.toggle('secondary', day !== store.activeDay);
+  });
+}
+
 function render() {
   updateFloorButtons();
+  updateDayButtons();
   const container = document.getElementById('sheets');
   const { title, rooms } = FLOORS[store.activeFloor];
 
@@ -390,12 +419,11 @@ function render() {
 
   // 値の流し込み（特殊文字対策で value は DOM 経由）＋高さ調整
   container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
-    const k = `${el.dataset.room}#${el.dataset.ri}#${el.dataset.field}`;
-    el.value = store.cells[k] || '';
+    el.value = store.cells[cellKey(el)] || '';
     if (el.tagName === 'TEXTAREA') autoGrow(el);
   });
   container.querySelectorAll('.margin-area').forEach(el => {
-    el.value = store.margins[el.dataset.margin] || '';
+    el.value = store.margins[marginKey(el)] || '';
     autoGrow(el);
   });
 
@@ -405,15 +433,14 @@ function render() {
 function bindEvents(container) {
   container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
     el.addEventListener('input', () => {
-      const k = `${el.dataset.room}#${el.dataset.ri}#${el.dataset.field}`;
-      store.cells[k] = el.value;
+      store.cells[cellKey(el)] = el.value;
       if (el.tagName === 'TEXTAREA') autoGrow(el);
       save();
     });
   });
   container.querySelectorAll('.margin-area').forEach(el => {
     el.addEventListener('input', () => {
-      store.margins[el.dataset.margin] = el.value;
+      store.margins[marginKey(el)] = el.value;
       autoGrow(el);
       save();
     });
