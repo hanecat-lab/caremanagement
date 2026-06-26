@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>利用者別処置表</title>
+<style>
+  :root {
+    --bg: #f0ede8;
+    --panel: #ffffff;
+    --border: #ddd9d0;
+    --line: #999;
+    --line-strong: #555;
+    --text: #2c2a26;
+    --text-sub: #7a7568;
+    --accent: #3d6b8a;
+    --accent-light: #e8f0f5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .app-header {
+    background: var(--accent);
+    color: #fff;
+    padding: 12px 16px;
+  }
+  .app-header h1 { margin: 0; font-size: 18px; font-weight: 700; }
+
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+  .btn.secondary {
+    background: #fff;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .hint { font-size: 11px; color: var(--text-sub); }
+
+  .sheets { padding: 0 16px 24px; }
+
+  /* A4縦1ページぶんのページ箱（はみ出しは縮小で収める） */
+  .sheet {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    width: 194mm;           /* A4縦の本文幅 */
+    height: 281mm;          /* A4縦の本文高さ */
+    box-sizing: border-box;
+    overflow: hidden;       /* 収まらない分はscaleで縮小するので隠す */
+    margin: 0 auto 18px;
+    padding: 0;
+  }
+  /* 中身。内容が高いと render時に transform:scale で縮小して1ページに収める */
+  .fit {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4mm;
+    transform-origin: top center;
+  }
+  .sheet-title {
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .title-updated {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-sub);
+    margin-left: 8px;
+  }
+
+  .save-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    max-width: 194mm;
+    margin: 0 auto 8px;
+    padding: 0 16px;
+  }
+  .no-print { }
+
+  /* 左右で行の高さを独立させるため、左右を別テーブルにして横並びにする */
+  .columns {
+    display: flex;
+    gap: 0;
+    align-items: flex-start;
+  }
+  .col { flex: 1; min-width: 0; }
+
+  table.tx {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  table.tx th, table.tx td {
+    border: 1px solid var(--line);
+    padding: 0;
+    vertical-align: top;
+  }
+  table.tx th {
+    background: var(--accent-light);
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    padding: 4px 2px;
+  }
+  .c-room { width: 9%; }    /* 3桁が1行で並ぶ幅 */
+  .c-name { width: 18%; }   /* 約5文字 */
+  .c-tx   { width: 73%; }   /* 残り（処置） */
+
+  /* 号室結合セル */
+  td.room-cell {
+    text-align: center;
+    vertical-align: middle;
+    font-size: 13px;
+    font-weight: 700;
+    background: #faf8f4;
+    padding: 2px;
+    white-space: nowrap;
+  }
+  /* 居室の区切り線（各居室の先頭行の上罫線を太く） */
+  tr.room-start > td { border-top: 2px solid var(--line-strong); }
+
+  .cell-input, .cell-area {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    color: var(--text);
+    background: transparent;
+    padding: 4px 5px;
+  }
+  .cell-input {
+    font-size: 12px;
+    text-align: center;
+    height: 100%;
+  }
+  .cell-area {
+    font-size: 12px;
+    line-height: 1.4;
+    resize: none;
+    overflow: hidden;
+    min-height: 26px;
+    display: block;
+  }
+
+  .margin-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 0;
+  }
+  .margin-cell {
+    flex: 1;
+    border: 1px solid var(--line);
+    min-height: 40px;
+  }
+  .margin-label {
+    font-size: 10px;
+    color: var(--text-sub);
+    padding: 3px 5px 0;
+  }
+  .margin-area {
+    width: 100%;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow: hidden;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.5;
+    background: transparent;
+    padding: 2px 5px 5px;
+    min-height: 52px;
+    display: block;
+  }
+
+  @media print {
+    @page { size: A4 portrait; margin: 8mm; }
+    body { background: #fff; }
+    .app-header, .toolbar, .no-print { display: none !important; }
+    .sheets { padding: 0; }
+    .sheet {
+      border: none;
+      margin: 0;
+      page-break-after: avoid;
+    }
+    .cell-input, .cell-area, .margin-area { color: #000; }
+    /* 更新日も印刷する（はっきり黒で） */
+    .title-updated { color: #000 !important; }
+    /* インク節約：背景はすべて白で統一 */
+    table.tx th, td.room-cell { background: #fff !important; color: #000; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <h1>利用者別処置表</h1>
+</div>
+
+<div class="toolbar">
+  <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
+  <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
+  <span style="width:1px;height:22px;background:var(--border);margin:0 4px;"></span>
+  <button class="btn secondary" id="day-weekday" onclick="setDay('weekday')">平日</button>
+  <button class="btn secondary" id="day-holiday" onclick="setDay('holiday')">休日</button>
+  <button class="btn" onclick="window.print()">🖨 印刷</button>
+  <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（フロアは切替でき、最後に開いたフロアで開きます・A4縦向き）</span>
+</div>
+
+<div class="save-bar no-print">
+  <button class="btn" onclick="saveStamp()">💾 保存</button>
+  <span class="hint">保存を押すとタイトルに更新日（月/日）が反映されます（印刷されません）</span>
+</div>
+
+<div class="sheets" id="sheets"></div>
+
+<script>
+const STORAGE_KEY = 'treatment_table_v2';
+
+// ===== 居室定義（careplan-manager の buildFloorDef を移植）=====
+// 部屋番号に 4 または 9 を含む部屋は除外。ベッド数は末尾2桁で判定。
+// 実際の運用に合わせた個別の床数上書き
+const BED_OVERRIDES = { '306': 1, '307': 4 };
+function buildFloorDef(from, to) {
+  const rooms = [];
+  for (let n = from; n <= to; n++) {
+    const s = String(n);
+    if (s.includes('4') || s.includes('9')) continue;
+    const num = parseInt(s.slice(-2) || s);
+    let beds;
+    if (num === 7) beds = 1;
+    else if ((num >= 2 && num <= 6) || n === 316 || n === 301 || n === 212 || n === 213) beds = 2;
+    else beds = 4;
+    if (BED_OVERRIDES[s] !== undefined) beds = BED_OVERRIDES[s];
+    rooms.push({ room: String(n), beds });
+  }
+  return rooms;
+}
+const FLOOR_200 = buildFloorDef(201, 218);
+const FLOOR_300 = buildFloorDef(301, 316);
+
+// フロア切替用の定義
+const FLOORS = {
+  '200': { title: '2階', rooms: FLOOR_200 },
+  '300': { title: '3階', rooms: FLOOR_300 },
+};
+
+// ===== 保存データ（入力値のみ。構成は居室定義から毎回生成）=====
+let store = { cells: {}, margins: {} };
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) store = JSON.parse(raw);
+  } catch (e) { store = { cells: {}, margins: {} }; }
+  if (!store || typeof store !== 'object') store = {};
+  if (!store.cells) store.cells = {};
+  if (!store.margins) store.margins = {};
+  if (!store.updated) store.updated = {};
+  if (!FLOORS[store.activeFloor]) store.activeFloor = '200';
+  if (store.activeDay !== 'holiday') store.activeDay = 'weekday';
+}
+
+// 処置(tx)・余白・更新日は平日/休日で別管理。号室・名前は共有。
+// 既存データは接尾辞なし＝平日として保持される。
+function daySuffix() { return store.activeDay === 'holiday' ? '#H' : ''; }
+function cellKey(el) {
+  const base = `${el.dataset.room}#${el.dataset.ri}#${el.dataset.field}`;
+  return el.dataset.field === 'tx' ? base + daySuffix() : base;
+}
+function marginKey(el) { return el.dataset.margin + daySuffix(); }
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+}
+
+// 文字量に応じてセルを伸ばす（上限なし。全体は fitToPage で1ページに縮小）
+function autoGrow(el) {
+  el.style.height = 'auto';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+// 中身がA4縦1ページに収まるよう、はみ出す場合だけ全体を縮小（transform:scale）
+function fitToPage() {
+  const sheet = document.querySelector('.sheet');
+  const fit = sheet && sheet.querySelector('.fit');
+  if (!fit) return;
+  fit.style.transform = 'none';
+  const pageH = sheet.clientHeight;     // A4縦1ページの高さ(px)
+  const contentH = fit.scrollHeight;    // 中身の自然な高さ(px)
+  const scale = contentH > pageH ? (pageH / contentH) : 1;
+  fit.style.transform = `scale(${scale})`;
+}
+
+// 今日の日付（月/日）
+function todayMD() {
+  const d = new Date();
+  return (d.getMonth() + 1) + '/' + d.getDate();
+}
+// タイトル横の更新日ラベル（平日/休日別）
+function labelFor(key) {
+  const u = store.updated[key + daySuffix()];
+  return u ? (u + ' 更新') : '未更新';
+}
+// 保存ボタン：更新日をスタンプ（データ自体は入力時に自動保存済み）
+function saveStamp() {
+  store.updated[store.activeFloor + daySuffix()] = todayMD();
+  save();
+  render();
+}
+
+// 居室を、左右の床数合計が最も均等になる位置で2列に分割
+function splitRooms(rooms) {
+  const total = rooms.reduce((s, r) => s + r.beds, 0);
+  let best = rooms.length, bestDiff = Infinity, acc = 0;
+  for (let i = 0; i < rooms.length; i++) {
+    acc += rooms[i].beds;
+    const diff = Math.abs(acc - (total - acc));
+    if (diff < bestDiff) { bestDiff = diff; best = i + 1; }
+  }
+  return [rooms.slice(0, best), rooms.slice(best)];
+}
+
+// 1列分のテーブルHTML（号室は rowspan で結合、居室ごとに区切り線）
+function colHtml(rooms) {
+  let body = '';
+  rooms.forEach(({ room, beds }) => {
+    for (let i = 0; i < beds; i++) {
+      const startCls = i === 0 ? ' class="room-start"' : '';
+      const roomTd = i === 0
+        ? `<td class="room-cell" rowspan="${beds}">${room}</td>`
+        : '';
+      body += `<tr${startCls}>
+          ${roomTd}
+          <td><input class="cell-input" type="text" data-room="${room}" data-ri="${i}" data-field="name"></td>
+          <td><textarea class="cell-area" rows="1" data-room="${room}" data-ri="${i}" data-field="tx"></textarea></td>
+        </tr>`;
+    }
+  });
+  return `<table class="tx">
+      <thead><tr>
+        <th class="c-room">号室</th>
+        <th class="c-name">名前</th>
+        <th class="c-tx">処置</th>
+      </tr></thead>
+      <tbody>${body}</tbody>
+    </table>`;
+}
+
+function sheetHtml(title, key, rooms) {
+  const [left, right] = splitRooms(rooms);
+  return `<div class="sheet"><div class="fit">
+    <div class="sheet-title">利用者別処置表　${title}・${store.activeDay === 'holiday' ? '休日' : '平日'}<span class="title-updated">（${labelFor(key)}）</span></div>
+    <div class="columns">
+      <div class="col">${colHtml(left)}</div>
+      <div class="col">${colHtml(right)}</div>
+    </div>
+    <div class="margin-row">
+      <div class="margin-cell">
+        <textarea class="margin-area" data-margin="${key}-L"></textarea>
+      </div>
+      <div class="margin-cell">
+        <textarea class="margin-area" data-margin="${key}-R"></textarea>
+      </div>
+    </div>
+  </div></div>`;
+}
+
+function setFloor(key) {
+  if (!FLOORS[key]) return;
+  store.activeFloor = key;
+  save();
+  render();
+}
+
+function updateFloorButtons() {
+  Object.keys(FLOORS).forEach(key => {
+    const btn = document.getElementById('floor-' + key);
+    if (btn) btn.classList.toggle('secondary', key !== store.activeFloor);
+  });
+}
+
+function setDay(day) {
+  if (day !== 'weekday' && day !== 'holiday') return;
+  store.activeDay = day;
+  save();
+  render();
+}
+
+function updateDayButtons() {
+  ['weekday', 'holiday'].forEach(day => {
+    const btn = document.getElementById('day-' + day);
+    if (btn) btn.classList.toggle('secondary', day !== store.activeDay);
+  });
+}
+
+function render() {
+  updateFloorButtons();
+  updateDayButtons();
+  const container = document.getElementById('sheets');
+  const { title, rooms } = FLOORS[store.activeFloor];
+  container.innerHTML = sheetHtml(title, store.activeFloor, rooms);
+
+  // 値の流し込み（特殊文字対策で value は DOM 経由）＋高さ調整
+  container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
+    el.value = store.cells[cellKey(el)] || '';
+    if (el.tagName === 'TEXTAREA') autoGrow(el);
+  });
+  container.querySelectorAll('.margin-area').forEach(el => {
+    el.value = store.margins[marginKey(el)] || '';
+    autoGrow(el);
+  });
+
+  bindEvents(container);
+  fitToPage();
+}
+
+function bindEvents(container) {
+  container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
+    el.addEventListener('input', () => {
+      store.cells[cellKey(el)] = el.value;
+      if (el.tagName === 'TEXTAREA') autoGrow(el);
+      fitToPage();
+      save();
+    });
+  });
+  container.querySelectorAll('.margin-area').forEach(el => {
+    el.addEventListener('input', () => {
+      store.margins[marginKey(el)] = el.value;
+      autoGrow(el);
+      fitToPage();
+      save();
+    });
+  });
+}
+
+load();
+render();
+</script>
+</body>
+</html>
