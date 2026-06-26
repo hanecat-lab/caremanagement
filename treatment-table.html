@@ -127,9 +127,9 @@
     text-align: center;
     padding: 4px 2px;
   }
-  .c-room { width: 10%; }   /* 3桁の数字が入る程度 */
-  .c-name { width: 22%; }   /* 6文字程度 */
-  .c-tx   { width: 68%; }
+  .c-room { width: 6%; }    /* 3桁の数字 */
+  .c-name { width: 12%; }   /* 名前 */
+  .c-tx   { width: 82%; }   /* 処置を広く */
 
   /* 号室結合セル */
   td.room-cell {
@@ -208,6 +208,8 @@
       page-break-after: avoid;
     }
     .cell-input, .cell-area, .margin-area { color: #000; }
+    /* 更新日も印刷する（はっきり黒で） */
+    .title-updated { color: #000 !important; }
     /* インク節約：背景はすべて白で統一 */
     table.tx th, td.room-cell { background: #fff !important; color: #000; }
   }
@@ -241,6 +243,8 @@ const STORAGE_KEY = 'treatment_table_v2';
 
 // ===== 居室定義（careplan-manager の buildFloorDef を移植）=====
 // 部屋番号に 4 または 9 を含む部屋は除外。ベッド数は末尾2桁で判定。
+// 実際の運用に合わせた個別の床数上書き
+const BED_OVERRIDES = { '306': 1, '307': 4 };
 function buildFloorDef(from, to) {
   const rooms = [];
   for (let n = from; n <= to; n++) {
@@ -251,6 +255,7 @@ function buildFloorDef(from, to) {
     if (num === 7) beds = 1;
     else if ((num >= 2 && num <= 6) || n === 316 || n === 301 || n === 212 || n === 213) beds = 2;
     else beds = 4;
+    if (BED_OVERRIDES[s] !== undefined) beds = BED_OVERRIDES[s];
     rooms.push({ room: String(n), beds });
   }
   return rooms;
