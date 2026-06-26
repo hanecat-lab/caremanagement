@@ -1,0 +1,3072 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#4A6B8A">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Linkage</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <style>
+    /* ===== CSS VARIABLES ===== */
+    :root {
+      --primary: #4A6B8A;
+      --primary-dk: #3A5878;
+      --primary-lt: #DCE8F5;
+      --accent: #C4956A;
+      --bg: #DDE2EC;
+      --card: #F4EFE8;
+      --hdr: #E6EBF5;
+      --nav: #E6EBF5;
+      --tx: #2A2E3A;
+      --tx2: #5C6878;
+      --txm: #90A0B0;
+      --bd: #C4CDD8;
+      --sh: 0 1px 4px rgba(42,58,80,.08),0 1px 2px rgba(0,0,0,.04);
+      --sh-lg: 0 4px 20px rgba(42,58,80,.14),0 2px 8px rgba(0,0,0,.06);
+      --r: 18px;
+      --rm: 12px;
+      --rs: 8px;
+      --tag-bg: #DCE8F5;
+      --tag-cl: #4A6B8A;
+      --per-bg: #F5EAE0;
+      --per-cl: #9B5C38;
+    }
+    [data-theme="dark"] {
+      --primary: #7AAAC8;
+      --primary-dk: #6898B8;
+      --primary-lt: #182035;
+      --bg: #141A26;
+      --card: #1E2430;
+      --hdr: #181E2C;
+      --nav: #181E2C;
+      --tx: #D8E4F0;
+      --tx2: #8898B4;
+      --txm: #556070;
+      --bd: #262E3E;
+      --sh: 0 2px 12px rgba(0,0,0,.45),0 1px 4px rgba(0,0,0,.3);
+      --sh-lg: 0 6px 28px rgba(0,0,0,.6);
+      --tag-bg: #1A2535;
+      --tag-cl: #7AAAC8;
+      --per-bg: #2A1E14;
+      --per-cl: #D4A070;
+    }
+
+    /* ===== RESET ===== */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html{scroll-behavior:smooth;overscroll-behavior-y:none;background:var(--bg);}
+    body{
+      font-family:'Yu Mincho','YuMincho','游明朝','Hiragino Mincho ProN','Hiragino Mincho Pro','Times New Roman',serif;
+      background:var(--bg);color:var(--tx);overflow-x:hidden;
+      transition:background .3s,color .3s;
+      overscroll-behavior-y:none;
+    }
+    button{font-family:inherit;cursor:pointer}
+    input,textarea{font-family:inherit}
+    ::-webkit-scrollbar{width:4px}
+    ::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+
+    /* ===== HEADER ===== */
+    .app-header{
+      position:fixed;top:0;left:0;right:0;height:56px;
+      background:var(--hdr);border-bottom:1px solid var(--bd);
+      display:flex;align-items:center;padding:0 16px;z-index:90;
+      box-shadow:0 1px 8px rgba(0,0,0,.06);
+    }
+    .app-header h1{font-size:18px;font-weight:800;color:var(--primary);flex:1;letter-spacing:-.3px}
+    .hdr-actions{display:flex;gap:8px}
+    .icon-btn{
+      width:36px;height:36px;border:none;background:var(--primary-lt);color:var(--primary);
+      border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;
+      transition:transform .15s,opacity .2s;
+    }
+    .icon-btn:active{transform:scale(.9);opacity:.8}
+
+    /* ===== MAIN ===== */
+    .main-content{
+      margin-top:56px;
+      padding:14px 14px calc(64px + env(safe-area-inset-bottom,0px) + 14px);
+      max-width:620px;margin-left:auto;margin-right:auto;
+    }
+
+    /* ===== BOTTOM NAV ===== */
+    .bottom-nav{
+      position:fixed;bottom:0;left:0;right:0;height:64px;
+      background:var(--nav);border-top:1px solid var(--bd);
+      display:flex;justify-content:space-around;align-items:center;
+      padding-bottom:env(safe-area-inset-bottom,0);z-index:90;
+      box-shadow:0 -2px 12px rgba(0,0,0,.06);
+    }
+    .nav-item{
+      flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;
+      padding:8px 0;border:none;background:none;color:var(--txm);
+      transition:transform .15s,color .2s;
+    }
+    .nav-item.active{color:var(--primary)}
+    .nav-item:active{transform:scale(.9)}
+    .nav-icon{font-size:22px;line-height:1}
+    .nav-label{font-size:10px;font-weight:700}
+
+    /* ===== FAB ===== */
+    .fab{
+      position:fixed;right:20px;bottom:78px;
+      width:56px;height:56px;background:var(--primary);color:#fff;
+      border:none;border-radius:50%;font-size:26px;z-index:91;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 4px 20px rgba(74,107,138,.4);
+      transition:transform .2s,box-shadow .2s;
+    }
+    .fab:active{transform:scale(.92);box-shadow:0 2px 10px rgba(74,107,138,.25)}
+
+    /* ===== MEMO CARD ===== */
+    @keyframes fadeUp{
+      from{opacity:0;transform:translateY(10px)}
+      to{opacity:1;transform:translateY(0)}
+    }
+    .memo-card{
+      background:#FAF8F2;
+      border-radius:10px;
+      border:1px solid var(--bd);
+      border-left:4px solid var(--primary);
+    }
+    .memo-card.kotono-card{background:#FAF8F2;border-left-color:#B5922A;}
+    .memo-card{
+      box-shadow:0 1px 4px rgba(0,0,0,.05);
+      margin-bottom:10px;
+      overflow:hidden;
+      cursor:pointer;
+      animation:fadeUp .3s ease both;
+      transition:box-shadow .15s,transform .15s;
+    }
+    .memo-card:active{transform:scale(.99);box-shadow:0 1px 2px rgba(0,0,0,.04)}
+    .memo-date-bar{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:9px 12px 8px;
+      background:var(--bg);
+      border-bottom:1px solid var(--bd);
+    }
+    .memo-date-text{
+      font-size:13px;font-weight:700;color:var(--tx2);letter-spacing:.1px;
+    }
+    .memo-edit-btn{
+      width:28px;height:28px;border:none;background:none;
+      color:var(--txm);font-size:15px;line-height:1;
+      border-radius:6px;
+      display:flex;align-items:center;justify-content:center;
+      transition:background .15s,color .15s;flex-shrink:0;
+    }
+    .memo-edit-btn:active{background:var(--bd);color:var(--primary)}
+    .memo-body-area{padding:10px 12px 12px;}
+    .memo-people{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+    .memo-person-chip{
+      display:inline-flex;align-items:center;gap:3px;
+      font-size:12px;font-weight:600;
+      color:var(--per-cl);background:var(--per-bg);
+      padding:3px 9px;border-radius:20px;border:none;
+      transition:transform .15s;
+    }
+    .memo-person-chip:active{transform:scale(.93)}
+    .memo-text{
+      font-size:14px;line-height:1.85;color:var(--tx);
+      word-break:break-word;
+      margin-bottom:8px;
+    }
+    .memo-red{color:#D94040;font-style:normal;}
+    .memo-bold{font-weight:800;font-style:normal;}
+    .memo-blue{color:#7B35CC;font-style:normal;}
+    .memo-highlight{background:#FFF176;color:#333;border-radius:2px;padding:0 2px;}
+    .memo-heading{display:block;font-size:19px;font-weight:800;color:var(--tx);margin:5px 0 3px;}
+    .memo-underline{text-decoration:underline;text-underline-offset:3px;}
+    .memo-divider{display:block;border:none;border-top:2px dashed var(--bd);margin:5px 0;}
+    .memo-blank{height:1.4em;}
+    .people-sub-tabs{display:flex;gap:8px;margin:0 0 12px;}
+    .people-sub-tab{flex:1;padding:9px 0;border-radius:var(--rm);border:2px solid var(--bd);background:var(--card);color:var(--txm);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .people-sub-tab.active{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
+    .band-card{background:var(--card);border-radius:var(--rm);border:1px solid var(--bd);padding:14px;margin-bottom:10px;cursor:pointer;animation:fadeUp .3s both;}
+    .band-name{font-size:16px;font-weight:800;color:var(--tx);}
+    .band-cat-badge{display:inline-block;font-size:11px;font-weight:800;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:20px;}
+    .band-members-row{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+    .band-member-mini{font-size:12px;color:var(--txm);background:var(--bg);border:1px solid var(--bd);border-radius:20px;padding:2px 8px;}
+    .band-member-sel-grid{display:flex;flex-wrap:wrap;gap:8px;}
+    .band-member-chip{padding:8px 14px;border-radius:20px;border:2px solid var(--bd);background:var(--card);color:var(--tx);font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;}
+    .band-member-chip.sel{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
+    .band-empty{text-align:center;color:var(--txm);padding:40px 0;font-size:14px;line-height:2;}
+    .live-section{margin-top:14px;}
+    .live-section-hd{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 0;border-top:1px solid var(--bd);}
+    .live-section-title{font-size:13px;font-weight:800;color:var(--txm);}
+    .live-count-badge{font-size:11px;font-weight:800;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:20px;margin-left:6px;}
+    .live-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--bd);}
+    .live-row-date{font-size:12px;color:var(--txm);flex-shrink:0;min-width:70px;}
+    .live-row-title{flex:1;font-size:14px;color:var(--tx);font-weight:700;word-break:break-word;}
+    .live-row-del{color:var(--txm);font-size:18px;padding:0 4px;cursor:pointer;flex-shrink:0;line-height:1;}
+    .live-add-row{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap;}
+    .live-add-row .form-input{flex:1;min-width:80px;}
+    .memo-fmt-bar{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px;}
+    .memo-fmt-btn{
+      padding:5px 10px;border-radius:20px;border:1.5px solid var(--bd);
+      background:#FAF8F2;font-size:12px;font-weight:800;cursor:pointer;
+      transition:all .15s;white-space:nowrap;
+    }
+    .memo-fmt-btn.red{color:#D94040;border-color:#D94040;}
+    .memo-fmt-btn.bold{font-weight:900;color:var(--tx);}
+    .memo-fmt-btn.blue{color:#7B35CC;border-color:#7B35CC;}
+    .memo-fmt-btn.hl{color:#9A7500;border-color:#E8C840;background:#FFFDE7;}
+    .memo-fmt-btn.head{font-weight:900;color:var(--tx);}
+    .memo-fmt-btn.ul{text-decoration:underline;text-underline-offset:3px;color:var(--tx);}
+    .memo-fmt-btn.div{color:var(--txm);letter-spacing:-1px;}
+    .memo-work-title{
+      font-size:20px;font-weight:800;color:var(--tx);
+      word-break:break-word;margin-bottom:1em;line-height:1.4;
+    }
+    .memo-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:2.5em;}
+    .memo-tag-chip{
+      display:inline-flex;align-items:center;gap:1px;
+      font-size:12px;font-weight:600;
+      color:var(--tag-cl);
+      background:none;border:none;padding:0;
+      cursor:pointer;opacity:.85;transition:opacity .15s;
+    }
+    .memo-tag-chip:active{opacity:.5}
+    .memo-time-tag{
+      display:inline-block;font-size:11px;font-weight:800;
+      color:var(--primary);background:var(--primary-lt);
+      padding:2px 8px;border-radius:4px;margin-bottom:4px;
+    }
+    .memo-date-time{font-size:12px;font-weight:700;color:var(--primary);margin-left:6px;}
+
+    /* ===== TOOLBAR ===== */
+    .toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+    .sort-btn{
+      padding:6px 14px;border-radius:20px;border:2px solid var(--bd);
+      background:var(--card);color:var(--tx2);font-size:12px;font-weight:700;
+      transition:all .2s;
+    }
+    .sort-btn.active{border-color:var(--primary);background:var(--primary-lt);color:var(--primary)}
+    .count-badge{margin-left:auto;font-size:12px;color:var(--txm);font-weight:600}
+
+    /* ===== SEARCH ===== */
+    .search-input{
+      width:100%;padding:12px 16px;border-radius:var(--rm);
+      border:2px solid var(--bd);background:var(--card);
+      color:var(--tx);font-size:14px;outline:none;margin-bottom:12px;
+      transition:border-color .2s;
+    }
+    .search-input:focus{border-color:var(--primary)}
+    .filter-card{
+      background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+      padding:14px 16px;margin-bottom:12px;border:1px solid var(--bd);
+    }
+    .filter-title{font-size:11px;font-weight:800;color:var(--txm);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px}
+    .chip-row{display:flex;flex-wrap:wrap;gap:6px}
+    .filter-chip{
+      padding:6px 12px;border-radius:20px;border:2px solid var(--bd);
+      background:var(--card);color:var(--tx2);font-size:12px;font-weight:700;
+      transition:all .2s;
+    }
+    .filter-chip.active{border-color:var(--primary);background:var(--primary-lt);color:var(--primary)}
+    .date-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+    .date-tilde{color:var(--tx2);font-size:20px;font-weight:900;flex-shrink:0;line-height:1;}
+    .date-inp{
+      flex:1;padding:11px 8px;border-radius:10px;
+      border:2px solid var(--primary);background:var(--primary-lt);
+      color:var(--primary);font-size:13px;font-weight:700;
+      outline:none;text-align:center;transition:border-color .2s,box-shadow .2s;
+      min-width:0;
+    }
+    .date-inp:focus{border-color:var(--primary-dk);box-shadow:0 0 0 3px rgba(74,107,138,.15)}
+
+    /* ===== CALENDAR ===== */
+    .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .cal-month-title{font-size:18px;font-weight:800}
+    .cal-nav{
+      width:36px;height:36px;border:none;background:var(--primary-lt);color:var(--primary);
+      border-radius:10px;font-size:20px;font-weight:700;
+      display:flex;align-items:center;justify-content:center;transition:transform .15s;
+    }
+    .cal-nav:active{transform:scale(.9)}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+    .cal-dow{text-align:center;font-size:10px;font-weight:800;color:var(--txm);padding:4px 0;letter-spacing:.3px}
+    .cal-day{
+      aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      border-radius:10px;font-size:13px;font-weight:600;
+      position:relative;transition:background .15s,transform .15s;cursor:pointer;
+    }
+    .cal-day:active{transform:scale(.88)}
+    .cal-day.other{color:var(--txm);opacity:.35;pointer-events:none}
+    .cal-day.today{background:var(--primary-lt);color:var(--primary);font-weight:800}
+    .cal-day.has-rec::after{
+      content:'';position:absolute;bottom:3px;width:5px;height:5px;
+      background:var(--primary);border-radius:50%;
+    }
+    .cal-day.sel{background:var(--primary)!important;color:#fff!important}
+    .cal-day.sel::after{background:rgba(255,255,255,.75)}
+    .cal-sel-label{font-size:13px;font-weight:700;color:var(--tx2);margin:14px 0 10px}
+    .cal-day.has-live::before{content:'';position:absolute;top:3px;width:5px;height:5px;background:var(--accent);border-radius:50%;}
+    .cal-day.has-upcoming::after{content:'';position:absolute;bottom:3px;width:5px;height:5px;background:#4caf50;border-radius:50%;}
+    .cal-day.sel::before{background:rgba(255,255,255,.75)}
+    .live-event-bar{background:var(--card);border:1px solid var(--bd);border-radius:var(--rm);margin-bottom:10px;overflow:hidden;animation:fadeUp .3s both;}
+    .live-event-bar-hd{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;}
+    .live-event-icon{font-size:16px;flex-shrink:0;}
+    .live-event-title-lg{flex:1;font-size:15px;font-weight:800;color:var(--tx);}
+    .live-event-cnt{font-size:12px;font-weight:700;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:20px;flex-shrink:0;}
+    .live-event-arrow{color:var(--txm);font-size:12px;flex-shrink:0;}
+    .live-event-bands{border-top:1px solid var(--bd);padding:0 14px;}
+    .live-band-row{display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer;}
+    .live-band-row:last-child{border-bottom:none;}
+    .live-band-name{flex:1;font-size:14px;font-weight:700;color:var(--tx);}
+
+    /* ===== PEOPLE ===== */
+    .person-card{
+      background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+      padding:14px 16px;margin-bottom:10px;
+      display:flex;align-items:center;gap:12px;cursor:pointer;
+      border:1px solid var(--bd);transition:transform .15s,box-shadow .2s;
+      animation:fadeUp .25s ease both;
+    }
+    .person-card:active{transform:scale(.98)}
+    .p-icon{
+      width:46px;height:46px;border-radius:50%;background:var(--primary-lt);
+      display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;
+    }
+    .p-info{flex:1;min-width:0}
+    .p-name{font-size:15px;font-weight:800;margin-bottom:2px}
+    .p-memo{font-size:12px;color:var(--txm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .p-count{
+      font-size:11px;font-weight:800;color:var(--primary);
+      background:var(--primary-lt);padding:4px 10px;border-radius:20px;flex-shrink:0;
+    }
+    .p-sns{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+    .p-sns-link{text-decoration:none;font-size:16px}
+    .p-group-badge{display:inline-block;font-size:11px;font-weight:800;background:var(--primary-lt);color:var(--primary);padding:2px 8px;border-radius:20px;}
+    .p-contact-row{display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;}
+    .p-last-contact{font-size:11px;color:var(--txm);font-weight:600;}
+    .p-count-badge{font-size:11px;font-weight:800;color:var(--primary);background:var(--primary-lt);padding:2px 8px;border-radius:20px;}
+    .p-icon-wrap{position:relative;flex-shrink:0;}
+    .gender-badge{
+      position:absolute;bottom:-3px;right:-3px;
+      font-size:13px;line-height:1;background:var(--card);
+      border-radius:50%;padding:1px;
+    }
+    .gender-sel{display:flex;gap:7px;flex-wrap:wrap;margin-top:2px;}
+    .gender-opt{
+      padding:7px 14px;border-radius:20px;border:2px solid var(--bd);
+      background:var(--card);color:var(--tx2);font-size:13px;font-weight:700;
+      transition:all .15s;
+    }
+    .gender-opt.sel{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
+
+    /* ===== MEMO FULLSCREEN ===== */
+    .memo-fs-overlay{
+      position:fixed;top:0;left:0;right:0;height:100%;background:var(--bg);z-index:500;
+      display:flex;flex-direction:column;
+      transform:translateY(100%);transition:transform .28s cubic-bezier(.32,.72,0,1);
+    }
+    .memo-fs-overlay.open{transform:translateY(0);}
+    .memo-fs-header{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 16px;border-bottom:1px solid var(--bd);flex-shrink:0;
+    }
+    .memo-fs-title{font-size:15px;font-weight:800;color:var(--tx);}
+    .memo-fs-done{
+      padding:7px 20px;border-radius:20px;background:var(--primary);
+      color:#fff;border:none;font-size:14px;font-weight:800;
+    }
+    .memo-fs-textarea{
+      flex:1;padding:16px;border:none;outline:none;resize:none;
+      font-size:16px;line-height:1.75;background:#FAF8F2;color:var(--tx);
+      width:100%;box-sizing:border-box;font-family:inherit;
+    }
+
+    /* ===== MODAL ===== */
+    .modal-overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,.55);
+      backdrop-filter:blur(3px);z-index:200;
+      display:flex;align-items:flex-end;
+      opacity:0;pointer-events:none;transition:opacity .25s ease;
+    }
+    .modal-overlay.open{opacity:1;pointer-events:all}
+    .modal{
+      background:var(--bg);border-radius:var(--r) var(--r) 0 0;
+      width:100%;max-height:93vh;overflow-y:auto;
+      padding:0 20px 40px;
+      transform:translateY(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);
+    }
+    .modal-overlay.open .modal{transform:translateY(0)}
+    .modal-handle{width:40px;height:4px;background:var(--bd);border-radius:2px;margin:12px auto 18px}
+    .modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    .modal-title{font-size:18px;font-weight:800}
+    .close-btn{
+      width:32px;height:32px;border:none;background:var(--bd);
+      color:var(--txm);border-radius:50%;font-size:18px;
+      display:flex;align-items:center;justify-content:center;transition:transform .15s;
+    }
+    .close-btn:active{transform:scale(.9)}
+
+    /* ===== FORM ===== */
+    .form-group{margin-bottom:18px}
+    .form-label{
+      display:block;font-size:11px;font-weight:800;color:var(--txm);
+      text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px;
+    }
+    .form-input{
+      width:100%;padding:12px 14px;border-radius:var(--rm);
+      border:2px solid var(--bd);background:#FAF8F2;color:var(--tx);
+      font-size:15px;outline:none;transition:border-color .2s;
+    }
+    .form-input:focus{border-color:var(--primary)}
+    .form-textarea{
+      width:100%;padding:12px 14px;border-radius:var(--rm);
+      border:2px solid var(--bd);background:#FAF8F2;color:var(--tx);
+      font-size:15px;outline:none;transition:border-color .2s;
+      resize:vertical;min-height:80px;line-height:1.65;
+    }
+    .form-textarea:focus{border-color:var(--primary)}
+    /* Memo-app ruled textarea */
+    .memo-textarea{
+      font-size:15px;line-height:28px;
+      padding-top:8px;padding-bottom:8px;
+      background-image:repeating-linear-gradient(
+        to bottom,
+        transparent,
+        transparent 27px,
+        var(--bd) 27px,
+        var(--bd) 28px
+      );
+      background-attachment:local;
+    }
+
+    /* Tag input */
+    .tag-field{
+      border:2px solid var(--bd);border-radius:var(--rm);
+      background:#FAF8F2;padding:8px;display:flex;flex-wrap:wrap;
+      gap:6px;min-height:50px;cursor:text;transition:border-color .2s;
+    }
+    .tag-field:focus-within{border-color:var(--primary)}
+    .ti-chip{
+      display:inline-flex;align-items:center;gap:4px;
+      background:var(--tag-bg);color:var(--tag-cl);
+      padding:4px 10px;border-radius:20px;font-size:12px;font-weight:800;
+    }
+    .ti-chip button{border:none;background:none;color:inherit;font-size:15px;line-height:1;opacity:.7;padding:0}
+    .ti-text{
+      border:none;background:none;outline:none;font-size:14px;
+      color:var(--tx);flex:1;min-width:80px;padding:4px;
+    }
+
+    /* Person select */
+    .psel-filters{margin-bottom:8px;}
+    .psel-filter-toggle{background:none;border:none;color:var(--txm);font-size:11px;font-weight:800;padding:2px 0 4px;cursor:pointer;}
+    .psel-filter-toggle.on{color:var(--primary);}
+    .psel-filter-row{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px;}
+    .psel-filter-chip{
+      padding:3px 10px;border-radius:20px;border:1.5px solid var(--bd);
+      background:var(--card);color:var(--tx2);font-size:11px;font-weight:800;
+      transition:all .15s;
+    }
+    .psel-filter-chip.active{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
+    .psel-row{display:flex;flex-wrap:wrap;gap:8px}
+    .psel-chip{
+      padding:8px 14px;border-radius:20px;border:2px solid var(--bd);
+      background:var(--card);color:var(--tx2);font-size:13px;font-weight:700;
+      transition:all .2s;
+    }
+    .psel-chip.sel{border-color:var(--per-cl);background:var(--per-bg);color:var(--per-cl)}
+    .add-per-btn{
+      margin-top:8px;padding:7px 14px;border-radius:20px;
+      border:none;background:var(--primary-lt);color:var(--primary);
+      font-size:12px;font-weight:800;display:inline-block;
+    }
+    .add-per-btn:active{opacity:.8}
+
+    /* Icon picker */
+    .icon-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+    .icon-opt{
+      width:44px;height:44px;border:2px solid var(--bd);border-radius:10px;
+      background:var(--bg);font-size:22px;
+      display:flex;align-items:center;justify-content:center;transition:all .15s;
+    }
+    .icon-opt.sel{border-color:var(--primary);background:var(--primary-lt)}
+    .icon-opt:active{transform:scale(.88)}
+
+    /* ===== LINK INPUT ===== */
+    .link-list{display:flex;flex-direction:column;gap:8px}
+    .link-row{display:flex;gap:6px;align-items:center}
+    .link-label-inp{
+      width:88px;flex-shrink:0;padding:10px 10px;border-radius:var(--rs);
+      border:2px solid var(--bd);background:var(--bg);color:var(--tx);
+      font-size:13px;outline:none;transition:border-color .2s;
+    }
+    .link-label-inp:focus{border-color:var(--primary)}
+    .link-url-inp{
+      flex:1;padding:10px 12px;border-radius:var(--rs);
+      border:2px solid var(--bd);background:var(--bg);color:var(--tx);
+      font-size:13px;outline:none;transition:border-color .2s;min-width:0;
+    }
+    .link-url-inp:focus{border-color:var(--primary)}
+    .link-del-btn{
+      width:30px;height:30px;flex-shrink:0;border:none;background:none;
+      color:#E03030;font-size:18px;border-radius:6px;
+      display:flex;align-items:center;justify-content:center;
+      transition:background .15s;
+    }
+    .link-del-btn:active{background:rgba(224,48,48,.1)}
+    .add-link-btn{
+      margin-top:6px;padding:8px 14px;border-radius:20px;border:none;
+      background:var(--primary-lt);color:var(--primary);font-size:12px;font-weight:800;
+      transition:opacity .15s;
+    }
+    .add-link-btn:active{opacity:.7}
+    .band-link-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+    .band-link-chip{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;background:var(--primary-lt);color:var(--primary);font-size:11px;font-weight:700;text-decoration:none;border:1.5px solid transparent;transition:opacity .15s;}
+    .band-link-chip:active{opacity:.7}
+
+    /* ===== PERSON DETAIL LINKS ===== */
+    .pd-links{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:4px 0 16px}
+    .pd-link-chip{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:8px 16px;border-radius:20px;
+      background:var(--primary-lt);color:var(--primary);
+      font-size:13px;font-weight:700;text-decoration:none;
+      border:2px solid transparent;transition:border-color .15s,transform .15s;
+    }
+    .pd-link-chip:active{transform:scale(.95);border-color:var(--primary)}
+
+    /* Buttons */
+    .btn-primary{
+      width:100%;padding:15px;background:var(--primary);color:#fff;
+      border:none;border-radius:var(--rm);font-size:16px;font-weight:800;
+      box-shadow:0 4px 16px rgba(74,107,138,.3);transition:transform .15s,box-shadow .2s;
+      margin-top:6px;
+    }
+    .btn-primary:active{transform:scale(.97);box-shadow:0 2px 8px rgba(74,107,138,.18)}
+    .btn-danger{
+      width:100%;padding:13px;background:transparent;color:#E03030;
+      border:2px solid #E03030;border-radius:var(--rm);font-size:14px;font-weight:800;
+      margin-top:8px;transition:transform .15s,background .2s;
+    }
+    .btn-danger:active{transform:scale(.97);background:rgba(224,48,48,.06)}
+    .btn-sec{
+      padding:10px;background:var(--primary-lt);color:var(--primary);
+      border:none;border-radius:var(--rs);font-size:13px;font-weight:800;
+      transition:transform .15s;
+    }
+    .btn-sec:active{transform:scale(.95)}
+    .btn-pri{
+      padding:8px 16px;background:var(--primary);color:#fff;
+      border:none;border-radius:var(--rs);font-size:13px;font-weight:800;
+      transition:transform .15s,opacity .2s;
+    }
+    .btn-pri:active{transform:scale(.95);opacity:.9}
+    .icon-btn-danger{
+      width:36px;height:36px;border:none;
+      background:rgba(224,48,48,.1);color:#E03030;
+      border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;
+      transition:transform .15s,opacity .2s;
+    }
+    .icon-btn-danger:active{transform:scale(.9);opacity:.8}
+
+    /* ===== PERSON DETAIL ===== */
+    .pd-header{text-align:center;padding:20px 0 16px}
+    .pd-icon{
+      width:72px;height:72px;border-radius:50%;background:var(--primary-lt);
+      display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 12px;
+    }
+    .pd-name{font-size:22px;font-weight:800;margin-bottom:4px}
+    .pd-memo{font-size:13px;color:var(--txm);margin-bottom:8px}
+    .pd-stats{display:flex;justify-content:center;gap:28px;margin:10px 0}
+    .stat{text-align:center}
+    .stat-n{font-size:26px;font-weight:800;color:var(--primary);line-height:1}
+    .stat-l{font-size:11px;color:var(--txm);margin-top:2px}
+
+    /* ===== CONTEXT MENU ===== */
+    .ctx-menu{
+      position:fixed;background:var(--card);border-radius:var(--rm);
+      box-shadow:var(--sh-lg);border:1px solid var(--bd);
+      z-index:400;min-width:140px;overflow:hidden;
+      opacity:0;transform:scale(.88);pointer-events:none;
+      transition:opacity .15s,transform .15s;transform-origin:top right;
+    }
+    .ctx-menu.open{opacity:1;transform:scale(1);pointer-events:all}
+    .ctx-item{
+      padding:12px 16px;font-size:14px;font-weight:600;
+      display:flex;align-items:center;gap:10px;
+      transition:background .15s;border:none;
+      background:none;width:100%;text-align:left;color:var(--tx);
+    }
+    .ctx-item:active{background:var(--bd)}
+    .ctx-item.danger{color:#E03030}
+
+    /* ===== DATA MODAL ===== */
+    .data-sec{background:var(--bg);border-radius:var(--rm);padding:14px;margin-bottom:12px}
+    .data-sec-title{font-size:12px;font-weight:800;color:var(--tx2);margin-bottom:10px}
+    .data-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .data-note{font-size:11px;color:var(--txm);margin-bottom:10px;line-height:1.6;}
+
+    /* ===== TAG SUGGESTIONS ===== */
+    .tag-suggest-toggle{
+      background:none;border:none;color:var(--txm);
+      font-size:11px;font-weight:700;padding:7px 0 2px;
+      cursor:pointer;letter-spacing:.3px;transition:color .15s;
+      display:block;
+    }
+    .tag-suggest-toggle:active{color:var(--primary)}
+    .tag-suggest-list{
+      display:flex;flex-wrap:wrap;gap:5px;padding:4px 0 2px;
+    }
+    .tag-sug-chip{
+      display:inline-flex;align-items:center;
+      font-size:12px;font-weight:700;
+      padding:4px 10px;border-radius:4px;
+      background:var(--bg);color:var(--tx2);
+      border:1px solid var(--bd);cursor:pointer;
+      transition:background .15s,color .15s,border-color .15s;
+    }
+    .tag-sug-chip:active{background:var(--primary-lt);color:var(--primary);border-color:var(--primary)}
+    .tag-sug-chip.used{opacity:.35;pointer-events:none;}
+
+    /* ===== DATE SEPARATOR ===== */
+    .date-sep{
+      display:flex;align-items:center;gap:10px;
+      margin:18px 0 8px;
+      color:var(--tx2);font-size:13px;font-weight:700;letter-spacing:.2px;
+    }
+    .date-sep:first-child{margin-top:4px}
+    .date-sep::before,.date-sep::after{
+      content:'';flex:1;height:1px;background:var(--bd);
+    }
+    .memo-card.no-datebar .memo-date-bar{display:none}
+
+    /* ===== EMPTY STATE ===== */
+    .empty{text-align:center;padding:56px 20px;color:var(--txm)}
+    .empty-icon{font-size:48px;margin-bottom:12px}
+    .empty p{font-size:14px;line-height:1.7}
+
+    /* ===== TOAST ===== */
+    .toast{
+      position:fixed;bottom:86px;left:50%;
+      transform:translateX(-50%) translateY(10px);
+      background:var(--tx);color:var(--card);
+      padding:9px 20px;border-radius:20px;font-size:13px;font-weight:700;
+      z-index:600;opacity:0;transition:opacity .2s,transform .2s;
+      pointer-events:none;white-space:nowrap;
+    }
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    /* ===== SCROLL TOP ===== */
+    .scroll-top{
+      position:fixed;bottom:142px;right:20px;
+      width:38px;height:38px;background:var(--card);
+      border:1px solid var(--bd);border-radius:50%;font-size:16px;
+      box-shadow:var(--sh);z-index:89;color:var(--tx2);
+      display:none;align-items:center;justify-content:center;transition:transform .15s;
+    }
+    .scroll-top.vis{display:flex}
+    .scroll-top:active{transform:scale(.9)}
+
+    /* ===== MODE TABS ===== */
+    .mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;background:var(--card);padding:10px 12px;border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bd);}
+    .mode-tab{flex:1;padding:8px 0;border-radius:20px;border:2px solid var(--bd);background:var(--card);color:var(--tx2);font-size:13px;font-weight:700;transition:all .2s;}
+    .mode-tab.active{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
+    .mode-tab:active{transform:scale(.95)}
+    #modeTabKotono.active{border-color:transparent;border-bottom:2.5px solid #B5922A;background:#FAF8F2;color:#B5922A;}
+    #modeTabWork.active{border-color:#4A7B6F;background:#F0F5F3;color:#4A7B6F;}
+    .memo-card.work-card{background:#F0F5F3;border-left-color:#4A7B6F;}
+    #workDetailModal .modal{background:#F0F5F3;}
+    .work-type-sel{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;}
+    .work-type-chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--bd);background:#FAF8F2;color:var(--tx2);font-size:13px;font-weight:700;transition:all .15s;cursor:pointer;}
+    .work-type-chip.sel{border-color:#4A7B6F;background:#F0F5F3;color:#4A7B6F;}
+    .work-type-badge{display:inline-block;font-size:11px;font-weight:800;color:#4A7B6F;background:#F0F5F3;padding:2px 8px;border-radius:4px;margin-bottom:6px;border:1px solid rgba(74,123,111,.3);}
+    .work-title-row{display:flex;align-items:center;gap:8px;padding:10px 4px;border-bottom:1px solid var(--bd);cursor:pointer;}
+    .work-title-row:active{background:var(--card);}
+    .work-title-date{font-size:11px;color:var(--txm);flex-shrink:0;width:5.5em;}
+    .work-title-text{flex:1;font-size:14px;font-weight:700;color:var(--tx);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+
+    /* ===== VIEWS ===== */
+    .view{display:none}
+    .view.active{display:block}
+
+    /* ===== RESPONSIVE ===== */
+    @media(min-width:640px){
+      .main-content{padding:20px}
+      .modal{max-width:580px;margin:auto 0;border-radius:var(--r)}
+      .modal-overlay{align-items:center}
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="app-header" id="appHeader">
+  <h1 id="headerTitle">📝 Linkage</h1>
+  <div class="hdr-actions">
+    <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="テーマ切替">🌙</button>
+    <button class="icon-btn" onclick="openModal('dataModal')" title="データ管理">💾</button>
+  </div>
+</header>
+
+<!-- MAIN -->
+<main class="main-content">
+
+  <!-- MODE TABS -->
+  <div class="mode-tabs" id="modeTabs">
+    <button class="mode-tab active" id="modeTabHobby" onclick="setMode('hobby')">趣味</button>
+    <button class="mode-tab" id="modeTabQuick" onclick="setMode('quick')">一言メモ</button>
+    <button class="mode-tab" id="modeTabWork" onclick="setMode('work')">仕事メモ</button>
+    <button class="mode-tab" id="modeTabKotono" onclick="setMode('kotono')">言の葉</button>
+  </div>
+
+  <!-- HOME -->
+  <div class="view active" id="viewHome">
+    <div class="toolbar">
+      <button class="sort-btn active" id="sortNewest" onclick="setSort('newest')">新しい順</button>
+      <button class="sort-btn" id="sortOldest" onclick="setSort('oldest')">古い順</button>
+      <span class="count-badge" id="homeCount"></span>
+      <div id="workViewToggle" style="display:none;gap:4px;margin-left:4px;">
+        <button class="sort-btn active" id="workViewCard" onclick="setWorkViewMode('card')">カード</button>
+        <button class="sort-btn" id="workViewList" onclick="setWorkViewMode('list')">一覧</button>
+      </div>
+    </div>
+    <div id="timeline"></div>
+  </div>
+
+  <!-- SEARCH -->
+  <div class="view" id="viewSearch">
+    <input class="search-input" id="searchKw" type="text" placeholder="🔍 キーワードで検索..." oninput="onSearch()">
+    <div id="searchCountKw" style="font-size:11px;color:var(--txm);font-weight:700;padding:2px 4px 6px;"></div>
+    <div class="filter-card" id="personFilterCard">
+      <div class="filter-title">👤 人物</div>
+      <div id="personFilterRows"></div>
+      <div id="personPeopleToggle"></div>
+      <div id="personPeopleWrap" style="display:none;">
+        <div class="chip-row" id="personFilterChips"></div>
+      </div>
+    </div>
+    <div class="filter-card" id="tagFilterCard">
+      <div class="filter-title">🏷️ タグ</div>
+      <div class="chip-row" id="tagFilterChips"></div>
+    </div>
+    <div class="filter-card">
+      <div class="filter-title">📅 日付範囲</div>
+      <div class="date-row">
+        <input class="date-inp" id="dateFrom" type="date" onchange="onSearch()">
+        <span class="date-tilde">〜</span>
+        <input class="date-inp" id="dateTo" type="date" onchange="onSearch()">
+      </div>
+    </div>
+    <div class="toolbar" style="margin-top:4px;">
+      <span class="count-badge" id="searchCount" style="margin-left:0;"></span>
+    </div>
+    <div id="searchResults"></div>
+  </div>
+
+  <!-- CALENDAR -->
+  <div class="view" id="viewCalendar">
+    <div class="filter-card">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="calPrev()">&#8249;</button>
+        <span class="cal-month-title" id="calMonthLabel"></span>
+        <button class="cal-nav" onclick="calNext()">&#8250;</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+    <div class="cal-sel-label" id="calSelLabel">日付を選択してください</div>
+    <div id="calDayRecords"></div>
+  </div>
+
+  <!-- PEOPLE -->
+  <div class="view" id="viewPeople">
+    <div class="people-sub-tabs">
+      <button class="people-sub-tab active" id="peopleSubPerson" onclick="setPeopleSub('person')">人物</button>
+      <button class="people-sub-tab" id="peopleSubBand" onclick="setPeopleSub('band')">バンド/グループ</button>
+    </div>
+    <div id="peoplePersonView">
+      <div class="filter-card" style="margin-bottom:10px;">
+        <div class="filter-title" style="display:flex;align-items:center;justify-content:space-between;">👥 グループ<button class="icon-btn" style="font-size:14px;padding:2px 6px;" onclick="renderGroupEditList();openModal('groupEditModal')" title="グループを編集">✏️</button></div>
+        <div class="chip-row" id="groupFilterChips"></div>
+      </div>
+      <div class="filter-card" style="margin-bottom:10px;">
+        <div class="filter-title">性別</div>
+        <div class="chip-row" id="genderFilterChips"></div>
+      </div>
+      <div class="toolbar" style="margin-bottom:12px;">
+        <button class="sort-btn active" id="pSortContact" onclick="setPersonSort('contact')">接触↓</button>
+        <button class="sort-btn" id="pSortName" onclick="setPersonSort('name')">名前順</button>
+        <button class="sort-btn" id="pSortCount" onclick="setPersonSort('count')">累計↓</button>
+        <span class="count-badge" id="peopleCount"></span>
+      </div>
+      <div id="peopleList"></div>
+    </div>
+    <div id="peopleBandView" style="display:none">
+      <div style="display:flex;gap:6px;margin-bottom:12px;">
+        <button class="people-sub-tab active" id="bandViewTabBands" onclick="setBandViewMode('bands')">バンド一覧</button>
+        <button class="people-sub-tab" id="bandViewTabEvents" onclick="setBandViewMode('events')">イベント一覧</button>
+      </div>
+      <div id="bandImportButtons" style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="btn-sec" style="flex:1;" onclick="pasteImportFromClipboard()">📋 クリップボードから取り込み</button>
+        <button class="btn-sec" style="flex:1;" onclick="openBandTextImport()">✏️ 手動で入力</button>
+      </div>
+      <div id="bandSearchWrap" style="margin-bottom:10px;">
+        <input class="search-input" id="bandSearchInput" placeholder="バンド名を検索..." oninput="onBandSearch(this.value)">
+      </div>
+      <div id="bandListEl"></div>
+      <div id="eventListEl" style="display:none"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="navHome" onclick="showView('home')">
+    <span class="nav-icon">🏠</span>
+    <span class="nav-label">ホーム</span>
+  </button>
+  <button class="nav-item" id="navSearch" onclick="showView('search')">
+    <span class="nav-icon">🔍</span>
+    <span class="nav-label">検索</span>
+  </button>
+  <button class="nav-item" id="navCalendar" onclick="showView('calendar')">
+    <span class="nav-icon">📅</span>
+    <span class="nav-label">カレンダー</span>
+  </button>
+  <button class="nav-item" id="navPeople" onclick="showView('people')">
+    <span class="nav-icon">👥</span>
+    <span class="nav-label">人物</span>
+  </button>
+</nav>
+
+<!-- FAB -->
+<button class="fab" id="fab" onclick="openAddRecord()">＋</button>
+
+<!-- SCROLL TOP -->
+<button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- CONTEXT MENU -->
+<div class="ctx-menu" id="ctxMenu">
+  <button class="ctx-item" onclick="ctxEdit()">✏️ 編集</button>
+  <button class="ctx-item danger" onclick="ctxDelete()">🗑️ 削除</button>
+</div>
+
+<!-- RECORD MODAL -->
+<div class="modal-overlay" id="recordModal" onclick="overlayClose(event,'recordModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title" id="recModalTitle">記録を追加</span>
+      <button class="close-btn" onclick="closeModal('recordModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">📅 日付</label>
+      <input class="form-input" id="recDate" type="date">
+    </div>
+    <div class="form-group" id="recTimeGroup" style="display:none;">
+      <label class="form-label">⏰ 時刻</label>
+      <input class="form-input" id="recTime" type="time">
+    </div>
+    <div class="form-group" id="recWorkTitleGroup" style="display:none;">
+      <label class="form-label">📌 タイトル</label>
+      <input class="form-input" id="recWorkTitle" type="text" placeholder="タイトルを入力...">
+    </div>
+    <div class="form-group" id="recWorkTypeGroup" style="display:none;">
+      <label class="form-label">📂 種別</label>
+      <div class="work-type-sel" id="workTypeSel"></div>
+    </div>
+    <div class="form-group" id="recPersonGroup">
+      <label class="form-label">👤 会った人</label>
+      <div class="psel-filters" id="pselFilters"></div>
+      <div id="pselPeopleToggle"></div>
+      <div id="pselPeopleWrap" style="display:none;">
+        <div class="psel-row" id="pselGrid"></div>
+        <button class="add-per-btn" onclick="openAddPersonFromRec()">＋ 新しい人物を追加</button>
+      </div>
+    </div>
+    <div class="form-group" id="recTagGroup">
+      <label class="form-label">🏷️ タグ（Enter で追加）</label>
+      <div class="tag-field" id="tagField" onclick="focusTagInput()"></div>
+      <button class="tag-suggest-toggle" id="tagSuggestToggle" onclick="toggleTagSuggest()">▸ 使用中のタグ</button>
+      <div class="tag-suggest-list" id="tagSuggestList" style="display:none;"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>📝 メモ</span>
+        <button onclick="openMemoFullscreen()" style="background:none;border:none;color:var(--primary);font-size:13px;font-weight:800;padding:2px 6px;cursor:pointer;">全画面 ⤢</button>
+      </label>
+      <div class="memo-fmt-bar">
+        <button class="memo-fmt-btn red" onclick="wrapMemoSel('recMemo','！','！')">！赤！</button>
+        <button class="memo-fmt-btn bold" onclick="wrapMemoSel('recMemo','@','@')">@太@</button>
+        <button class="memo-fmt-btn blue" onclick="wrapMemoSel('recMemo','？','？')">？紫？</button>
+        <button class="memo-fmt-btn hl" onclick="wrapMemoSel('recMemo','==','==')">蛍光</button>
+        <button class="memo-fmt-btn head" onclick="insertHeading('recMemo')">見出し</button>
+        <button class="memo-fmt-btn ul" onclick="wrapMemoSel('recMemo','_','_')">下線</button>
+        <button class="memo-fmt-btn div" onclick="insertDivider('recMemo')">┈┈</button>
+      </div>
+      <textarea class="form-textarea memo-textarea" id="recMemo" placeholder="今日の出来事や会話内容..." style="min-height:160px;"></textarea>
+    </div>
+    <button class="btn-primary" onclick="saveRecord()">💾 保存</button>
+    <button class="btn-del-subtle" id="delRecBtn" style="display:none;width:100%;margin-top:8px;padding:10px;background:none;border:none;color:var(--txm);font-size:13px;font-weight:600;border-radius:var(--rm);transition:color .2s,background .2s;" onmouseover="this.style.color='#E03030'" onmouseout="this.style.color='var(--txm)'" onclick="deleteCurrentRec()">削除する</button>
+  </div>
+</div>
+
+<!-- PERSON MODAL -->
+<div class="modal-overlay" id="personModal" onclick="overlayClose(event,'personModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title" id="pModalTitle">人物を追加</span>
+      <button class="close-btn" onclick="closeModal('personModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">アイコン</label>
+      <div class="icon-grid" id="iconGrid"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">グループ</label>
+      <div class="chip-row" id="groupSelRow"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">性別</label>
+      <div class="gender-sel" id="genderSelRow"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">名前</label>
+      <input class="form-input" id="pName" type="text" placeholder="山田太郎">
+    </div>
+    <div class="form-group">
+      <label class="form-label">メモ</label>
+      <textarea class="form-textarea" id="pMemo" placeholder="この人についてのメモ..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🔗 SNS・リンク</label>
+      <div class="link-list" id="linkList"></div>
+      <button class="add-link-btn" onclick="addLinkRow()">＋ リンクを追加</button>
+    </div>
+    <button class="btn-primary" onclick="savePerson()">💾 保存</button>
+    <button class="btn-danger" id="delPersonBtn" style="display:none;" onclick="deleteCurrentPerson()">🗑️ この人物を削除</button>
+  </div>
+</div>
+
+<!-- PERSON DETAIL MODAL -->
+<div class="modal-overlay" id="personDetailModal" onclick="overlayClose(event,'personDetailModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="personDetailContent"></div>
+  </div>
+</div>
+
+<!-- GROUP EDIT MODAL -->
+<div class="modal-overlay" id="groupEditModal" onclick="overlayClose(event,'groupEditModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title">グループを編集</span>
+      <button class="close-btn" onclick="closeModal('groupEditModal')">×</button>
+    </div>
+    <div id="groupEditList" style="padding:0 4px;"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;padding:0 4px;">
+      <input id="newGroupInput" class="form-input" type="text" placeholder="新しいグループ名" style="flex:1;">
+      <button class="btn-pri" onclick="addGroup()">追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- BAND MODAL -->
+<div class="modal-overlay" id="bandModal" onclick="overlayClose(event,'bandModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title" id="bandModalTitle">バンド/グループを追加</span>
+      <button class="close-btn" onclick="closeModal('bandModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">カテゴリ</label>
+      <div class="chip-row" id="bandCatRow"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">名前</label>
+      <input class="form-input" id="bandName" type="text" placeholder="バンド名・グループ名">
+    </div>
+    <div class="form-group">
+      <label class="form-label">読み仮名（任意）</label>
+      <input class="form-input" id="bandYomi" type="text" placeholder="ひらがな or カタカナ">
+    </div>
+    <div class="form-group">
+      <label class="form-label">メモ</label>
+      <textarea class="form-textarea" id="bandMemo" placeholder="活動拠点、好きな曲など..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">メンバー</label>
+      <div id="bandMemberGroupFilter" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"></div>
+      <div class="band-member-sel-grid" id="bandMemberGrid"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">🔗 SNS・リンク</label>
+      <div class="link-list" id="bandLinkList"></div>
+      <button class="add-link-btn" onclick="addBandLinkRow()">＋ リンクを追加</button>
+    </div>
+    <button class="btn-primary" onclick="saveBand()">💾 保存</button>
+    <button class="btn-danger" id="delBandBtn" style="display:none;" onclick="deleteCurrentBand()">🗑️ 削除</button>
+  </div>
+</div>
+
+<!-- BAND DETAIL MODAL -->
+<div class="modal-overlay" id="bandDetailModal" onclick="overlayClose(event,'bandDetailModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="bandDetailContent"></div>
+  </div>
+</div>
+
+<!-- BAND TEXT IMPORT MODAL -->
+<div class="modal-overlay" id="bandTextImportModal" onclick="overlayClose(event,'bandTextImportModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title">フライヤーから取り込み</span>
+      <button class="close-btn" onclick="closeModal('bandTextImportModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">イベント名（任意）</label>
+      <input class="form-input" id="importEventTitle" placeholder="Local Sound Garage">
+    </div>
+    <div class="form-group">
+      <label class="form-label">日付（任意）</label>
+      <input class="form-input" type="date" id="importEventDate">
+    </div>
+    <div class="form-group">
+      <label class="form-label">会場（任意）</label>
+      <input class="form-input" id="importEventVenue" placeholder="WAKAYAMA CLUB GATE">
+    </div>
+    <div class="form-group">
+      <label class="form-label">バンド名（1行1件）</label>
+      <textarea class="form-textarea" id="bandImportText" rows="8" placeholder="The Quasars&#10;DRAW INTO DISORDER&#10;SEX addict&#10;..."></textarea>
+    </div>
+    <button class="btn-primary" onclick="executeBandTextImport()">✅ 追加する</button>
+  </div>
+</div>
+
+<!-- WORK DETAIL MODAL -->
+<div class="modal-overlay" id="workDetailModal" onclick="overlayClose(event,'workDetailModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div id="workDetailContent"></div>
+  </div>
+</div>
+
+<!-- DATA MODAL -->
+<div class="modal-overlay" id="dataModal" onclick="overlayClose(event,'dataModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title">データ管理</span>
+      <button class="close-btn" onclick="closeModal('dataModal')">×</button>
+    </div>
+    <div class="data-sec">
+      <div class="data-sec-title">📂 JSONファイル</div>
+      <div class="data-btn-row">
+        <button class="btn-sec" onclick="exportJSON()">📤 エクスポート</button>
+        <button class="btn-sec" onclick="document.getElementById('fileInput').click()">📥 インポート（上書き）</button>
+      </div>
+      <button class="btn-sec" style="width:100%;margin-top:8px;" onclick="document.getElementById('mergeFileInput').click()">🔀 マージインポート（追記）</button>
+    </div>
+    <div class="data-sec">
+      <div class="data-sec-title">📦 アーカイブ（期間指定エクスポート＋削除）</div>
+      <div class="data-note">指定期間の記録をファイルに書き出してアプリから削除します。後からマージインポートで戻せます。</div>
+      <div class="date-row" style="margin-bottom:8px;">
+        <input class="date-inp" id="archiveFrom" type="date">
+        <span class="date-tilde">〜</span>
+        <input class="date-inp" id="archiveTo" type="date">
+      </div>
+      <button class="btn-sec" style="width:100%;" onclick="exportArchive()">📤 この期間をエクスポートして削除</button>
+    </div>
+    <div class="data-sec">
+      <div class="data-sec-title">🎨 テーマ</div>
+      <div class="data-btn-row">
+        <button class="btn-sec" onclick="setTheme('light')">☀️ ライト</button>
+        <button class="btn-sec" onclick="setTheme('dark')">🌙 ダーク</button>
+      </div>
+    </div>
+    <div class="data-sec">
+      <div class="data-sec-title">⚠️ 危険操作</div>
+      <button class="btn-danger" style="margin-top:0;" onclick="clearAll()">全データを削除</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInput" accept=".json" style="display:none" onchange="importJSON(event)">
+<input type="file" id="mergeFileInput" accept=".json" style="display:none" onchange="mergeImportJSON(event)">
+
+<!-- SCRIPT -->
+<script>
+'use strict';
+
+// ─── STATE ───────────────────────────────────────────────────
+var db = { records: [], people: [], bands: [], settings: { theme: 'light' } };
+var curView    = 'home';
+var curMode    = 'hobby';
+var curSort    = 'newest';
+var editRecId  = null;
+var editPerId  = null;
+var ctxRecId   = null;
+var fromRec    = false;
+var calYear    = new Date().getFullYear();
+var calMonth   = new Date().getMonth();
+var calSelDate = null;
+var selPeople  = [];
+var selTags    = [];
+var selLinks   = [];   // [{ label:'', url:'' }]
+var selIcon    = '👤';
+var selGender  = '';
+var sf = { kw: '', personIds: [], tags: [], from: '', to: '' };
+var personFilter = 'all';
+var genderFilter = 'all';
+var personSort   = 'lastContact_desc';
+var selGroup       = 'その他';
+var pselGroupFilter  = 'all';
+var pselGenderFilter = 'all';
+var pselFiltersOpen  = false;
+var pselOpen         = false;
+var sfGroupFilter    = 'all';
+var sfGenderFilter   = 'all';
+var peopleSub    = 'person';
+var editBandId   = null;
+var bandMemberSel = [];
+var bandCatSel   = ['バンド'];
+var bandMemberGroupFilter = 'all';
+var bandViewMode = 'bands';
+var bandSearchText = '';
+var evTab = 'past';
+var workViewMode = 'card';
+var WORK_TYPE_ICON = { idea:'💡', memo:'📝', task:'✅', issue:'🤔' };
+var editingLiveKey = null;
+var editingEvKey = null;
+var selBandLinks = [];
+var BAND_CATS    = ['バンド','弾き語り','アイドル','グループ','ユニット','ソロ','その他'];
+var sfFiltersOpen    = false;
+var sfPeopleOpen     = false;
+
+var GENDERS = [
+  { val: 'm', label: '🚹 男性' },
+  { val: 'f', label: '🚺 女性' },
+  { val: 'o', label: '✴️ その他' }
+];
+function genderIcon(g) {
+  if (g === 'm') return '🚹';
+  if (g === 'f') return '🚺';
+  if (g === 'o') return '✴️';
+  return '';
+}
+
+var ICONS = [
+  '👤','👨','👩','👴','👵','👦','👧','🧑',
+  '👨‍💼','👩‍💼','👨‍🎓','👩‍🎓','👨‍🍳','👩‍🍳','👨‍🎨','👩‍🎨',
+  '🧔','👱','😀','🙂','😎','🤓','🥸','🤩',
+  '🌟','⭐','🔥','💎','🌈','🎵','🐶','🐱',
+];
+
+// ─── STORAGE ─────────────────────────────────────────────────
+function loadDB() {
+  try {
+    var s = localStorage.getItem('hanecat_memo_v1');
+    if (s) {
+      db = JSON.parse(s);
+      db.settings = db.settings || { theme: 'light' };
+      db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
+      db.groups = db.groups || ['家族','友人','仕事','趣味','その他'];
+      db.bands  = db.bands  || [];
+      db.bands.forEach(function(b) {
+        if (!Array.isArray(b.category)) b.category = b.category ? [b.category] : ['バンド'];
+        b.liveHistory = b.liveHistory || [];
+        b.liveHistory.forEach(function(lv) { lv.venue = lv.venue || ''; });
+        b.yomi = b.yomi || '';
+      });
+      db.people.forEach(function(p){
+        if (!p.group) p.group = 'その他';
+        if (p.lastContactDate === undefined) p.lastContactDate = '';
+      });
+    }
+  } catch(e) {}
+}
+function saveDB() {
+  try { localStorage.setItem('hanecat_memo_v1', JSON.stringify(db)); } catch(e) {}
+}
+
+// ─── JSON IO ─────────────────────────────────────────────────
+function exportJSON() {
+  var blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url;
+  a.download = 'person-memo-' + today() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('エクスポートしました');
+  closeModal('dataModal');
+}
+function importJSON(e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  var r = new FileReader();
+  r.onload = function(ev) {
+    try {
+      var d = JSON.parse(ev.target.result);
+      if (d.records && d.people) {
+        db = d;
+        db.settings = db.settings || { theme: 'light' };
+        saveDB(); applyTheme(); refresh();
+        toast('インポートしました');
+        closeModal('dataModal');
+      } else {
+        toast('無効なファイル形式です');
+      }
+    } catch(err) {
+      toast('読み込みに失敗しました');
+    }
+  };
+  r.readAsText(f);
+  e.target.value = '';
+}
+function mergeImportJSON(e) {
+  var f = e.target.files[0];
+  if (!f) return;
+  e.target.value = '';
+  var r = new FileReader();
+  r.onload = function(ev) {
+    try {
+      var d = JSON.parse(ev.target.result);
+      if (!d.records || !d.people) { toast('無効なファイル形式です'); return; }
+      var existRecIds = {};
+      db.records.forEach(function(r){ existRecIds[r.id] = 1; });
+      var added = 0;
+      d.records.forEach(function(r){
+        if (!existRecIds[r.id]) { db.records.push(r); added++; }
+      });
+      var existPIds = {};
+      db.people.forEach(function(p){ existPIds[p.id] = 1; });
+      d.people.forEach(function(p){
+        if (!existPIds[p.id]) db.people.push(p);
+      });
+      recalcLastContact();
+      saveDB(); refresh();
+      toast(added + '件の記録を追記しました');
+      closeModal('dataModal');
+    } catch(err) { toast('読み込みに失敗しました'); }
+  };
+  r.readAsText(f);
+}
+function exportArchive() {
+  var from = document.getElementById('archiveFrom').value;
+  var to   = document.getElementById('archiveTo').value;
+  if (!from || !to) { toast('期間を指定してください'); return; }
+  if (from > to) { toast('開始日が終了日より後です'); return; }
+  var recs = db.records.filter(function(r){ return r.date >= from && r.date <= to; });
+  if (!recs.length) { toast('該当する記録がありません'); return; }
+  if (!confirm(recs.length + '件の記録をエクスポートしてアプリから削除しますか？\nこの操作は取り消せません。')) return;
+  var blob = new Blob([JSON.stringify({ records: recs, people: db.people, groups: db.groups, settings: db.settings }, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'linkage_archive_' + from + '_' + to + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  db.records = db.records.filter(function(r){ return !(r.date >= from && r.date <= to); });
+  recalcLastContact();
+  saveDB(); refresh();
+  toast(recs.length + '件をアーカイブしました');
+  closeModal('dataModal');
+}
+function clearAll() {
+  if (!confirm('全データを削除しますか？\nこの操作は取り消せません。')) return;
+  db = { records: [], people: [], settings: db.settings };
+  saveDB(); refresh();
+  toast('削除しました');
+  closeModal('dataModal');
+}
+
+// ─── THEME ───────────────────────────────────────────────────
+function applyTheme() {
+  var t = (db.settings && db.settings.theme) || 'light';
+  document.documentElement.setAttribute('data-theme', t);
+  document.getElementById('themeBtn').textContent = t === 'dark' ? '☀️' : '🌙';
+}
+function toggleTheme() {
+  db.settings.theme = db.settings.theme === 'dark' ? 'light' : 'dark';
+  saveDB(); applyTheme();
+}
+function setTheme(t) {
+  db.settings.theme = t;
+  saveDB(); applyTheme();
+  closeModal('dataModal');
+}
+
+// ─── UTILS ───────────────────────────────────────────────────
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function today() { return new Date().toISOString().slice(0, 10); }
+function fmtDate(d) {
+  if (!d) return '';
+  var p = d.split('-');
+  return p[0] + '/' + p[1] + '/' + p[2];
+}
+function fmtDateLong(d) {
+  if (!d) return '';
+  var p = d.split('-');
+  var dt = new Date(+p[0], +p[1]-1, +p[2]);
+  var days = ['日','月','火','水','木','金','土'];
+  return p[0] + '年' + (+p[1]) + '月' + (+p[2]) + '日（' + days[dt.getDay()] + '）';
+}
+function getPerson(id) {
+  for (var i = 0; i < db.people.length; i++) { if (db.people[i].id === id) return db.people[i]; }
+  return null;
+}
+function getRec(id) {
+  for (var i = 0; i < db.records.length; i++) { if (db.records[i].id === id) return db.records[i]; }
+  return null;
+}
+function allTags() {
+  var s = {};
+  db.records.filter(function(r){ return (r.mode||'hobby') === curMode; })
+    .forEach(function(r){ (r.tags||[]).forEach(function(t){ s[t]=1; }); });
+  return Object.keys(s).sort();
+}
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function toHiragana(str) {
+  return (str||'').replace(/[ァ-ヶ]/g,function(ch){return String.fromCharCode(ch.charCodeAt(0)-0x60);});
+}
+function normalizeKana(str) { return toHiragana((str||'').toLowerCase()); }
+function formatInline(s) {
+  return esc(s)
+    .replace(/==([^=\n]+)==/g, '<mark class="memo-highlight">$1</mark>')
+    .replace(/_([^_\n]+?)_/g, '<span class="memo-underline">$1</span>')
+    .replace(/！([^！\n]+?)！/g, '<span class="memo-red">$1</span>')
+    .replace(/@([^@\n]+?)@/g, '<span class="memo-bold">$1</span>')
+    .replace(/？([^？\n]+?)？/g, '<span class="memo-blue">$1</span>')
+    .replace(/\n/g, '<br>');
+}
+function insertHeading(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var s = el.selectionStart, v = el.value;
+  var lineStart = v.lastIndexOf('\n', s - 1) + 1;
+  if (v.slice(lineStart, lineStart + 2) === '##') {
+    el.value = v.slice(0, lineStart) + v.slice(lineStart + 2);
+    el.setSelectionRange(Math.max(lineStart, s - 2), Math.max(lineStart, s - 2));
+  } else {
+    el.value = v.slice(0, lineStart) + '##' + v.slice(lineStart);
+    el.setSelectionRange(s + 2, s + 2);
+  }
+  el.focus();
+}
+function renderMemoHTML(memo) {
+  var lines = memo.split('\n');
+  var html = '';
+  var buf = [];
+  function flushBuf() {
+    if (!buf.length) return;
+    var trail = 0;
+    while (buf.length && buf[buf.length - 1] === '') { buf.pop(); trail++; }
+    if (buf.length) html += '<div class="memo-text">' + formatInline(buf.join('\n')) + '</div>';
+    for (var k = 0; k < trail; k++) html += '<div class="memo-blank"></div>';
+    buf = [];
+  }
+  lines.forEach(function(ln) {
+    if (/^-{10,}$/.test(ln)) {
+      flushBuf();
+      html += '<hr class="memo-divider">';
+    } else if (/^##/.test(ln)) {
+      flushBuf();
+      html += '<div class="memo-heading">' + formatInline(ln.slice(2)) + '</div>';
+    } else {
+      buf.push(ln);
+    }
+  });
+  flushBuf();
+  return html;
+}
+function wrapMemoSel(id, before, after) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var s = el.selectionStart, e = el.selectionEnd;
+  var v = el.value;
+  el.value = v.slice(0,s) + before + v.slice(s,e) + after + v.slice(e);
+  el.setSelectionRange(s + before.length, e + before.length);
+  el.focus();
+}
+function insertDivider(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  var s = el.selectionStart, v = el.value;
+  var pre = (s > 0 && v[s-1] !== '\n') ? '\n' : '';
+  var ins = pre + '----------\n';
+  el.value = v.slice(0,s) + ins + v.slice(s);
+  el.setSelectionRange(s + ins.length, s + ins.length);
+  el.focus();
+}
+function hashIcon(size) {
+  size = size || '0.82em';
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="vertical-align:-.05em;flex-shrink:0;margin-right:1px">'
+    + '<line x1="3.5" y1="1" x2="2.5" y2="9"/>'
+    + '<line x1="7.5" y1="1" x2="6.5" y2="9"/>'
+    + '<line x1="1" y1="3.5" x2="9" y2="3.5"/>'
+    + '<line x1="1" y1="6.5" x2="9" y2="6.5"/>'
+    + '</svg>';
+}
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(function(){ el.classList.remove('show'); }, 2400);
+}
+
+// ─── SNS ICON ────────────────────────────────────────────────
+function snsIcon(url) {
+  if (!url) return '🔗';
+  var u = url.toLowerCase();
+  if (u.indexOf('twitter.com') >= 0 || u.indexOf('x.com') >= 0) return '🐦';
+  if (u.indexOf('instagram.com') >= 0) return '📮';
+  if (u.indexOf('facebook.com') >= 0) return '👍';
+  if (u.indexOf('youtube.com') >= 0 || u.indexOf('youtu.be') >= 0) return '▶️';
+  if (u.indexOf('tiktok.com') >= 0) return '🎵';
+  if (u.indexOf('linkedin.com') >= 0) return '💼';
+  if (u.indexOf('github.com') >= 0) return '💻';
+  if (u.indexOf('note.com') >= 0) return '📝';
+  if (u.indexOf('threads.net') >= 0) return '🧵';
+  if (u.indexOf('line.me') >= 0 || u.indexOf('line.naver') >= 0) return '💬';
+  return '🔗';
+}
+function snsLabel(lk) {
+  if (lk.label) return lk.label;
+  try {
+    var h = new URL(lk.url).hostname.replace(/^www\./, '');
+    return h.split('.')[0];
+  } catch(e) { return lk.url; }
+}
+
+// ─── MODAL ───────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function overlayClose(e, id) { if (e.target.id === id) closeModal(id); }
+
+// ─── NAVIGATION ──────────────────────────────────────────────
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function showView(v) {
+  document.querySelectorAll('.view').forEach(function(el){ el.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById('view' + cap(v)).classList.add('active');
+  document.getElementById('nav' + cap(v)).classList.add('active');
+  curView = v;
+
+  var titles = { home: '📝 Linkage', search: '🔍 検索', calendar: '📅 カレンダー', people: '👥 人物' };
+  document.getElementById('headerTitle').textContent = titles[v] || '';
+
+  var fab = document.getElementById('fab');
+  fab.style.display = 'flex';
+  fab.onclick = v === 'people' ? (peopleSub === 'band' ? openAddBand : openAddPerson) : openAddRecord;
+  document.getElementById('modeTabs').style.display = v === 'people' ? 'none' : 'flex';
+
+  window.scrollTo({ top: 0 });
+  refresh();
+}
+function setWorkViewMode(m) {
+  workViewMode = m;
+  document.getElementById('workViewCard').classList.toggle('active', m === 'card');
+  document.getElementById('workViewList').classList.toggle('active', m === 'list');
+  renderHome();
+}
+function setMode(m) {
+  curMode = m;
+  db.settings.mode = m; saveDB();
+  var tabs = { hobby: 'modeTabHobby', quick: 'modeTabQuick', work: 'modeTabWork', kotono: 'modeTabKotono' };
+  document.querySelectorAll('.mode-tab').forEach(function(el){ el.classList.remove('active'); });
+  document.getElementById(tabs[m]).classList.add('active');
+  var wvt = document.getElementById('workViewToggle');
+  if (wvt) wvt.style.display = m === 'work' ? 'flex' : 'none';
+  var prevKw = sf.kw;
+  sf = { kw: prevKw, personIds: [], tags: [], from: '', to: '' };
+  sfGroupFilter = 'all'; sfGenderFilter = 'all'; sfFiltersOpen = false; sfPeopleOpen = false;
+  var df = document.getElementById('dateFrom'); if(df) df.value = '';
+  var dt = document.getElementById('dateTo');   if(dt) dt.value = '';
+  refresh();
+}
+function refresh() {
+  if (curView === 'home')     renderHome();
+  if (curView === 'search')   renderSearch();
+  if (curView === 'calendar') renderCalendar();
+  if (curView === 'people')   renderPeople();
+}
+
+// ─── SORT ────────────────────────────────────────────────────
+function setSort(s) {
+  curSort = s;
+  document.getElementById('sortNewest').classList.toggle('active', s === 'newest');
+  document.getElementById('sortOldest').classList.toggle('active', s === 'oldest');
+  renderHome();
+}
+function sorted(arr) {
+  return arr.slice().sort(function(a, b) {
+    var c = a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+    if (c === 0) {
+      var ca = a.createdAt || '';
+      var cb = b.createdAt || '';
+      c = ca < cb ? -1 : ca > cb ? 1 : 0;
+    }
+    return curSort === 'newest' ? -c : c;
+  });
+}
+
+// ─── CARD HTML ───────────────────────────────────────────────
+function cardHTML(rec, delay, hideDate) {
+  delay = delay || 0;
+  var people = (rec.peopleIds || []).map(getPerson).filter(Boolean);
+  var peopleHTML = people.map(function(p){
+    return '<button class="memo-person-chip" onclick="onPersonChip(\'' + p.id + '\',event)">👤 ' + esc(p.name) + '</button>';
+  }).join('');
+  var tagsHTML = (rec.tags || []).map(function(t){
+    return '<button class="memo-tag-chip" onclick="onTagChip(\'' + esc(t) + '\',event)">' + hashIcon() + esc(t) + '</button>';
+  }).join('');
+  var bodyParts = '';
+  var isQuickLike = rec.mode === 'quick' || rec.mode === 'kotono' || rec.mode === 'work';
+  var timeTag = (isQuickLike && rec.time) ? '<span class="memo-time-tag">⏰ ' + rec.time + '</span>' : '';
+  var wtLabel = rec.workType ? (WORK_TYPES.filter(function(t){ return t.val === rec.workType; })[0] || null) : null;
+  var workTypeBadge = wtLabel ? '<span class="work-type-badge">' + wtLabel.label + '</span>' : '';
+  if (hideDate && workTypeBadge) bodyParts += workTypeBadge;
+  if (hideDate && timeTag) bodyParts += timeTag;
+  if (rec.mode === 'work' && rec.workTitle) bodyParts += '<div class="memo-work-title">' + esc(rec.workTitle) + '</div>';
+  if (people.length) bodyParts += '<div class="memo-people">' + peopleHTML + '</div>';
+  if (rec.memo)      bodyParts += renderMemoHTML(rec.memo);
+  if (rec.tags && rec.tags.length) bodyParts += '<div class="memo-tags">' + tagsHTML + '</div>';
+  var timeInBar = (!hideDate && isQuickLike && rec.time) ? '<span class="memo-date-time">' + rec.time + '</span>' : '';
+  var cls = 'memo-card' + (hideDate ? ' no-datebar' : '') + (rec.mode === 'kotono' ? ' kotono-card' : '') + (rec.mode === 'work' ? ' work-card' : '');
+  return '<div class="' + cls + '" style="animation-delay:' + (delay*40) + 'ms" onclick="openEditRecord(\'' + rec.id + '\')">'
+    + '<div class="memo-date-bar">'
+    + '<span class="memo-date-text">' + fmtDateLong(rec.date) + timeInBar + '</span>'
+    + '<button class="memo-edit-btn" onclick="event.stopPropagation();openEditRecord(\'' + rec.id + '\')" title="編集">✏️</button>'
+    + '</div>'
+    + (bodyParts ? '<div class="memo-body-area">' + bodyParts + '</div>' : '')
+    + '</div>';
+}
+function onPersonChip(id, e) { e.stopPropagation(); showPersonDetail(id); }
+function onTagChip(tag, e) {
+  e.stopPropagation();
+  sf.tags = [tag];
+  showView('search');
+  setTimeout(function(){ renderTagFilterChips(); renderSearchResults(); }, 60);
+}
+
+// ─── HOME ────────────────────────────────────────────────────
+function renderHome() {
+  var recs = sorted(db.records.filter(function(r){ return (r.mode||'hobby') === curMode; }));
+  document.getElementById('homeCount').textContent = recs.length + '件';
+  var wvt = document.getElementById('workViewToggle');
+  if (wvt) wvt.style.display = curMode === 'work' ? 'flex' : 'none';
+  var c = document.getElementById('timeline');
+  if (!recs.length) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">📝</div><p>まだ記録がありません<br>＋ボタンから追加しましょう</p></div>';
+    return;
+  }
+  if (curMode === 'work' && workViewMode === 'list') {
+    c.innerHTML = '<div style="padding:0 4px;">'
+      + recs.map(function(r) {
+          var icon = WORK_TYPE_ICON[r.workType] || '📝';
+          return '<div class="work-title-row" onclick="showWorkDetail(\'' + r.id + '\')">'
+            + '<span class="work-title-date">' + esc(r.date || '') + '</span>'
+            + '<span class="work-type-badge" style="margin-bottom:0;flex-shrink:0;">' + icon + ' ' + esc(r.workType || 'memo') + '</span>'
+            + '<span class="work-title-text">' + esc(r.workTitle || '(タイトルなし)') + '</span>'
+            + '</div>';
+        }).join('')
+      + '</div>';
+    return;
+  }
+  var html = '';
+  var lastDate = null;
+  var delay = 0;
+  recs.forEach(function(r) {
+    if (r.date !== lastDate) {
+      html += '<div class="date-sep">' + fmtDateLong(r.date) + '</div>';
+      lastDate = r.date;
+    }
+    html += cardHTML(r, delay++, true);
+  });
+  c.innerHTML = html;
+}
+
+// ─── SEARCH ──────────────────────────────────────────────────
+function renderSearch() {
+  var pfc = document.getElementById('personFilterCard');
+  var tfc = document.getElementById('tagFilterCard');
+  if (pfc) pfc.style.display = curMode === 'hobby' ? 'block' : 'none';
+  if (tfc) tfc.style.display = 'block';
+  if (curMode === 'hobby') renderPersonFilterChips();
+  else { var pfr = document.getElementById('personFilterRows'); if(pfr) pfr.innerHTML=''; }
+  renderTagFilterChips();
+  renderSearchResults();
+}
+function renderPersonFilterRows() {
+  var fc = document.getElementById('personFilterRows');
+  if (!fc) return;
+  var rows = '<div class="psel-filter-row" style="margin-bottom:6px;">' + ['all'].concat(db.groups).map(function(g){
+    return '<button class="psel-filter-chip' + (sfGroupFilter === g ? ' active' : '') + '" onclick="setSFGroupFilter(\'' + g + '\')">' + (g === 'all' ? '全て' : g) + '</button>';
+  }).join('') + '</div>';
+  rows += '<div class="psel-filter-row" style="margin-bottom:8px;">' + [{ val:'all', label:'全て' }].concat(GENDERS).map(function(g){
+    return '<button class="psel-filter-chip' + (sfGenderFilter === g.val ? ' active' : '') + '" onclick="setSFGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
+  }).join('') + '</div>';
+  fc.innerHTML = rows;
+}
+function setSFGroupFilter(g) { sfGroupFilter = g; sfPeopleOpen = true; renderPersonFilterChips(); }
+function setSFGenderFilter(v) { sfGenderFilter = v; sfPeopleOpen = true; renderPersonFilterChips(); }
+function renderPersonFilterChips() {
+  renderPersonFilterRows();
+  var wrap = document.getElementById('personPeopleWrap');
+  var tog  = document.getElementById('personPeopleToggle');
+  var selCount = sf.personIds.length;
+  var lbl = sfPeopleOpen ? '▾ 閉じる' : ('▸ 人物を選ぶ' + (selCount ? '（' + selCount + '人選択中）' : ''));
+  if (tog) tog.innerHTML = '<button class="psel-filter-toggle' + (selCount ? ' on' : '') + '" onclick="toggleSFPeople()">' + lbl + '</button>';
+  if (wrap) wrap.style.display = sfPeopleOpen ? 'block' : 'none';
+  if (!sfPeopleOpen) return;
+  var c = document.getElementById('personFilterChips');
+  if (!db.people.length) {
+    c.innerHTML = '<span style="font-size:12px;color:var(--txm);">人物が登録されていません</span>';
+    return;
+  }
+  var people = db.people.filter(function(p){
+    var gok = sfGroupFilter === 'all' || (p.group||'その他') === sfGroupFilter;
+    var sok = sfGenderFilter === 'all' || (p.gender||'') === sfGenderFilter;
+    return gok && sok;
+  });
+  c.innerHTML = people.map(function(p){
+    var act = sf.personIds.indexOf(p.id) >= 0 ? ' active' : '';
+    var gbadge = p.gender ? genderIcon(p.gender) : '';
+    return '<button class="filter-chip' + act + '" onclick="togglePF(\'' + p.id + '\')">'
+      + (p.icon||'👤') + gbadge + ' ' + esc(p.name) + '</button>';
+  }).join('');
+}
+function toggleSFPeople() { sfPeopleOpen = !sfPeopleOpen; renderPersonFilterChips(); }
+function renderTagFilterChips() {
+  var c = document.getElementById('tagFilterChips');
+  var tags = allTags();
+  if (!tags.length) {
+    c.innerHTML = '<span style="font-size:12px;color:var(--txm);">タグがありません</span>';
+    return;
+  }
+  c.innerHTML = tags.map(function(t){
+    var act = sf.tags.indexOf(t) >= 0 ? ' active' : '';
+    return '<button class="filter-chip' + act + '" onclick="toggleTF(\'' + esc(t) + '\')">' + hashIcon() + esc(t) + '</button>';
+  }).join('');
+}
+function togglePF(id) {
+  var i = sf.personIds.indexOf(id);
+  if (i >= 0) sf.personIds.splice(i, 1); else sf.personIds.push(id);
+  renderPersonFilterChips(); renderSearchResults();
+}
+function toggleTF(tag) {
+  var i = sf.tags.indexOf(tag);
+  if (i >= 0) sf.tags.splice(i, 1); else sf.tags.push(tag);
+  renderTagFilterChips(); renderSearchResults();
+}
+function onSearch() {
+  sf.kw   = document.getElementById('searchKw').value;
+  sf.from = document.getElementById('dateFrom').value;
+  sf.to   = document.getElementById('dateTo').value;
+  renderSearchResults();
+}
+function filteredRecs() {
+  var recs = db.records.filter(function(r){ return (r.mode||'hobby') === curMode; });
+  if (sf.kw) {
+    var kw = normalizeKana(sf.kw);
+    recs = recs.filter(function(r){
+      return normalizeKana(r.memo).indexOf(kw) >= 0 ||
+        normalizeKana(r.workTitle).indexOf(kw) >= 0 ||
+        (r.tags||[]).some(function(t){ return normalizeKana(t).indexOf(kw) >= 0; });
+    });
+  }
+  if (sf.personIds.length) {
+    recs = recs.filter(function(r){
+      return sf.personIds.every(function(id){ return (r.peopleIds||[]).indexOf(id) >= 0; });
+    });
+  }
+  if (sf.tags.length) {
+    recs = recs.filter(function(r){
+      return sf.tags.every(function(t){ return (r.tags||[]).indexOf(t) >= 0; });
+    });
+  }
+  if (sf.from) recs = recs.filter(function(r){ return r.date >= sf.from; });
+  if (sf.to)   recs = recs.filter(function(r){ return r.date <= sf.to; });
+  return sorted(recs);
+}
+function renderSearchResults() {
+  var recs = filteredRecs();
+  var cntTxt = recs.length + '件';
+  document.getElementById('searchCount').textContent = cntTxt;
+  var kc = document.getElementById('searchCountKw');
+  if (kc) kc.textContent = cntTxt;
+  var c = document.getElementById('searchResults');
+  if (!recs.length) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">🔍</div><p>条件に合う記録が見つかりません</p></div>';
+    return;
+  }
+  c.innerHTML = recs.map(function(r, i){ return cardHTML(r, i); }).join('');
+}
+
+// ─── CALENDAR ────────────────────────────────────────────────
+function renderCalendar() {
+  document.getElementById('calMonthLabel').textContent = calYear + '年' + (calMonth+1) + '月';
+  var recDates = {};
+  db.records.filter(function(r){ return (r.mode||'hobby') === curMode; }).forEach(function(r){ recDates[r.date] = true; });
+  var todayStr = today();
+  var liveDates = {}, upcomingDates = {};
+  db.bands.forEach(function(b){ (b.liveHistory||[]).forEach(function(lv){
+    if (!lv.date) return;
+    if (lv.date > todayStr) upcomingDates[lv.date] = true;
+    else liveDates[lv.date] = true;
+  }); });
+  var dow  = ['日','月','火','水','木','金','土'];
+  var fd   = new Date(calYear, calMonth, 1).getDay();
+  var last = new Date(calYear, calMonth+1, 0).getDate();
+  var prevLast = new Date(calYear, calMonth, 0).getDate();
+
+  var html = dow.map(function(d){ return '<div class="cal-dow">' + d + '</div>'; }).join('');
+  for (var i = fd-1; i >= 0; i--)
+    html += '<div class="cal-day other">' + (prevLast-i) + '</div>';
+  for (var d = 1; d <= last; d++) {
+    var mm = (calMonth+1) < 10 ? '0'+(calMonth+1) : ''+(calMonth+1);
+    var dd = d < 10 ? '0'+d : ''+d;
+    var ds = calYear + '-' + mm + '-' + dd;
+    var cls = 'cal-day';
+    if (ds === todayStr)       cls += ' today';
+    if (recDates[ds])          cls += ' has-rec';
+    if (liveDates[ds])         cls += ' has-live';
+    if (upcomingDates[ds])     cls += ' has-upcoming';
+    if (ds === calSelDate)     cls += ' sel';
+    html += '<div class="' + cls + '" onclick="calSelect(\'' + ds + '\')">' + d + '</div>';
+  }
+  var rem = (7 - ((fd + last) % 7)) % 7;
+  for (var d2 = 1; d2 <= rem; d2++)
+    html += '<div class="cal-day other">' + d2 + '</div>';
+
+  document.getElementById('calGrid').innerHTML = html;
+  renderCalDayRecs();
+}
+function calPrev() { calMonth--; if (calMonth < 0) { calMonth=11; calYear--; } renderCalendar(); }
+function calNext() { calMonth++; if (calMonth > 11) { calMonth=0; calYear++; } renderCalendar(); }
+function calSelect(ds) { calSelDate = ds; renderCalendar(); }
+function getLiveEventsByDate(dateStr) {
+  var events = {}, todayStr = today();
+  db.bands.forEach(function(band) {
+    (band.liveHistory || []).forEach(function(lv) {
+      if (lv.date !== dateStr) return;
+      var key = lv.title || '';
+      if (!events[key]) events[key] = {
+        title: lv.title || '(タイトル未設定)',
+        venue: lv.venue || '',
+        isUpcoming: dateStr > todayStr,
+        bands: []
+      };
+      events[key].bands.push({ id: band.id, name: band.name });
+    });
+  });
+  return Object.keys(events).map(function(k) { return events[k]; });
+}
+function toggleLiveEventBands(domId) {
+  var body = document.getElementById(domId);
+  var arrow = document.getElementById(domId + '_arrow');
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  if (arrow) arrow.textContent = isOpen ? '▶' : '▼';
+}
+function renderCalDayRecs() {
+  if (!calSelDate) {
+    document.getElementById('calSelLabel').textContent = '日付を選択してください';
+    document.getElementById('calDayRecords').innerHTML = '';
+    return;
+  }
+  var recs = sorted(db.records.filter(function(r){ return r.date === calSelDate && (r.mode||'hobby') === curMode; }));
+  var lives = getLiveEventsByDate(calSelDate);
+  document.getElementById('calSelLabel').textContent = '📅 ' + fmtDate(calSelDate) + ' の記録（' + recs.length + '件）';
+  var liveHtml = lives.map(function(ev, idx) {
+    var domId = 'liveEv_' + idx;
+    var bandRows = ev.bands.map(function(b) {
+      return '<div class="live-band-row" onclick="showBandDetail(\'' + b.id + '\')">'
+        + '<span class="live-band-name">' + esc(b.name) + '</span>'
+        + '<span style="color:var(--txm);">›</span>'
+        + '</div>';
+    }).join('');
+    var upcomingBadge = ev.isUpcoming ? '<span style="font-size:11px;font-weight:700;color:#4caf50;background:#e8f5e9;padding:2px 7px;border-radius:20px;flex-shrink:0;">🗓️ 予定</span>' : '';
+    var venueHtml = ev.venue ? '<div style="font-size:11px;color:var(--txm);margin-top:2px;">📍 ' + esc(ev.venue) + '</div>' : '';
+    return '<div class="live-event-bar">'
+      + '<div class="live-event-bar-hd" onclick="toggleLiveEventBands(\'' + domId + '\')">'
+      + '<span class="live-event-icon">🎸</span>'
+      + '<div style="flex:1;">'
+      + '<div class="live-event-title-lg">' + esc(ev.title) + '</div>'
+      + venueHtml
+      + '</div>'
+      + upcomingBadge
+      + '<span class="live-event-cnt">' + ev.bands.length + 'バンド</span>'
+      + '<span id="' + domId + '_arrow" class="live-event-arrow">▶</span>'
+      + '</div>'
+      + '<div id="' + domId + '" style="display:none">'
+      + '<div class="live-event-bands">' + bandRows + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+  var recsHtml = recs.length
+    ? recs.map(function(r, i) { return cardHTML(r, i); }).join('')
+    : (lives.length ? '' : '<div style="text-align:center;padding:20px;font-size:13px;color:var(--txm);">記録はありません</div>');
+  document.getElementById('calDayRecords').innerHTML = liveHtml + recsHtml;
+}
+
+// ─── PEOPLE ──────────────────────────────────────────────────
+function renderGroupFilterChips() {
+  var c = document.getElementById('groupFilterChips');
+  var opts = ['all'].concat(db.groups);
+  var labels = { all: '全て' };
+  c.innerHTML = opts.map(function(g){
+    var label = labels[g] || g;
+    var act = personFilter === g ? ' active' : '';
+    return '<button class="filter-chip' + act + '" onclick="setPersonFilter(\'' + g + '\')">' + label + '</button>';
+  }).join('');
+}
+function renderGenderFilterChips() {
+  var c = document.getElementById('genderFilterChips');
+  if (!c) return;
+  var opts = [{ val: 'all', label: '全て' }].concat(GENDERS);
+  c.innerHTML = opts.map(function(g){
+    return '<button class="filter-chip' + (genderFilter === g.val ? ' active' : '') + '" onclick="setGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
+  }).join('');
+}
+function setPersonFilter(g) {
+  personFilter = g;
+  renderGroupFilterChips();
+  renderPeopleList();
+}
+function setGenderFilter(v) {
+  genderFilter = v;
+  renderGenderFilterChips();
+  renderPeopleList();
+}
+function renderGenderSel() {
+  var c = document.getElementById('genderSelRow');
+  if (!c) return;
+  c.innerHTML = GENDERS.map(function(g){
+    return '<button class="gender-opt' + (selGender === g.val ? ' sel' : '') + '" onclick="pickGender(\'' + g.val + '\')">' + g.label + '</button>';
+  }).join('');
+}
+function pickGender(v) {
+  selGender = selGender === v ? '' : v;
+  renderGenderSel();
+}
+function setPersonSort(s) {
+  if (s === 'contact') {
+    personSort = personSort === 'lastContact_desc' ? 'lastContact_asc' : 'lastContact_desc';
+  } else if (s === 'count') {
+    personSort = personSort === 'count_desc' ? 'count_asc' : 'count_desc';
+  } else {
+    personSort = 'name';
+  }
+  var contactBtn = document.getElementById('pSortContact');
+  var nameBtn    = document.getElementById('pSortName');
+  var countBtn   = document.getElementById('pSortCount');
+  [contactBtn, nameBtn, countBtn].forEach(function(el){ if(el) el.classList.remove('active'); });
+  if (personSort === 'lastContact_desc' || personSort === 'lastContact_asc') {
+    if (contactBtn) { contactBtn.classList.add('active'); contactBtn.textContent = '接触' + (personSort === 'lastContact_desc' ? '↓' : '↑'); }
+  } else if (personSort === 'count_desc' || personSort === 'count_asc') {
+    if (countBtn) { countBtn.classList.add('active'); countBtn.textContent = '累計' + (personSort === 'count_desc' ? '↓' : '↑'); }
+  } else {
+    if (nameBtn) nameBtn.classList.add('active');
+  }
+  renderPeopleList();
+}
+function sortedPeople(arr, counts) {
+  return arr.slice().sort(function(a, b){
+    if (personSort === 'count_desc' || personSort === 'count_asc') {
+      var ca = (counts && counts[a.id]) || 0;
+      var cb = (counts && counts[b.id]) || 0;
+      if (ca !== cb) return personSort === 'count_desc' ? cb - ca : ca - cb;
+      return a.name.localeCompare(b.name, 'ja');
+    }
+    if (personSort === 'name') return a.name.localeCompare(b.name, 'ja');
+    var da = a.lastContactDate || '';
+    var db2 = b.lastContactDate || '';
+    if (da === db2) return a.name.localeCompare(b.name, 'ja');
+    if (personSort === 'lastContact_desc') return da > db2 ? -1 : 1;
+    return da < db2 ? -1 : 1;
+  });
+}
+function renderPeopleList() {
+  var c = document.getElementById('peopleList');
+  var people = db.people.filter(function(p){
+    var groupOk = personFilter === 'all' || (p.group||'その他') === personFilter;
+    var genOk   = genderFilter === 'all' || (p.gender||'') === genderFilter;
+    return groupOk && genOk;
+  });
+  var cnt = document.getElementById('peopleCount');
+  if (cnt) cnt.textContent = people.length + '人';
+  if (!people.length) {
+    c.innerHTML = '<div class="empty"><div class="empty-icon">👥</div><p>該当する人物がいません</p></div>';
+    return;
+  }
+  var counts = {};
+  var seen = {};
+  db.records.forEach(function(r){
+    (r.peopleIds||[]).forEach(function(pid){
+      var key = pid + '|' + (r.date||'');
+      if (!seen[key]) { seen[key] = true; counts[pid] = (counts[pid]||0) + 1; }
+    });
+  });
+  c.innerHTML = sortedPeople(people, counts).map(function(p, i){
+    var validLinks = (p.links||[]).filter(function(lk){ return lk.url; });
+    var snsHTML = validLinks.length
+      ? '<div class="p-sns">'
+        + validLinks.map(function(lk){
+            return '<a class="p-sns-link" href="' + esc(lk.url) + '" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">'
+              + snsIcon(lk.url) + '</a>';
+          }).join('')
+        + '</div>'
+      : '';
+    var lc = p.lastContactDate ? '最終接触 ' + fmtDate(p.lastContactDate) : '接触記録なし';
+    var gbadge = p.gender ? '<span class="gender-badge">' + genderIcon(p.gender) + '</span>' : '';
+    var total = counts[p.id] || 0;
+    var countBadge = '<span class="p-count-badge">' + total + '回</span>';
+    return '<div class="person-card" style="animation-delay:' + (i*30) + 'ms" onclick="showPersonDetail(\'' + p.id + '\')">'
+      + '<div class="p-icon-wrap"><div class="p-icon">' + (p.icon||'👤') + '</div>' + gbadge + '</div>'
+      + '<div class="p-info">'
+      + '<div class="p-name">' + esc(p.name) + '</div>'
+      + '<div class="p-contact-row">'
+      + '<span class="p-group-badge">' + esc(p.group||'その他') + '</span>'
+      + countBadge
+      + '<span class="p-last-contact">' + lc + '</span>'
+      + '</div>'
+      + snsHTML
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+function renderPeople() {
+  renderGroupFilterChips();
+  renderGenderFilterChips();
+  renderPeopleList();
+}
+
+// ─── PERSON DETAIL ───────────────────────────────────────────
+function showPersonDetail(id) {
+  var p = getPerson(id);
+  if (!p) return;
+  var recs = sorted(db.records.filter(function(r){ return (r.peopleIds||[]).indexOf(id) >= 0; }));
+
+  var linksHTML = '';
+  var validLinks = (p.links||[]).filter(function(lk){ return lk.url; });
+  if (validLinks.length) {
+    linksHTML = '<div class="pd-links">'
+      + validLinks.map(function(lk){
+          return '<a class="pd-link-chip" href="' + esc(lk.url) + '" target="_blank" rel="noopener noreferrer">'
+            + snsIcon(lk.url) + ' ' + esc(snsLabel(lk)) + '</a>';
+        }).join('')
+      + '</div>';
+  }
+
+  var html = '<div class="modal-head" style="margin-bottom:0;">'
+    + '<span></span>'
+    + '<div style="display:flex;gap:8px;">'
+    + '<button class="icon-btn-danger" onclick="deletePersonById(\'' + id + '\')">🗑️</button>'
+    + '<button class="icon-btn" onclick="closeModal(\'personDetailModal\');openEditPerson(\'' + id + '\')">✏️</button>'
+    + '<button class="close-btn" onclick="closeModal(\'personDetailModal\')">×</button>'
+    + '</div>'
+    + '</div>'
+    + '<div class="pd-header">'
+    + '<div class="pd-icon">' + (p.icon||'👤') + '</div>'
+    + '<div class="pd-name">' + esc(p.name) + '</div>'
+    + (p.memo ? '<div class="pd-memo">' + esc(p.memo) + '</div>' : '')
+    + linksHTML
+    + '<div class="pd-stats">'
+    + '<div class="stat"><div class="stat-n">' + recs.length + '</div><div class="stat-l">記録数</div></div>'
+    + '</div>'
+    + '</div>'
+    + (recs.length
+        ? recs.map(function(r,i){ return cardHTML(r,i); }).join('')
+        : '<div class="empty" style="padding:28px 0;"><div class="empty-icon">📝</div><p>記録がありません</p></div>');
+
+  document.getElementById('personDetailContent').innerHTML = html;
+  openModal('personDetailModal');
+}
+
+// ─── DELETE PERSON (from detail) ─────────────────────────────
+function deletePersonById(id) {
+  var p = getPerson(id);
+  if (!p) return;
+  if (!confirm(p.name + ' を削除しますか？\n関連する記録の人物情報も削除されます。')) return;
+  db.people  = db.people.filter(function(per){ return per.id !== id; });
+  db.records.forEach(function(r){
+    r.peopleIds = (r.peopleIds||[]).filter(function(pid){ return pid !== id; });
+  });
+  saveDB();
+  closeModal('personDetailModal');
+  refresh();
+  toast('削除しました');
+}
+
+// ─── RECORD FORM ─────────────────────────────────────────────
+function openAddRecord() {
+  editRecId = null; selPeople = []; selTags = []; selWorkType = '';
+  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false; pselOpen = false;
+  resetTagSuggest();
+  var titles = { hobby: '記録を追加', work: '仕事メモを追加', quick: '一言メモを追加', kotono: '言の葉を追加' };
+  document.getElementById('recModalTitle').textContent = titles[curMode] || '記録を追加';
+  document.getElementById('recDate').value = today();
+  document.getElementById('recMemo').value = '';
+  var wt = document.getElementById('recWorkTitle'); if (wt) wt.value = '';
+  document.getElementById('delRecBtn').style.display = 'none';
+  var nt = new Date();
+  var hh = (nt.getHours()   < 10 ? '0' : '') + nt.getHours();
+  var mm = (nt.getMinutes() < 10 ? '0' : '') + nt.getMinutes();
+  document.getElementById('recTime').value = hh + ':' + mm;
+  updateRecForm();
+  renderPselGrid(); renderTagChips();
+  openModal('recordModal');
+  setTimeout(function(){ var el = document.getElementById('recMemo'); if(el) el.focus(); }, 350);
+}
+function showWorkDetail(id) {
+  var r = getRec(id); if (!r) return;
+  var wtLabel = r.workType ? (WORK_TYPES.filter(function(t){ return t.val === r.workType; })[0] || null) : null;
+  var workTypeBadge = wtLabel ? '<span class="work-type-badge">' + wtLabel.label + '</span>' : '';
+  var timeTag = r.time ? '<span class="memo-time-tag">⏰ ' + r.time + '</span>' : '';
+  document.getElementById('workDetailContent').innerHTML =
+    '<div class="modal-head">'
+    + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">' + workTypeBadge + timeTag + '</div>'
+    + '<div style="display:flex;gap:8px;">'
+    + '<button class="icon-btn" onclick="closeModal(\'workDetailModal\');openEditRecord(\'' + id + '\')">✏️</button>'
+    + '<button class="close-btn" onclick="closeModal(\'workDetailModal\')">×</button>'
+    + '</div></div>'
+    + '<div style="font-size:12px;color:var(--txm);margin-bottom:8px;">' + esc(r.date || '') + '</div>'
+    + (r.workTitle ? '<div class="memo-work-title">' + esc(r.workTitle) + '</div>' : '')
+    + (r.memo ? '<div class="memo-body-area">' + renderMemoHTML(r.memo) + '</div>' : '')
+    + (r.tags && r.tags.length
+        ? '<div class="memo-tags" style="margin-top:12px;">'
+          + r.tags.map(function(t){ return '<span class="memo-tag-chip">' + hashIcon() + esc(t) + '</span>'; }).join('')
+          + '</div>'
+        : '');
+  openModal('workDetailModal');
+}
+function openEditRecord(id) {
+  var r = getRec(id); if (!r) return;
+  editRecId = id;
+  selPeople = (r.peopleIds||[]).slice();
+  selTags   = (r.tags||[]).slice();
+  selWorkType = r.workType || '';
+  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false; pselOpen = false;
+  resetTagSuggest();
+  var em = r.mode || 'hobby';
+  var titles = { hobby: '記録を編集', work: '仕事メモを編集', quick: '一言メモを編集', kotono: '言の葉を編集' };
+  document.getElementById('recModalTitle').textContent = titles[em] || '記録を編集';
+  document.getElementById('recDate').value = r.date;
+  document.getElementById('recMemo').value = r.memo || '';
+  document.getElementById('recTime').value = r.time || '';
+  var wt = document.getElementById('recWorkTitle'); if (wt) wt.value = r.workTitle || '';
+  document.getElementById('delRecBtn').style.display = 'block';
+  updateRecForm(em);
+  renderPselGrid(); renderTagChips();
+  openModal('recordModal');
+}
+var WORK_TYPES = [
+  { val: 'idea',  label: '💡 アイデア' },
+  { val: 'memo',  label: '📝 メモ' },
+  { val: 'task',  label: '✅ タスク' },
+  { val: 'issue', label: '🤔 課題' }
+];
+var selWorkType = '';
+function renderWorkTypeChips() {
+  var el = document.getElementById('workTypeSel');
+  if (!el) return;
+  el.innerHTML = WORK_TYPES.map(function(t){
+    return '<button class="work-type-chip' + (selWorkType === t.val ? ' sel' : '') + '" onclick="toggleWorkType(\'' + t.val + '\')">' + t.label + '</button>';
+  }).join('');
+}
+function toggleWorkType(v) {
+  selWorkType = selWorkType === v ? '' : v;
+  renderWorkTypeChips();
+}
+function updateRecForm(m) {
+  m = m || curMode;
+  var pg = document.getElementById('recPersonGroup');
+  var tg = document.getElementById('recTagGroup');
+  var tmg = document.getElementById('recTimeGroup');
+  var wtg = document.getElementById('recWorkTypeGroup');
+  var wtig = document.getElementById('recWorkTitleGroup');
+  if (pg) pg.style.display = m === 'hobby' ? 'block' : 'none';
+  if (tg) tg.style.display = 'block';
+  if (tmg) tmg.style.display = (m === 'quick' || m === 'kotono' || m === 'work') ? 'block' : 'none';
+  if (wtg) wtg.style.display = m === 'work' ? 'block' : 'none';
+  if (wtig) wtig.style.display = m === 'work' ? 'block' : 'none';
+  var placeholders = { hobby: '今日の出来事や会話内容...', work: '考えたことをメモ...', quick: 'メモ...', kotono: 'メモ...' };
+  var ta = document.getElementById('recMemo');
+  if (ta) ta.placeholder = placeholders[m] || 'メモ...';
+  if (m === 'work') renderWorkTypeChips();
+}
+function renderPselFilters() {
+  var fc = document.getElementById('pselFilters');
+  if (!fc) return;
+  var rows = '<div class="psel-filter-row">' + ['all'].concat(db.groups).map(function(g){
+    return '<button class="psel-filter-chip' + (pselGroupFilter === g ? ' active' : '') + '" onclick="setPselGroupFilter(\'' + g + '\')">' + (g === 'all' ? '全て' : g) + '</button>';
+  }).join('') + '</div>';
+  rows += '<div class="psel-filter-row">' + [{ val:'all', label:'全て' }].concat(GENDERS).map(function(g){
+    return '<button class="psel-filter-chip' + (pselGenderFilter === g.val ? ' active' : '') + '" onclick="setPselGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
+  }).join('') + '</div>';
+  fc.innerHTML = rows;
+}
+function setPselGroupFilter(g) { pselGroupFilter = g; pselOpen = true; renderPselGrid(); }
+function setPselGenderFilter(v) { pselGenderFilter = v; pselOpen = true; renderPselGrid(); }
+function renderPselGrid() {
+  renderPselFilters();
+  var wrap = document.getElementById('pselPeopleWrap');
+  var tog  = document.getElementById('pselPeopleToggle');
+  var selCount = selPeople.length;
+  var lbl = pselOpen ? '▾ 閉じる' : ('▸ 人物を選ぶ' + (selCount ? '（' + selCount + '人選択中）' : ''));
+  if (tog) tog.innerHTML = '<button class="psel-filter-toggle' + (selCount ? ' on' : '') + '" onclick="togglePselOpen()">' + lbl + '</button>';
+  if (wrap) wrap.style.display = pselOpen ? 'block' : 'none';
+  if (!pselOpen) return;
+  var c = document.getElementById('pselGrid');
+  if (!db.people.length) {
+    c.innerHTML = '<span style="font-size:13px;color:var(--txm);">人物が登録されていません</span>';
+    return;
+  }
+  var filtered = db.people.filter(function(p){
+    var gok = pselGroupFilter === 'all' || (p.group||'その他') === pselGroupFilter;
+    var sok = pselGenderFilter === 'all' || (p.gender||'') === pselGenderFilter;
+    return gok && sok;
+  });
+  if (!filtered.length) {
+    c.innerHTML = '<span style="font-size:13px;color:var(--txm);">該当する人物がいません</span>';
+    return;
+  }
+  c.innerHTML = filtered.map(function(p){
+    var sel = selPeople.indexOf(p.id) >= 0 ? ' sel' : '';
+    var gbadge = p.gender ? genderIcon(p.gender) : '';
+    return '<button class="psel-chip' + sel + '" onclick="togglePsel(\'' + p.id + '\')">'
+      + (p.icon||'👤') + gbadge + ' ' + esc(p.name) + '</button>';
+  }).join('');
+}
+function togglePselOpen() { pselOpen = !pselOpen; renderPselGrid(); }
+function togglePsel(id) {
+  var i = selPeople.indexOf(id);
+  if (i >= 0) selPeople.splice(i, 1); else selPeople.push(id);
+  renderPselGrid();
+}
+function renderTagChips() {
+  var c = document.getElementById('tagField');
+  c.innerHTML = '';
+  selTags.forEach(function(t){
+    var span = document.createElement('span');
+    span.className = 'ti-chip';
+    span.innerHTML = hashIcon() + esc(t) + ' <button onclick="removeTag(\'' + esc(t) + '\')">×</button>';
+    c.appendChild(span);
+  });
+  var inp = document.createElement('input');
+  inp.className = 'ti-text';
+  inp.id = 'tagInput';
+  inp.placeholder = selTags.length ? '' : '#タグを入力...';
+  inp.onkeydown  = tagKeydown;
+  inp.oninput    = tagInputChange;
+  c.appendChild(inp);
+  renderTagSuggestions();
+}
+var tagSuggestOpen = false;
+function resetTagSuggest() {
+  tagSuggestOpen = false;
+  var list = document.getElementById('tagSuggestList');
+  var btn  = document.getElementById('tagSuggestToggle');
+  if (list) { list.style.display = 'none'; list.innerHTML = ''; }
+  if (btn)  btn.textContent = '▸ 使用中のタグ';
+}
+function toggleTagSuggest() {
+  tagSuggestOpen = !tagSuggestOpen;
+  var list = document.getElementById('tagSuggestList');
+  var btn  = document.getElementById('tagSuggestToggle');
+  if (list) list.style.display = tagSuggestOpen ? 'flex' : 'none';
+  if (btn)  btn.textContent = (tagSuggestOpen ? '▾' : '▸') + ' 使用中のタグ';
+  if (tagSuggestOpen) renderTagSuggestions();
+}
+function renderTagSuggestions() {
+  if (!tagSuggestOpen) return;
+  var c = document.getElementById('tagSuggestList');
+  if (!c) return;
+  var tags = allTags();
+  if (!tags.length) {
+    c.innerHTML = '<span style="font-size:11px;color:var(--txm);">タグがありません</span>';
+    return;
+  }
+  c.innerHTML = tags.map(function(t){
+    var used = selTags.indexOf(t) >= 0;
+    return '<button class="tag-sug-chip' + (used ? ' used' : '') + '" onclick="quickAddTag(\'' + esc(t) + '\')">' + hashIcon() + esc(t) + '</button>';
+  }).join('');
+}
+function quickAddTag(t) {
+  if (selTags.indexOf(t) < 0) { selTags.push(t); renderTagChips(); }
+}
+function focusTagInput() { var el = document.getElementById('tagInput'); if(el) el.focus(); }
+function tagKeydown(e) {
+  var v = e.target.value;
+  if (e.key === 'Enter' || e.key === 'Tab') {
+    e.preventDefault(); flushTag(v);
+  } else if ((e.key === ' ' || e.key === '　') && v.trim()) {
+    e.preventDefault(); flushTag(v);
+  } else if (e.key === 'Backspace' && v === '' && selTags.length) {
+    selTags.pop(); renderTagChips();
+  }
+}
+function tagInputChange(e) {
+  var v = e.target.value;
+  if (v.slice(-1) === ',' || v.slice(-1) === '、') flushTag(v.slice(0,-1));
+}
+function flushTag(raw) {
+  var t = raw.trim().replace(/^#/, '');
+  if (t && selTags.indexOf(t) < 0) selTags.push(t);
+  renderTagChips();
+  setTimeout(function(){ var el = document.getElementById('tagInput'); if(el) el.focus(); }, 0);
+}
+function removeTag(t) {
+  var i = selTags.indexOf(t);
+  if (i >= 0) selTags.splice(i, 1);
+  renderTagChips();
+}
+function recalcLastContact() {
+  db.people.forEach(function(p){ p.lastContactDate = ''; });
+  db.records.forEach(function(r){
+    if ((r.mode||'hobby') !== 'hobby') return;
+    (r.peopleIds||[]).forEach(function(pid){
+      var p = getPerson(pid);
+      if (p && (!p.lastContactDate || r.date > p.lastContactDate)) p.lastContactDate = r.date;
+    });
+  });
+}
+function saveRecord() {
+  var inp = document.getElementById('tagInput');
+  if (inp && inp.value.trim()) flushTag(inp.value);
+  var date = document.getElementById('recDate').value;
+  if (!date) { toast('日付を入力してください'); return; }
+  var memo = document.getElementById('recMemo').value.trim();
+  var now  = new Date().toISOString();
+  var timeVal = document.getElementById('recTime').value || '';
+  var workTitleVal = (document.getElementById('recWorkTitle') || {}).value || '';
+  if (editRecId) {
+    var r = getRec(editRecId);
+    var rm = r.mode || 'hobby';
+    r.date = date; r.memo = memo;
+    if (rm === 'hobby') r.peopleIds = selPeople.slice();
+    r.tags = selTags.slice();
+    if (rm === 'quick' || rm === 'kotono' || rm === 'work') r.time = timeVal;
+    if (rm === 'work') { r.workType = selWorkType; r.workTitle = workTitleVal; }
+    r.updatedAt = now;
+  } else {
+    var isQuickLike = curMode === 'quick' || curMode === 'kotono' || curMode === 'work';
+    db.records.push({ id:uid(), mode:curMode, date:date, memo:memo, peopleIds:curMode==='hobby'?selPeople.slice():[], tags:selTags.slice(), time:isQuickLike?timeVal:'', workType:curMode==='work'?selWorkType:'', workTitle:curMode==='work'?workTitleVal:'', createdAt:now, updatedAt:now });
+  }
+  if (curMode === 'hobby') recalcLastContact();
+  saveDB(); closeModal('recordModal'); refresh();
+  toast(editRecId ? '更新しました' : '保存しました');
+}
+function deleteCurrentRec() {
+  if (!editRecId || !confirm('この記録を削除しますか？')) return;
+  db.records = db.records.filter(function(r){ return r.id !== editRecId; });
+  recalcLastContact();
+  saveDB(); closeModal('recordModal'); refresh(); toast('削除しました');
+}
+
+// ─── PERSON FORM ─────────────────────────────────────────────
+function openAddPerson() {
+  editPerId = null; selIcon = '👤'; selGender = ''; selLinks = []; selGroup = 'その他'; fromRec = false;
+  document.getElementById('pModalTitle').textContent = '人物を追加';
+  document.getElementById('pName').value = '';
+  document.getElementById('pMemo').value = '';
+  document.getElementById('delPersonBtn').style.display = 'none';
+  renderIconGrid(); renderGroupSel(); renderGenderSel(); renderLinkList();
+  openModal('personModal');
+}
+function openAddPersonFromRec() { openAddPerson(); fromRec = true; }
+function openEditPerson(id) {
+  var p = getPerson(id); if (!p) return;
+  editPerId = id; selIcon = p.icon || '👤'; selGender = p.gender || ''; selGroup = p.group || 'その他'; fromRec = false;
+  selLinks = (p.links||[]).map(function(lk){ return { label: lk.label||'', url: lk.url||'' }; });
+  document.getElementById('pModalTitle').textContent = '人物を編集';
+  document.getElementById('pName').value = p.name;
+  document.getElementById('pMemo').value = p.memo || '';
+  document.getElementById('delPersonBtn').style.display = 'block';
+  renderIconGrid(); renderGroupSel(); renderGenderSel(); renderLinkList();
+  openModal('personModal');
+}
+function renderIconGrid() {
+  document.getElementById('iconGrid').innerHTML = ICONS.map(function(ic){
+    return '<button class="icon-opt' + (ic === selIcon ? ' sel' : '') + '" onclick="pickIcon(\'' + ic + '\')">' + ic + '</button>';
+  }).join('');
+}
+function pickIcon(ic) { selIcon = ic; renderIconGrid(); }
+function renderGroupSel() {
+  var c = document.getElementById('groupSelRow');
+  if (!c) return;
+  c.innerHTML = db.groups.map(function(g){
+    return '<button class="filter-chip' + (g === selGroup ? ' active' : '') + '" onclick="pickGroup(\'' + g + '\')">' + g + '</button>';
+  }).join('');
+}
+function pickGroup(g) { selGroup = g; renderGroupSel(); }
+
+
+// ─── GROUP MANAGEMENT ────────────────────────────────────────
+function renderGroupEditList() {
+  var c = document.getElementById('groupEditList');
+  if (!c) return;
+  c.innerHTML = db.groups.map(function(g, i){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+      + '<input class="form-input" type="text" value="' + esc(g) + '" style="flex:1;padding:10px 12px;" oninput="renameGroup(' + i + ',this.value)">'
+      + '<button style="flex-shrink:0;width:34px;height:34px;border:none;background:rgba(180,40,40,.08);color:#B02828;font-size:16px;border-radius:8px;cursor:pointer;transition:background .15s;" onclick="deleteGroup(' + i + ')">🗑</button>'
+      + '</div>';
+  }).join('');
+}
+function addGroup() {
+  var inp = document.getElementById('newGroupInput');
+  var name = inp.value.trim();
+  if (!name) { toast('グループ名を入力してください'); return; }
+  if (db.groups.indexOf(name) >= 0) { toast('同じ名前のグループがあります'); return; }
+  db.groups.push(name);
+  inp.value = '';
+  saveDB();
+  renderGroupEditList();
+  renderGroupFilterChips();
+  renderGroupSel();
+}
+function renameGroup(idx, newName) {
+  var oldName = db.groups[idx];
+  db.groups[idx] = newName;
+  db.people.forEach(function(p){ if (p.group === oldName) p.group = newName; });
+  if (selGroup === oldName) selGroup = newName;
+  if (personFilter === oldName) personFilter = newName;
+  saveDB();
+  renderGroupFilterChips();
+}
+function deleteGroup(idx) {
+  var name = db.groups[idx];
+  var inUse = db.people.some(function(p){ return p.group === name; });
+  if (inUse) { toast(name + ' は使用中のため削除できません'); return; }
+  db.groups.splice(idx, 1);
+  if (selGroup === name) selGroup = db.groups[0] || 'その他';
+  if (personFilter === name) { personFilter = 'all'; }
+  saveDB();
+  renderGroupEditList();
+  renderGroupFilterChips();
+  renderGroupSel();
+}
+
+// ─── BAND/GROUP MANAGEMENT ───────────────────────────────────
+function getBand(id) {
+  for (var i = 0; i < db.bands.length; i++) { if (db.bands[i].id === id) return db.bands[i]; }
+  return null;
+}
+function setPeopleSub(s) {
+  peopleSub = s;
+  var pv = document.getElementById('peoplePersonView');
+  var bv = document.getElementById('peopleBandView');
+  if (pv) pv.style.display = s === 'person' ? '' : 'none';
+  if (bv) bv.style.display = s === 'band' ? '' : 'none';
+  var sp = document.getElementById('peopleSubPerson');
+  var sb = document.getElementById('peopleSubBand');
+  if (sp) sp.classList.toggle('active', s === 'person');
+  if (sb) sb.classList.toggle('active', s === 'band');
+  var fab = document.getElementById('fab');
+  if (fab) fab.onclick = s === 'band' ? openAddBand : openAddPerson;
+  if (s === 'band') renderBandList();
+}
+function renderBandList() {
+  var c = document.getElementById('bandListEl');
+  if (!c) return;
+  var bands = db.bands;
+  if (bandSearchText.trim()) {
+    var q = normalizeKana(bandSearchText.trim());
+    bands = bands.filter(function(b) { return normalizeKana(b.name).indexOf(q) >= 0 || normalizeKana(b.yomi).indexOf(q) >= 0; });
+  }
+  if (!bands.length) {
+    c.innerHTML = bandSearchText.trim()
+      ? '<div class="band-empty">「' + esc(bandSearchText) + '」に一致するバンドはありません</div>'
+      : '<div class="band-empty">バンド/グループがまだありません<br>＋ で追加してください</div>';
+    return;
+  }
+  c.innerHTML = bands.map(function(band, i) {
+    var members = (band.memberIds || []).map(function(id) {
+      var p = getPerson(id);
+      return p ? '<span class="band-member-mini">' + esc(p.name) + '</span>' : '';
+    }).filter(Boolean).slice(0, 5);
+    var memRow = members.length
+      ? '<div class="band-members-row">' + members.join('') + '</div>'
+      : '<div style="font-size:12px;color:var(--txm);margin-top:4px;">メンバー未設定</div>';
+    var liveCnt = (band.liveHistory || []).length;
+    var liveBadge = liveCnt ? '<span class="live-count-badge">' + liveCnt + '回</span>' : '';
+    var links = (band.links || []).filter(function(lk) { return lk.url; });
+    var linkChips = links.map(function(lk) {
+      return '<a class="band-link-chip" href="' + esc(lk.url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">'
+        + esc(lk.label || lk.url) + '</a>';
+    }).join('');
+    var catBadges = (Array.isArray(band.category) ? band.category : [band.category || 'バンド']).map(function(c) { return '<span class="band-cat-badge">' + esc(c) + '</span>'; }).join('');
+    return '<div class="band-card" style="animation-delay:' + (i * 40) + 'ms" onclick="showBandDetail(\'' + band.id + '\')">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'
+      + '<span class="band-name">' + esc(band.name) + liveBadge + '</span>'
+      + (linkChips ? '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-left:8px;flex-shrink:0;">' + linkChips + '</div>' : '')
+      + '</div>'
+      + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">' + catBadges + '</div>'
+      + (band.memo ? '<div style="font-size:13px;color:var(--txm);margin-bottom:4px;word-break:break-word;">' + esc(band.memo) + '</div>' : '')
+      + memRow
+      + '</div>';
+  }).join('');
+}
+function showBandDetail(id) {
+  var band = getBand(id);
+  if (!band) return;
+  var members = (band.memberIds || []).map(function(mid) {
+    var p = getPerson(mid);
+    if (!p) return '';
+    return '<div class="person-card" style="cursor:pointer;margin-bottom:8px;" onclick="closeModal(\'bandDetailModal\');showPersonDetail(\'' + mid + '\')">'
+      + '<div class="p-icon-wrap"><div class="p-icon">' + esc(p.icon || '👤') + '</div></div>'
+      + '<div class="p-info"><div class="p-name">' + esc(p.name) + '</div></div>'
+      + '</div>';
+  }).filter(Boolean);
+  var links = (band.links || []).filter(function(lk) { return lk.url; });
+  var linkHtml = links.length
+    ? '<div class="form-group">' + links.map(function(lk) {
+        return '<a href="' + esc(lk.url) + '" target="_blank" rel="noopener" style="display:block;color:var(--primary);font-size:14px;margin-bottom:4px;">' + esc(lk.label || lk.url) + '</a>';
+      }).join('') + '</div>'
+    : '';
+  document.getElementById('bandDetailContent').innerHTML =
+    '<div class="modal-head">'
+    + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' + (Array.isArray(band.category) ? band.category : [band.category || 'バンド']).map(function(c) { return '<span class="band-cat-badge">' + esc(c) + '</span>'; }).join('') + '&nbsp;<span style="font-size:20px;font-weight:800;">' + esc(band.name) + '</span></div>'
+    + '<div style="display:flex;gap:8px;">'
+    + '<button class="icon-btn" onclick="closeModal(\'bandDetailModal\');openEditBand(\'' + id + '\')">✏️</button>'
+    + '<button class="close-btn" onclick="closeModal(\'bandDetailModal\')">×</button>'
+    + '</div></div>'
+    + (band.memo ? '<div style="font-size:14px;color:var(--txm);padding:0 4px 12px;word-break:break-word;">' + esc(band.memo) + '</div>' : '')
+    + linkHtml
+    + (members.length
+        ? '<div class="form-group"><label class="form-label">メンバー</label>' + members.join('') + '</div>'
+        : '<div style="color:var(--txm);font-size:13px;padding:0 4px 12px;">メンバー未設定</div>')
+    + buildLiveSection(id);
+  openModal('bandDetailModal');
+}
+function openAddBand() {
+  editBandId = null; bandMemberSel = []; selBandLinks = []; bandCatSel = ['バンド']; bandMemberGroupFilter = 'all';
+  document.getElementById('bandModalTitle').textContent = 'バンド/グループを追加';
+  document.getElementById('bandName').value = '';
+  document.getElementById('bandYomi').value = '';
+  document.getElementById('bandMemo').value = '';
+  document.getElementById('delBandBtn').style.display = 'none';
+  renderBandCatChips(); renderBandMemberGroupFilter(); renderBandMemberGrid(); renderBandLinkList();
+  openModal('bandModal');
+}
+function openEditBand(id) {
+  var band = getBand(id);
+  if (!band) return;
+  editBandId = id;
+  bandCatSel = Array.isArray(band.category) ? band.category.slice() : [band.category || 'バンド'];
+  bandMemberSel = (band.memberIds || []).slice();
+  selBandLinks = (band.links || []).map(function(lk) { return { label: lk.label || '', url: lk.url || '' }; });
+  document.getElementById('bandModalTitle').textContent = 'バンド/グループを編集';
+  document.getElementById('bandName').value = band.name;
+  document.getElementById('bandYomi').value = band.yomi || '';
+  document.getElementById('bandMemo').value = band.memo || '';
+  document.getElementById('delBandBtn').style.display = 'block';
+  renderBandCatChips(); renderBandMemberGroupFilter(); renderBandMemberGrid(); renderBandLinkList();
+  openModal('bandModal');
+}
+function renderBandCatChips() {
+  var c = document.getElementById('bandCatRow');
+  if (!c) return;
+  c.innerHTML = BAND_CATS.map(function(cat) {
+    var active = bandCatSel.indexOf(cat) >= 0;
+    return '<button class="filter-chip' + (active ? ' active' : '') + '" onclick="pickBandCat(\'' + cat + '\')">' + cat + '</button>';
+  }).join('');
+}
+function pickBandCat(cat) {
+  var idx = bandCatSel.indexOf(cat);
+  if (idx >= 0) { if (bandCatSel.length > 1) bandCatSel.splice(idx, 1); }
+  else bandCatSel.push(cat);
+  renderBandCatChips();
+}
+function renderBandMemberGroupFilter() {
+  var c = document.getElementById('bandMemberGroupFilter');
+  if (!c) return;
+  if (!(db.groups || []).length) { c.innerHTML = ''; return; }
+  var groups = ['all'].concat(db.groups);
+  c.innerHTML = groups.map(function(g) {
+    var label = g === 'all' ? '全員' : g;
+    var active = bandMemberGroupFilter === g;
+    return '<button class="filter-chip' + (active ? ' active' : '') + '" onclick="setBandMemberGroup(\'' + esc(g) + '\')">' + esc(label) + '</button>';
+  }).join('');
+}
+function setBandMemberGroup(g) {
+  bandMemberGroupFilter = g;
+  renderBandMemberGroupFilter();
+  renderBandMemberGrid();
+}
+function renderBandMemberGrid() {
+  var c = document.getElementById('bandMemberGrid');
+  if (!c) return;
+  if (!db.people.length) {
+    c.innerHTML = '<div style="font-size:13px;color:var(--txm);">人物が登録されていません</div>';
+    return;
+  }
+  var people = bandMemberGroupFilter === 'all'
+    ? db.people
+    : db.people.filter(function(p) { return p.group === bandMemberGroupFilter; });
+  if (!people.length) {
+    c.innerHTML = '<div style="font-size:13px;color:var(--txm);">該当する人物がいません</div>';
+    return;
+  }
+  c.innerHTML = people.map(function(p) {
+    var sel = bandMemberSel.indexOf(p.id) >= 0;
+    return '<button class="band-member-chip' + (sel ? ' sel' : '') + '" onclick="toggleBandMember(\'' + p.id + '\')">' + esc(p.name) + '</button>';
+  }).join('');
+}
+function setBandViewMode(mode) {
+  bandViewMode = mode;
+  document.getElementById('bandViewTabBands').classList.toggle('active', mode === 'bands');
+  document.getElementById('bandViewTabEvents').classList.toggle('active', mode === 'events');
+  document.getElementById('bandImportButtons').style.display = mode === 'bands' ? 'flex' : 'none';
+  document.getElementById('bandSearchWrap').style.display = mode === 'bands' ? '' : 'none';
+  document.getElementById('bandListEl').style.display = mode === 'bands' ? '' : 'none';
+  document.getElementById('eventListEl').style.display = mode === 'events' ? '' : 'none';
+  if (mode === 'events') renderEventList();
+  else renderBandList();
+}
+function setEvTab(t) {
+  evTab = t;
+  document.getElementById('evTabPast').classList.toggle('active', t === 'past');
+  document.getElementById('evTabUpcoming').classList.toggle('active', t === 'upcoming');
+  renderEventList();
+}
+function onBandSearch(v) { bandSearchText = v; renderBandList(); }
+function renderEventList() {
+  var c = document.getElementById('eventListEl');
+  if (!c) return;
+  var todayStr = today();
+  var evMap = {};
+  db.bands.forEach(function(band) {
+    (band.liveHistory || []).forEach(function(lv) {
+      var key = (lv.date || '') + '__' + (lv.title || '');
+      if (!evMap[key]) evMap[key] = { title: lv.title || '(タイトル未設定)', date: lv.date || '', venue: lv.venue || '', bands: [] };
+      evMap[key].bands.push({ id: band.id, name: band.name });
+    });
+  });
+  var allEvents = Object.keys(evMap).map(function(k) { return evMap[k]; });
+  var events = allEvents.filter(function(ev) {
+    return evTab === 'upcoming' ? ev.date > todayStr : ev.date <= todayStr;
+  }).sort(function(a, b) {
+    return evTab === 'upcoming'
+      ? (a.date || '').localeCompare(b.date || '')
+      : (b.date || '').localeCompare(a.date || '');
+  });
+  var tabHtml = '<div style="display:flex;gap:6px;margin-bottom:10px;">'
+    + '<button class="filter-chip' + (evTab === 'past' ? ' active' : '') + '" id="evTabPast" onclick="setEvTab(\'past\')">過去</button>'
+    + '<button class="filter-chip' + (evTab === 'upcoming' ? ' active' : '') + '" id="evTabUpcoming" onclick="setEvTab(\'upcoming\')">予定</button>'
+    + '</div>';
+  if (!events.length) {
+    c.innerHTML = tabHtml + '<div style="text-align:center;padding:20px;font-size:13px;color:var(--txm);">'
+      + (evTab === 'upcoming' ? '予定はありません' : 'イベント記録がありません') + '</div>';
+    return;
+  }
+  c.innerHTML = tabHtml + events.map(function(ev, idx) {
+    var domId = 'evList_' + idx;
+    var ekey = (ev.date || '') + '__' + (ev.title || '');
+    var isEditing = editingEvKey === ekey;
+    var bandRows = ev.bands.map(function(b) {
+      return '<div class="live-band-row" onclick="showBandDetail(\'' + b.id + '\')">'
+        + '<span class="live-band-name">' + esc(b.name) + '</span>'
+        + '<span style="color:var(--txm);">›</span>'
+        + '</div>';
+    }).join('');
+    if (isEditing) {
+      return '<div class="live-event-bar">'
+        + '<div style="padding:12px 14px;display:flex;flex-direction:column;gap:8px;">'
+        + '<input class="form-input" id="evEditTitle_' + idx + '" value="' + esc(ev.title || '') + '" placeholder="イベント名">'
+        + '<div style="display:flex;gap:8px;">'
+        + '<input class="form-input" type="date" id="evEditDate_' + idx + '" value="' + esc(ev.date || '') + '" style="flex:1;">'
+        + '<input class="form-input" id="evEditVenue_' + idx + '" value="' + esc(ev.venue || '') + '" placeholder="会場" style="flex:2;">'
+        + '</div>'
+        + '<div style="display:flex;gap:8px;">'
+        + '<button class="btn-pri" style="flex:1;" onclick="saveEvEdit(\'' + esc(ekey) + '\',' + idx + ')">✓ 保存</button>'
+        + '<button class="btn-sec" style="flex:1;" onclick="cancelEvEdit()">✗ キャンセル</button>'
+        + '</div>'
+        + '</div>'
+        + '<div class="live-event-bands">' + bandRows + '</div>'
+        + '</div>';
+    }
+    var venueHtml = ev.venue ? '<div style="font-size:11px;color:var(--txm);margin-top:2px;">📍 ' + esc(ev.venue) + '</div>' : '';
+    return '<div class="live-event-bar">'
+      + '<div class="live-event-bar-hd" onclick="toggleLiveEventBands(\'' + domId + '\')">'
+      + '<span class="live-event-icon">' + (evTab === 'upcoming' ? '🗓️' : '🎸') + '</span>'
+      + '<div style="flex:1;">'
+      + '<div class="live-event-title-lg">' + esc(ev.title) + '</div>'
+      + '<div style="font-size:11px;color:var(--txm);margin-top:2px;">' + esc(ev.date || '---') + '</div>'
+      + venueHtml
+      + '</div>'
+      + '<span class="live-event-cnt">' + ev.bands.length + 'バンド</span>'
+      + '<span class="live-event-arrow" onclick="event.stopPropagation();startEvEdit(\'' + esc(ekey) + '\')">♬</span>'
+      + '<span id="' + domId + '_arrow" class="live-event-arrow">▶</span>'
+      + '</div>'
+      + '<div id="' + domId + '" style="display:none">'
+      + '<div class="live-event-bands">' + bandRows + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+function startEvEdit(ekey) { editingEvKey = ekey; renderEventList(); }
+function cancelEvEdit() { editingEvKey = null; renderEventList(); }
+function saveEvEdit(oldKey, idx) {
+  var newTitle = document.getElementById('evEditTitle_' + idx).value.trim();
+  var newDate  = document.getElementById('evEditDate_'  + idx).value;
+  var newVenue = document.getElementById('evEditVenue_' + idx).value.trim();
+  var parts = oldKey.split('__');
+  var oldDate = parts[0], oldTitle = parts.slice(1).join('__');
+  db.bands.forEach(function(band) {
+    (band.liveHistory || []).forEach(function(lv) {
+      if (lv.date === oldDate && lv.title === oldTitle) {
+        lv.title = newTitle; lv.date = newDate; lv.venue = newVenue;
+      }
+    });
+  });
+  editingEvKey = null;
+  saveDB(); renderEventList(); renderCalendar();
+  toast('更新しました');
+}
+function toggleBandMember(id) {
+  var idx = bandMemberSel.indexOf(id);
+  if (idx >= 0) bandMemberSel.splice(idx, 1);
+  else bandMemberSel.push(id);
+  renderBandMemberGrid();
+}
+function renderBandLinkList() {
+  var c = document.getElementById('bandLinkList');
+  if (!c) return;
+  if (!selBandLinks.length) { c.innerHTML = ''; return; }
+  c.innerHTML = selBandLinks.map(function(lk, i) {
+    return '<div class="link-row">'
+      + '<input class="link-label-inp" type="text" placeholder="Twitter" value="' + esc(lk.label) + '" oninput="selBandLinks[' + i + '].label=this.value">'
+      + '<input class="link-url-inp" type="url" placeholder="https://..." value="' + esc(lk.url) + '" oninput="selBandLinks[' + i + '].url=this.value">'
+      + '<button class="link-del-btn" onclick="removeBandLinkRow(' + i + ')">×</button>'
+      + '</div>';
+  }).join('');
+}
+function addBandLinkRow() {
+  selBandLinks.push({ label: '', url: '' });
+  renderBandLinkList();
+  setTimeout(function() {
+    var inputs = document.querySelectorAll('#bandLinkList .link-url-inp');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  }, 50);
+}
+function removeBandLinkRow(i) { selBandLinks.splice(i, 1); renderBandLinkList(); }
+function saveBand() {
+  var name = document.getElementById('bandName').value.trim();
+  if (!name) { toast('名前を入力してください'); return; }
+  var now = new Date().toISOString();
+  var cleanLinks = selBandLinks.filter(function(lk) { return lk.url.trim(); });
+  if (editBandId) {
+    var band = getBand(editBandId);
+    band.name = name; band.yomi = document.getElementById('bandYomi').value.trim(); band.category = bandCatSel;
+    band.memo = document.getElementById('bandMemo').value.trim();
+    band.memberIds = bandMemberSel.slice();
+    band.links = cleanLinks; band.updatedAt = now;
+  } else {
+    db.bands.push({ id: uid(), name: name, yomi: document.getElementById('bandYomi').value.trim(), category: bandCatSel,
+      memo: document.getElementById('bandMemo').value.trim(),
+      memberIds: bandMemberSel.slice(), links: cleanLinks, liveHistory: [], createdAt: now });
+  }
+  saveDB(); closeModal('bandModal'); renderBandList();
+  toast(editBandId ? '更新しました' : '追加しました');
+}
+function deleteCurrentBand() {
+  if (!editBandId) return;
+  db.bands = db.bands.filter(function(b) { return b.id !== editBandId; });
+  saveDB(); closeModal('bandModal'); renderBandList();
+  toast('削除しました');
+}
+
+// ─── LIVE HISTORY ────────────────────────────────────────────
+function getCoLiveBands(excludeId, title, date) {
+  var result = [];
+  db.bands.forEach(function(b) {
+    if (b.id === excludeId) return;
+    if ((b.liveHistory || []).some(function(lv) { return lv.title === title && lv.date === date; }))
+      result.push({ id: b.id, name: b.name });
+  });
+  return result;
+}
+function buildLiveSection(id) {
+  var band = getBand(id);
+  if (!band) return '';
+  var lives = band.liveHistory || [];
+  var cnt = lives.length;
+  var todayStr = today();
+  var sorted = lives.slice().sort(function(a, b) {
+    var au = (a.date || '') > todayStr, bu = (b.date || '') > todayStr;
+    if (au !== bu) return au ? -1 : 1;
+    return au ? (a.date || '').localeCompare(b.date || '') : (b.date || '').localeCompare(a.date || '');
+  });
+  var isAnyEditing = editingLiveKey && editingLiveKey.indexOf(id + '~~') === 0;
+  var rows = sorted.map(function(lv, idx) {
+    var domId = 'coLive_' + id + '_' + idx;
+    var isUpcoming = (lv.date || '') > todayStr;
+    var isEditing = editingLiveKey === id + '~~' + lv.id;
+    if (isEditing) {
+      return '<div class="live-row" style="flex-wrap:wrap;gap:6px;align-items:center;">'
+        + '<input class="form-input" type="date" id="liveEditDate_' + lv.id + '" value="' + esc(lv.date || '') + '" style="flex:1;min-width:100px;">'
+        + '<input class="form-input" id="liveEditTitle_' + lv.id + '" value="' + esc(lv.title || '') + '" placeholder="イベント名" style="flex:2;min-width:120px;">'
+        + '<input class="form-input" id="liveEditVenue_' + lv.id + '" value="' + esc(lv.venue || '') + '" placeholder="会場" style="flex:2;min-width:120px;">'
+        + '<button class="btn-pri" onclick="saveLiveEdit(\'' + id + '\',\'' + lv.id + '\')">✓</button>'
+        + '<button class="btn-sec" onclick="cancelLiveEdit(\'' + id + '\')">✗</button>'
+        + '</div>';
+    }
+    var coBands = getCoLiveBands(id, lv.title, lv.date);
+    var badge = coBands.length
+      ? '<span class="live-count-badge" style="cursor:pointer;" onclick="toggleLiveEventBands(\'' + domId + '\')">他' + coBands.length + '組</span>'
+      : '';
+    var upBadge = isUpcoming ? '<span style="font-size:10px;font-weight:700;color:#4caf50;background:#e8f5e9;padding:1px 6px;border-radius:20px;flex-shrink:0;">予定</span>' : '';
+    var coHtml = coBands.length
+      ? '<div id="' + domId + '" style="display:none"><div class="live-event-bands">'
+        + coBands.map(function(b) {
+            return '<div class="live-band-row" onclick="showBandDetail(\'' + b.id + '\')">'
+              + '<span class="live-band-name">' + esc(b.name) + '</span>'
+              + '<span style="color:var(--txm);">›</span>'
+              + '</div>';
+          }).join('')
+        + '</div></div>'
+      : '';
+    var venueHtml = lv.venue ? '<span style="font-size:11px;color:var(--txm);">📍' + esc(lv.venue) + '</span>' : '';
+    return '<div>'
+      + '<div class="live-row">'
+      + upBadge
+      + '<span class="live-row-date">' + esc(lv.date || '---') + '</span>'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div class="live-row-title">' + esc(lv.title || '') + '</div>'
+      + venueHtml
+      + '</div>'
+      + badge
+      + '<span class="live-row-del" onclick="startEditLive(\'' + id + '\',\'' + lv.id + '\')">♬</span>'
+      + '<span class="live-row-del" onclick="deleteLiveRecord(\'' + id + '\',\'' + lv.id + '\')">×</span>'
+      + '</div>'
+      + coHtml
+      + '</div>';
+  }).join('');
+  return '<div class="live-section">'
+    + '<div class="live-section-hd" onclick="toggleBandLiveSection(\'' + id + '\')">'
+    + '<span class="live-section-title">ライブ記録 <span class="live-count-badge">' + cnt + '回</span></span>'
+    + '<span id="liveSectionArrow_' + id + '">' + (isAnyEditing ? '▼' : '▶') + '</span>'
+    + '</div>'
+    + '<div id="liveSectionBody_' + id + '" style="' + (isAnyEditing ? '' : 'display:none') + '">'
+    + rows
+    + '<div class="live-add-row" style="flex-wrap:wrap;">'
+    + '<input class="form-input" type="date" id="liveAddDate_' + id + '" style="flex:1;min-width:100px;">'
+    + '<input class="form-input" placeholder="イベント名" id="liveAddTitle_' + id + '" style="flex:2;min-width:120px;">'
+    + '<input class="form-input" placeholder="会場" id="liveAddVenue_' + id + '" style="flex:2;min-width:120px;">'
+    + '<button class="btn-pri" onclick="addLiveRecord(\'' + id + '\')">追加</button>'
+    + '</div>'
+    + '</div>'
+    + '</div>';
+}
+function toggleBandLiveSection(id) {
+  var body = document.getElementById('liveSectionBody_' + id);
+  var arrow = document.getElementById('liveSectionArrow_' + id);
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : '';
+  arrow.textContent = isOpen ? '▶' : '▼';
+}
+function startEditLive(bandId, liveId) {
+  editingLiveKey = bandId + '~~' + liveId;
+  showBandDetail(bandId);
+}
+function saveLiveEdit(bandId, liveId) {
+  var band = getBand(bandId); if (!band) return;
+  var lv = (band.liveHistory || []).filter(function(l) { return l.id === liveId; })[0];
+  if (!lv) return;
+  lv.title = document.getElementById('liveEditTitle_' + liveId).value.trim();
+  lv.date  = document.getElementById('liveEditDate_'  + liveId).value;
+  lv.venue = document.getElementById('liveEditVenue_' + liveId).value.trim();
+  band.updatedAt = new Date().toISOString();
+  editingLiveKey = null;
+  saveDB();
+  showBandDetail(bandId);
+  toast('更新しました');
+}
+function cancelLiveEdit(bandId) {
+  editingLiveKey = null;
+  showBandDetail(bandId);
+}
+function addLiveRecord(bandId) {
+  var band = getBand(bandId); if (!band) return;
+  var title = document.getElementById('liveAddTitle_' + bandId).value.trim();
+  var date  = document.getElementById('liveAddDate_'  + bandId).value;
+  var venue = document.getElementById('liveAddVenue_' + bandId).value.trim();
+  if (!title && !date) { toast('タイトルまたは日付を入力してください'); return; }
+  band.liveHistory = band.liveHistory || [];
+  band.liveHistory.push({ id: uid(), title: title, date: date, venue: venue, memo: '' });
+  band.updatedAt = new Date().toISOString();
+  saveDB();
+  showBandDetail(bandId);
+  toast('追加しました');
+}
+function deleteLiveRecord(bandId, liveId) {
+  var band = getBand(bandId); if (!band) return;
+  band.liveHistory = (band.liveHistory || []).filter(function(l) { return l.id !== liveId; });
+  band.updatedAt = new Date().toISOString();
+  saveDB();
+  showBandDetail(bandId);
+  toast('削除しました');
+}
+function pasteImportFromClipboard() {
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    toast('このブラウザはクリップボード読み取りに対応していません');
+    return;
+  }
+  navigator.clipboard.readText().then(function(text) {
+    try {
+      var data = JSON.parse(text);
+      if (!data.bands || !Array.isArray(data.bands)) throw new Error();
+      document.getElementById('bandImportText').value = data.bands.join('\n');
+      document.getElementById('importEventTitle').value = data.event || '';
+      document.getElementById('importEventDate').value = data.date || '';
+      document.getElementById('importEventVenue').value = data.venue || '';
+      openModal('bandTextImportModal');
+    } catch(e) {
+      toast('クリップボードの形式が正しくありません');
+    }
+  }).catch(function() {
+    toast('クリップボードの読み取りに失敗しました');
+  });
+}
+function openBandTextImport() {
+  document.getElementById('bandImportText').value = '';
+  document.getElementById('importEventTitle').value = '';
+  document.getElementById('importEventDate').value = '';
+  document.getElementById('importEventVenue').value = '';
+  openModal('bandTextImportModal');
+}
+function executeBandTextImport() {
+  var names = document.getElementById('bandImportText').value
+    .split('\n').map(function(s) { return s.trim(); }).filter(function(s) { return s.length; });
+  if (!names.length) { toast('バンド名を入力してください'); return; }
+  var title = document.getElementById('importEventTitle').value.trim();
+  var date  = document.getElementById('importEventDate').value;
+  var venue = document.getElementById('importEventVenue').value.trim();
+  var now = new Date().toISOString();
+  var live = (title || date) ? { id: uid(), title: title, date: date, venue: venue, memo: '' } : null;
+  var added = 0, updated = 0;
+  names.forEach(function(name) {
+    var band = db.bands.find(function(b) { return b.name === name; });
+    if (!band) {
+      band = { id: uid(), name: name, category: 'バンド', memo: '', memberIds: [], links: [], liveHistory: [], createdAt: now };
+      db.bands.push(band);
+      added++;
+    }
+    if (live) {
+      band.liveHistory = band.liveHistory || [];
+      var dup = band.liveHistory.some(function(l) { return l.title === live.title && l.date === live.date; });
+      if (!dup) band.liveHistory.push({ id: uid(), title: live.title, date: live.date, venue: live.venue || '', memo: '' });
+      updated++;
+    }
+  });
+  saveDB(); closeModal('bandTextImportModal'); renderBandList();
+  toast(added + '件追加' + (live ? '、ライブ記録 ' + updated + '件更新' : ''));
+}
+
+// ─── LINK LIST ───────────────────────────────────────────────
+function renderLinkList() {
+  var c = document.getElementById('linkList');
+  if (!selLinks.length) { c.innerHTML = ''; return; }
+  c.innerHTML = selLinks.map(function(lk, i){
+    return '<div class="link-row">'
+      + '<input class="link-label-inp" type="text" placeholder="Twitter" value="' + esc(lk.label) + '" oninput="selLinks[' + i + '].label=this.value">'
+      + '<input class="link-url-inp" type="url" placeholder="https://..." value="' + esc(lk.url) + '" oninput="selLinks[' + i + '].url=this.value">'
+      + '<button class="link-del-btn" onclick="removeLinkRow(' + i + ')">×</button>'
+      + '</div>';
+  }).join('');
+}
+function addLinkRow() {
+  selLinks.push({ label: '', url: '' });
+  renderLinkList();
+  setTimeout(function(){
+    var inputs = document.querySelectorAll('.link-url-inp');
+    if (inputs.length) inputs[inputs.length-1].focus();
+  }, 50);
+}
+function removeLinkRow(i) {
+  selLinks.splice(i, 1);
+  renderLinkList();
+}
+
+function savePerson() {
+  var name = document.getElementById('pName').value.trim();
+  if (!name) { toast('名前を入力してください'); return; }
+  var now = new Date().toISOString();
+  var pid;
+  var cleanLinks = selLinks.filter(function(lk){ return lk.url.trim(); });
+  if (editPerId) {
+    var p = getPerson(editPerId);
+    p.name = name; p.icon = selIcon; p.group = selGroup; p.gender = selGender;
+    p.memo = document.getElementById('pMemo').value.trim();
+    p.links = cleanLinks;
+    p.updatedAt = now;
+    pid = editPerId;
+  } else {
+    pid = uid();
+    db.people.push({ id:pid, name:name, icon:selIcon, group:selGroup, gender:selGender, memo:document.getElementById('pMemo').value.trim(), links:cleanLinks, lastContactDate:'', createdAt:now });
+  }
+  saveDB(); closeModal('personModal');
+  if (fromRec) {
+    if (!editPerId) selPeople.push(pid);
+    renderPselGrid(); openModal('recordModal');
+  } else {
+    refresh();
+  }
+  toast(editPerId ? '更新しました' : '追加しました');
+}
+function deleteCurrentPerson() {
+  if (!editPerId || !confirm('この人物を削除しますか？\n関連する記録の人物情報も削除されます。')) return;
+  db.people = db.people.filter(function(p){ return p.id !== editPerId; });
+  db.records.forEach(function(r){
+    r.peopleIds = (r.peopleIds||[]).filter(function(id){ return id !== editPerId; });
+  });
+  saveDB(); closeModal('personModal'); closeModal('personDetailModal');
+  refresh(); toast('削除しました');
+}
+
+// ─── CONTEXT MENU ────────────────────────────────────────────
+function openCtx(e, id) {
+  e.stopPropagation();
+  ctxRecId = id;
+  var m = document.getElementById('ctxMenu');
+  m.classList.add('open');
+  var rect = e.target.getBoundingClientRect();
+  var top  = rect.bottom + 4;
+  var left = rect.right - 144;
+  if (left < 8) left = 8;
+  if (top + 90 > window.innerHeight) top = rect.top - 94;
+  m.style.top  = top  + 'px';
+  m.style.left = left + 'px';
+  setTimeout(function(){ document.addEventListener('click', closeCtx, { once: true }); }, 10);
+}
+function closeCtx() { document.getElementById('ctxMenu').classList.remove('open'); }
+function ctxEdit()   { closeCtx(); if (ctxRecId) openEditRecord(ctxRecId); }
+function ctxDelete() {
+  closeCtx();
+  if (!ctxRecId || !confirm('この記録を削除しますか？')) return;
+  db.records = db.records.filter(function(r){ return r.id !== ctxRecId; });
+  recalcLastContact();
+  saveDB(); refresh(); toast('削除しました');
+}
+
+// ─── SCROLL ──────────────────────────────────────────────────
+window.addEventListener('scroll', function(){
+  document.getElementById('scrollTopBtn').classList.toggle('vis', window.scrollY > 280);
+});
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') {
+    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal','bandTextImportModal','workDetailModal'].forEach(closeModal);
+    closeCtx();
+  }
+});
+
+// ─── SAMPLE DATA ─────────────────────────────────────────────
+function addSampleData() {
+  var now = new Date().toISOString();
+  var p1 = { id:uid(), name:'山田太郎', icon:'👨', group:'趣味', memo:'写真仲間',
+    links:[{ label:'Instagram', url:'https://www.instagram.com/' }], lastContactDate:'', createdAt:now };
+  var p2 = { id:uid(), name:'佐藤花子', icon:'👩', group:'友人', memo:'デザイナー',
+    links:[{ label:'X', url:'https://x.com/' }, { label:'note', url:'https://note.com/' }], lastContactDate:'', createdAt:now };
+  db.people.push(p1, p2);
+  var d1 = today();
+  var d2 = new Date(Date.now()-86400000).toISOString().slice(0,10);
+  var d3 = new Date(Date.now()-3*86400000).toISOString().slice(0,10);
+  db.records.push(
+    { id:uid(), mode:'hobby', date:d1, memo:'今日は撮影地について相談した。夜景スポットの候補をいくつか挙げてもらった。', peopleIds:[p1.id,p2.id], tags:['撮影','夜景'], createdAt:now, updatedAt:now },
+    { id:uid(), mode:'hobby', date:d2, memo:'ランチミーティング。来月のイベント企画について話し合った。進め方がまとまった。', peopleIds:[p1.id], tags:['仕事','企画'], createdAt:now, updatedAt:now },
+    { id:uid(), mode:'hobby', date:d3, memo:'カフェでデザインの方向性を確認。次回レビューは来週の予定。', peopleIds:[p2.id], tags:['デザイン','打ち合わせ'], createdAt:now, updatedAt:now }
+  );
+  saveDB();
+}
+
+// ─── INIT ────────────────────────────────────────────────────
+loadDB();
+applyTheme();
+curMode = (db.settings && db.settings.mode) || 'hobby';
+(function(m){
+  var tabs = {hobby:'modeTabHobby',quick:'modeTabQuick',work:'modeTabWork',kotono:'modeTabKotono'};
+  document.querySelectorAll('.mode-tab').forEach(function(el){el.classList.remove('active');});
+  var el = document.getElementById(tabs[m]); if(el) el.classList.add('active');
+})(curMode);
+if (!db.records.length && !db.people.length) addSampleData();
+showView('home');
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  var bands = p.get('bands');
+  if (!bands) return;
+  history.replaceState(null, '', window.location.pathname);
+  showView('people');
+  setPeopleSub('band');
+  document.getElementById('bandImportText').value = bands;
+  document.getElementById('importEventTitle').value = p.get('event') || '';
+  document.getElementById('importEventDate').value = p.get('date') || '';
+  openModal('bandTextImportModal');
+})();
+</script>
+
+<!-- MEMO FULLSCREEN OVERLAY -->
+<div id="memoFsOverlay" class="memo-fs-overlay">
+  <div class="memo-fs-header">
+    <div class="memo-fmt-bar" style="margin:0;">
+      <button class="memo-fmt-btn red" onclick="wrapMemoSel('memoFsTextarea','！','！')">！赤！</button>
+      <button class="memo-fmt-btn bold" onclick="wrapMemoSel('memoFsTextarea','@','@')">@太@</button>
+      <button class="memo-fmt-btn blue" onclick="wrapMemoSel('memoFsTextarea','？','？')">？紫？</button>
+      <button class="memo-fmt-btn hl" onclick="wrapMemoSel('memoFsTextarea','==','==')">蛍光</button>
+      <button class="memo-fmt-btn head" onclick="insertHeading('memoFsTextarea')">見出し</button>
+      <button class="memo-fmt-btn ul" onclick="wrapMemoSel('memoFsTextarea','_','_')">下線</button>
+      <button class="memo-fmt-btn div" onclick="insertDivider('memoFsTextarea')">┈┈</button>
+    </div>
+    <button class="memo-fs-done" onclick="closeMemoFullscreen()">完了</button>
+  </div>
+  <textarea id="memoFsTextarea" class="memo-fs-textarea"></textarea>
+</div>
+
+<script>
+function memoFsAdjust() {
+  var overlay = document.getElementById('memoFsOverlay');
+  if (!overlay || !overlay.classList.contains('open')) return;
+  if (window.visualViewport) {
+    overlay.style.top    = window.visualViewport.offsetTop + 'px';
+    overlay.style.height = window.visualViewport.height + 'px';
+  }
+}
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', memoFsAdjust);
+  window.visualViewport.addEventListener('scroll', memoFsAdjust);
+}
+function openMemoFullscreen() {
+  var src = document.getElementById('recMemo');
+  var overlay = document.getElementById('memoFsOverlay');
+  var fsta = document.getElementById('memoFsTextarea');
+  if (!src || !overlay || !fsta) return;
+  overlay.style.top = ''; overlay.style.height = '';
+  fsta.placeholder = src.placeholder;
+  fsta.value = src.value;
+  overlay.classList.add('open');
+  setTimeout(function(){ fsta.focus(); fsta.setSelectionRange(fsta.value.length, fsta.value.length); }, 60);
+}
+function closeMemoFullscreen() {
+  var src = document.getElementById('recMemo');
+  var overlay = document.getElementById('memoFsOverlay');
+  var fsta = document.getElementById('memoFsTextarea');
+  if (src && fsta) src.value = fsta.value;
+  if (overlay) { overlay.classList.remove('open'); overlay.style.top = ''; overlay.style.height = ''; }
+}
+</script>
+</body>
+</html>
