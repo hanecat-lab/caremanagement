@@ -15,7 +15,6 @@
     --text-sub: #7a7568;
     --accent: #3d6b8a;
     --accent-light: #e8f0f5;
-    --fs: 1;                 /* 文字サイズ倍率（ボタンで調整） */
   }
   * { box-sizing: border-box; }
   body {
@@ -123,7 +122,7 @@
   table.tx th {
     background: var(--accent-light);
     color: var(--text);
-    font-size: calc(11px * var(--fs));
+    font-size: 11px;
     font-weight: 700;
     text-align: center;
     padding: 4px 2px;
@@ -136,7 +135,7 @@
   td.room-cell {
     text-align: center;
     vertical-align: middle;
-    font-size: calc(13px * var(--fs));
+    font-size: 13px;
     font-weight: 700;
     background: #faf8f4;
     padding: 2px;
@@ -155,12 +154,12 @@
     padding: 4px 5px;
   }
   .cell-input {
-    font-size: calc(12px * var(--fs));
+    font-size: 12px;
     text-align: center;
     height: 100%;
   }
   .cell-area {
-    font-size: calc(12px * var(--fs));
+    font-size: 12px;
     line-height: 1.4;
     resize: none;
     overflow: hidden;
@@ -190,7 +189,7 @@
     resize: none;
     overflow: hidden;
     font-family: inherit;
-    font-size: calc(12px * var(--fs));
+    font-size: 12px;
     line-height: 1.5;
     background: transparent;
     padding: 2px 5px 5px;
@@ -228,9 +227,6 @@
   <span style="width:1px;height:22px;background:var(--border);margin:0 4px;"></span>
   <button class="btn secondary" id="day-weekday" onclick="setDay('weekday')">平日</button>
   <button class="btn secondary" id="day-holiday" onclick="setDay('holiday')">休日</button>
-  <span style="width:1px;height:22px;background:var(--border);margin:0 4px;"></span>
-  <button class="btn secondary" onclick="setFont(-0.1)">文字 −</button>
-  <button class="btn secondary" onclick="setFont(0.1)">文字 ＋</button>
   <button class="btn" onclick="window.print()">🖨 印刷</button>
   <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（フロアは切替でき、最後に開いたフロアで開きます・A4縦向き）</span>
 </div>
@@ -287,14 +283,6 @@ function load() {
   if (!store.updated) store.updated = {};
   if (!FLOORS[store.activeFloor]) store.activeFloor = '200';
   if (store.activeDay !== 'holiday') store.activeDay = 'weekday';
-  if (typeof store.fontScale !== 'number') store.fontScale = 1;
-}
-
-// 文字サイズ倍率を増減（0.7〜1.8）
-function setFont(delta) {
-  store.fontScale = Math.min(1.8, Math.max(0.7, Math.round((store.fontScale + delta) * 10) / 10));
-  save();
-  render();
 }
 
 // 処置(tx)・余白・更新日は平日/休日で別管理。号室・名前は共有。
@@ -432,7 +420,6 @@ function updateDayButtons() {
 function render() {
   updateFloorButtons();
   updateDayButtons();
-  document.documentElement.style.setProperty('--fs', store.fontScale || 1);
   const container = document.getElementById('sheets');
   const { title, rooms } = FLOORS[store.activeFloor];
   container.innerHTML = sheetHtml(title, store.activeFloor, rooms);
