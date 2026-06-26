@@ -1745,30 +1745,32 @@ function openBackupModal() {
 
   // クイック復元ボタンを表示
   const area = document.getElementById('quick-restore-area');
-  const backupRaw = localStorage.getItem('careplan_last_backup');
-  if (backupRaw) {
+  const historyRaw = localStorage.getItem('careplan_backup_history');
+  if (historyRaw) {
     try {
-      const backup = JSON.parse(backupRaw);
-      area.innerHTML = `
-        <button class="btn-backup-action" style="background:#e3f0e3;border:1px solid #5a8a5a;color:#2f6a2f;" onclick="quickRestore()">
-          ⚡ 前回のバックアップを復元（${backup.date}・${backup.count}名）
-        </button>
-      `;
+      const history = JSON.parse(historyRaw);
+      area.innerHTML = history.map(function(b, i) {
+        return `<button class="btn-backup-action" style="background:#e3f0e3;border:1px solid #5a8a5a;color:#2f6a2f;margin-bottom:4px;" onclick="quickRestore(${i})">
+          ⚡ ${b.date} ${b.time}・${b.count}名
+        </button>`;
+      }).join('');
     } catch(e) { area.innerHTML = ''; }
   } else {
-    area.innerHTML = '<div style="font-size:11px;color:var(--text-sub);margin-bottom:8px;">※ まず一度「JSONファイルに保存」するとクイック復元が使えます</div>';
+    area.innerHTML = '<div style="font-size:11px;color:var(--text-sub);margin-bottom:8px;">※ バックアップがまだありません（起動3秒後に自動保存されます）</div>';
   }
 
   document.getElementById('backup-modal').classList.add('open');
 }
 
-function quickRestore() {
-  const backupRaw = localStorage.getItem('careplan_last_backup');
-  if (!backupRaw) { alert('バックアップが見つかりません'); return; }
+function quickRestore(idx) {
+  idx = idx || 0;
+  const historyRaw = localStorage.getItem('careplan_backup_history');
+  if (!historyRaw) { alert('バックアップが見つかりません'); return; }
   try {
-    const backup = JSON.parse(backupRaw);
+    const history = JSON.parse(historyRaw);
+    const backup = history[idx];
+    if (!backup) { alert('バックアップが見つかりません'); return; }
     residents = backup.data;
-    // マイグレーション
     residents.forEach(r => {
       if (!r.meetings) r.meetings = [];
       if (!r.longGoalStart) r.longGoalStart = '';
@@ -1794,7 +1796,7 @@ function quickRestore() {
     openMeetings = {};
     render();
     closeBackupModal();
-    showToast(`${backup.date}のバックアップを復元しました`);
+    showToast(`${backup.date} ${backup.time}のバックアップを復元しました`);
   } catch(e) {
     alert('復元に失敗しました');
   }
@@ -3514,17 +3516,32 @@ document.getElementById('bed-detail-modal').addEventListener('click', function(e
 function autoBackup() {
   if (residents.length === 0) return;
   try {
-    localStorage.setItem('careplan_last_backup', JSON.stringify({
-      data: residents,
-      date: new Date().toISOString().slice(0, 10),
-      count: residents.length
-    }));
     const now = new Date();
-    const hh = String(now.getHours()).padStart(2, '0');
-    const mm = String(now.getMinutes()).padStart(2, '0');
+    const dateStr = now.toISOString().slice(0, 10);
+    const timeStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+    // 既存の履歴を取得
+    var historyRaw = localStorage.getItem('careplan_backup_history');
+    var history = historyRaw ? JSON.parse(historyRaw) : [];
+
+    // 新しいバックアップを先頭に追加
+    history.unshift({
+      data: residents,
+      date: dateStr,
+      time: timeStr,
+      count: residents.length
+    });
+
+    // 3件に絞る
+    history = history.slice(0, 3);
+    localStorage.setItem('careplan_backup_history', JSON.stringify(history));
+
+    // 後方互換：従来のキーにも保存
+    localStorage.setItem('careplan_last_backup', JSON.stringify(history[0]));
+
     const indicator = document.getElementById('auto-backup-indicator');
     if (indicator) {
-      indicator.textContent = '🔄 自動保存 ' + hh + ':' + mm;
+      indicator.textContent = '🔄 自動保存 ' + timeStr;
       indicator.style.display = 'block';
     }
   } catch(e) {}
