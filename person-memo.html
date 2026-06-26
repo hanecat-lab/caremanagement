@@ -846,6 +846,11 @@
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+<div id="restoreBanner" style="display:none;position:fixed;bottom:calc(var(--nav-h,60px) + 8px);left:8px;right:8px;background:#4A7B6F;color:#fff;border-radius:14px;padding:12px 14px;z-index:600;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.25);">
+  <div style="flex:1;font-size:12px;line-height:1.6;" id="restoreBannerText"></div>
+  <button onclick="restoreBackup()" style="background:#fff;color:#4A7B6F;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">復元する</button>
+  <button onclick="dismissRestoreBanner()" style="background:rgba(255,255,255,.25);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;flex-shrink:0;">×</button>
+</div>
 
 <!-- CONTEXT MENU -->
 <div class="ctx-menu" id="ctxMenu">
@@ -1197,6 +1202,54 @@ function saveDB() {
 }
 
 // ─── JSON IO ─────────────────────────────────────────────────
+function autoSave() {
+  try { localStorage.setItem('hanecat_memo_backup', JSON.stringify({ data: db, savedAt: new Date().toISOString() })); } catch(e) {}
+}
+setInterval(autoSave, 30 * 60 * 1000);
+document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'hidden') autoSave(); });
+
+function checkBackupRestore() {
+  try {
+    var bs = localStorage.getItem('hanecat_memo_backup');
+    if (!bs) return;
+    var bk = JSON.parse(bs);
+    if (!bk.data || !Array.isArray(bk.data.records)) return;
+    if (bk.data.records.length <= db.records.length) return;
+    var d = new Date(bk.savedAt);
+    var dateStr = d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate()
+                + ' ' + ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
+    document.getElementById('restoreBannerText').innerHTML =
+      '📦 バックアップ ' + dateStr + '<br>' + bk.data.records.length + '件の記録';
+    document.getElementById('restoreBanner').style.display = 'flex';
+  } catch(e) {}
+}
+function restoreBackup() {
+  try {
+    var bk = JSON.parse(localStorage.getItem('hanecat_memo_backup'));
+    db = bk.data;
+    db.settings = db.settings || { theme: 'light' };
+    db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
+    db.groups = db.groups || ['家族','友人','仕事','趣味','その他'];
+    db.bands = db.bands || [];
+    db.bands.forEach(function(b) {
+      if (!Array.isArray(b.category)) b.category = b.category ? [b.category] : ['バンド'];
+      b.liveHistory = b.liveHistory || [];
+      b.liveHistory.forEach(function(lv){ lv.venue = lv.venue || ''; });
+      b.yomi = b.yomi || '';
+    });
+    db.people.forEach(function(p){
+      if (!p.group) p.group = 'その他';
+      if (p.lastContactDate === undefined) p.lastContactDate = '';
+    });
+    saveDB(); applyTheme(); refresh();
+    dismissRestoreBanner();
+    toast('バックアップを復元しました');
+  } catch(e) { toast('復元に失敗しました'); }
+}
+function dismissRestoreBanner() {
+  document.getElementById('restoreBanner').style.display = 'none';
+}
+
 function exportJSON() {
   var blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
   var url  = URL.createObjectURL(blob);
@@ -1205,6 +1258,7 @@ function exportJSON() {
   a.download = 'person-memo-' + today() + '.json';
   a.click();
   URL.revokeObjectURL(url);
+  autoSave();
   toast('エクスポートしました');
   closeModal('dataModal');
 }
@@ -3005,6 +3059,7 @@ curMode = (db.settings && db.settings.mode) || 'hobby';
 })(curMode);
 if (!db.records.length && !db.people.length) addSampleData();
 showView('home');
+checkBackupRestore();
 (function() {
   var p = new URLSearchParams(window.location.search);
   var bands = p.get('bands');
