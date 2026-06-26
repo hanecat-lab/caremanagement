@@ -59,13 +59,23 @@
 
   .sheets { padding: 0 16px 24px; }
 
+  /* A4縦1ページぶんのページ箱（はみ出しは縮小で収める） */
   .sheet {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px;
-    max-width: 194mm;       /* A4縦の本文幅に合わせる（印刷と画面を一致） */
+    width: 194mm;           /* A4縦の本文幅 */
+    height: 281mm;          /* A4縦の本文高さ */
+    box-sizing: border-box;
+    overflow: hidden;       /* 収まらない分はscaleで縮小するので隠す */
     margin: 0 auto 18px;
+    padding: 0;
+  }
+  /* 中身。内容が高いと render時に transform:scale で縮小して1ページに収める */
+  .fit {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 4mm;
+    transform-origin: top center;
   }
   .sheet-title {
     font-size: 15px;
@@ -194,13 +204,9 @@
     .sheets { padding: 0; }
     .sheet {
       border: none;
-      border-radius: 0;
-      padding: 0;
       margin: 0;
-      max-width: none;
-      page-break-after: always; /* 2階 / 3階 を別用紙に */
+      page-break-after: avoid;
     }
-    .sheet:last-child { page-break-after: auto; }
     .cell-input, .cell-area, .margin-area { color: #000; }
     /* インク節約：背景はすべて白で統一 */
     table.tx th, td.room-cell { background: #fff !important; color: #000; }
@@ -286,15 +292,22 @@ function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 }
 
-// A4縦1ページに収めるための処置欄の高さ上限（render時に算出）
-let cellMaxH = 0;
-
+// 文字量に応じてセルを伸ばす（上限なし。全体は fitToPage で1ページに縮小）
 function autoGrow(el) {
   el.style.height = 'auto';
-  let h = el.scrollHeight;
-  if (el.classList.contains('cell-area') && cellMaxH) h = Math.min(h, cellMaxH);
-  el.style.height = h + 'px';
-  el.style.overflowY = (el.scrollHeight > h) ? 'auto' : 'hidden';
+  el.style.height = el.scrollHeight + 'px';
+}
+
+// 中身がA4縦1ページに収まるよう、はみ出す場合だけ全体を縮小（transform:scale）
+function fitToPage() {
+  const sheet = document.querySelector('.sheet');
+  const fit = sheet && sheet.querySelector('.fit');
+  if (!fit) return;
+  fit.style.transform = 'none';
+  const pageH = sheet.clientHeight;     // A4縦1ページの高さ(px)
+  const contentH = fit.scrollHeight;    // 中身の自然な高さ(px)
+  const scale = contentH > pageH ? (pageH / contentH) : 1;
+  fit.style.transform = `scale(${scale})`;
 }
 
 // 今日の日付（月/日）
@@ -354,7 +367,7 @@ function colHtml(rooms) {
 
 function sheetHtml(title, key, rooms) {
   const [left, right] = splitRooms(rooms);
-  return `<div class="sheet">
+  return `<div class="sheet"><div class="fit">
     <div class="sheet-title">利用者別処置表　${title}・${store.activeDay === 'holiday' ? '休日' : '平日'}<span class="title-updated">（${labelFor(key)}）</span></div>
     <div class="columns">
       <div class="col">${colHtml(left)}</div>
@@ -368,7 +381,7 @@ function sheetHtml(title, key, rooms) {
         <textarea class="margin-area" data-margin="${key}-R"></textarea>
       </div>
     </div>
-  </div>`;
+  </div></div>`;
 }
 
 function setFloor(key) {
@@ -404,17 +417,6 @@ function render() {
   updateDayButtons();
   const container = document.getElementById('sheets');
   const { title, rooms } = FLOORS[store.activeFloor];
-
-  // A4縦1ページに収まるよう、行数から処置欄の高さ上限を算出
-  const [left, right] = splitRooms(rooms);
-  const bedSum = arr => arr.reduce((s, r) => s + r.beds, 0);
-  const maxRows = Math.max(bedSum(left), bedSum(right));
-  const PAGE_BUDGET_PX = 1040; // A4縦の本文高さ目安(約281mm)
-  const RESERVE_PX = 130;      // タイトル/見出し/余白枠/余裕
-  const ROW_OVERHEAD = 10;     // セルの上下余白・罫線
-  const MIN_CELL = 26;
-  cellMaxH = Math.max(MIN_CELL, Math.floor((PAGE_BUDGET_PX - RESERVE_PX) / maxRows) - ROW_OVERHEAD);
-
   container.innerHTML = sheetHtml(title, store.activeFloor, rooms);
 
   // 値の流し込み（特殊文字対策で value は DOM 経由）＋高さ調整
@@ -428,6 +430,7 @@ function render() {
   });
 
   bindEvents(container);
+  fitToPage();
 }
 
 function bindEvents(container) {
@@ -435,6 +438,7 @@ function bindEvents(container) {
     el.addEventListener('input', () => {
       store.cells[cellKey(el)] = el.value;
       if (el.tagName === 'TEXTAREA') autoGrow(el);
+      fitToPage();
       save();
     });
   });
@@ -442,6 +446,7 @@ function bindEvents(container) {
     el.addEventListener('input', () => {
       store.margins[marginKey(el)] = el.value;
       autoGrow(el);
+      fitToPage();
       save();
     });
   });
