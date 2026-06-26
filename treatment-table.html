@@ -64,7 +64,8 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 14px;
-    margin-bottom: 18px;
+    max-width: 194mm;       /* A4縦の本文幅に合わせる（印刷と画面を一致） */
+    margin: 0 auto 18px;
   }
   .sheet-title {
     font-size: 15px;
@@ -72,6 +73,23 @@
     text-align: center;
     margin-bottom: 10px;
   }
+  .title-updated {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-sub);
+    margin-left: 8px;
+  }
+
+  .save-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    max-width: 194mm;
+    margin: 0 auto 8px;
+    padding: 0 16px;
+  }
+  .no-print { }
 
   /* 左右で行の高さを独立させるため、左右を別テーブルにして横並びにする */
   .columns {
@@ -99,9 +117,9 @@
     text-align: center;
     padding: 4px 2px;
   }
-  .c-room { width: 18%; }
-  .c-name { width: 26%; }
-  .c-tx   { width: 56%; }
+  .c-room { width: 10%; }   /* 3桁の数字が入る程度 */
+  .c-name { width: 22%; }   /* 6文字程度 */
+  .c-tx   { width: 68%; }
 
   /* 号室結合セル */
   td.room-cell {
@@ -147,7 +165,7 @@
   .margin-cell {
     flex: 1;
     border: 1px solid var(--line);
-    min-height: 70px;
+    min-height: 40px;
   }
   .margin-label {
     font-size: 10px;
@@ -170,15 +188,16 @@
   }
 
   @media print {
-    @page { size: A4 landscape; margin: 8mm; }
+    @page { size: A4 portrait; margin: 8mm; }
     body { background: #fff; }
-    .app-header, .toolbar { display: none !important; }
+    .app-header, .toolbar, .no-print { display: none !important; }
     .sheets { padding: 0; }
     .sheet {
       border: none;
       border-radius: 0;
       padding: 0;
       margin: 0;
+      max-width: none;
       page-break-after: always; /* 2階 / 3階 を別用紙に */
     }
     .sheet:last-child { page-break-after: auto; }
@@ -198,7 +217,12 @@
   <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
   <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
   <button class="btn" onclick="window.print()">🖨 印刷</button>
-  <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（フロアは切替でき、最後に開いたフロアで開きます・A4横向き推奨）</span>
+  <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（フロアは切替でき、最後に開いたフロアで開きます・A4縦向き）</span>
+</div>
+
+<div class="save-bar no-print">
+  <button class="btn" onclick="saveStamp()">💾 保存</button>
+  <span class="hint">保存を押すとタイトルに更新日（月/日）が反映されます（印刷されません）</span>
 </div>
 
 <div class="sheets" id="sheets"></div>
@@ -242,15 +266,38 @@ function load() {
   if (!store || typeof store !== 'object') store = {};
   if (!store.cells) store.cells = {};
   if (!store.margins) store.margins = {};
+  if (!store.updated) store.updated = {};
   if (!FLOORS[store.activeFloor]) store.activeFloor = '200';
 }
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 }
 
+// A4縦1ページに収めるための処置欄の高さ上限（render時に算出）
+let cellMaxH = 0;
+
 function autoGrow(el) {
   el.style.height = 'auto';
-  el.style.height = el.scrollHeight + 'px';
+  let h = el.scrollHeight;
+  if (el.classList.contains('cell-area') && cellMaxH) h = Math.min(h, cellMaxH);
+  el.style.height = h + 'px';
+  el.style.overflowY = (el.scrollHeight > h) ? 'auto' : 'hidden';
+}
+
+// 今日の日付（月/日）
+function todayMD() {
+  const d = new Date();
+  return (d.getMonth() + 1) + '/' + d.getDate();
+}
+// タイトル横の更新日ラベル
+function labelFor(key) {
+  return store.updated[key] ? (store.updated[key] + ' 更新') : '未更新';
+}
+// 保存ボタン：更新日をスタンプ（データ自体は入力時に自動保存済み）
+function saveStamp() {
+  store.updated[store.activeFloor] = todayMD();
+  save();
+  render();
 }
 
 // 居室を、左右の床数合計が最も均等になる位置で2列に分割
@@ -294,7 +341,7 @@ function colHtml(rooms) {
 function sheetHtml(title, key, rooms) {
   const [left, right] = splitRooms(rooms);
   return `<div class="sheet">
-    <div class="sheet-title">利用者別処置表　${title}</div>
+    <div class="sheet-title">利用者別処置表　${title}<span class="title-updated">（${labelFor(key)}）</span></div>
     <div class="columns">
       <div class="col">${colHtml(left)}</div>
       <div class="col">${colHtml(right)}</div>
@@ -328,6 +375,17 @@ function render() {
   updateFloorButtons();
   const container = document.getElementById('sheets');
   const { title, rooms } = FLOORS[store.activeFloor];
+
+  // A4縦1ページに収まるよう、行数から処置欄の高さ上限を算出
+  const [left, right] = splitRooms(rooms);
+  const bedSum = arr => arr.reduce((s, r) => s + r.beds, 0);
+  const maxRows = Math.max(bedSum(left), bedSum(right));
+  const PAGE_BUDGET_PX = 1040; // A4縦の本文高さ目安(約281mm)
+  const RESERVE_PX = 130;      // タイトル/見出し/余白枠/余裕
+  const ROW_OVERHEAD = 10;     // セルの上下余白・罫線
+  const MIN_CELL = 26;
+  cellMaxH = Math.max(MIN_CELL, Math.floor((PAGE_BUDGET_PX - RESERVE_PX) / maxRows) - ROW_OVERHEAD);
+
   container.innerHTML = sheetHtml(title, store.activeFloor, rooms);
 
   // 値の流し込み（特殊文字対策で value は DOM 経由）＋高さ調整
