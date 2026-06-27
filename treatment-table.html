@@ -47,24 +47,27 @@
     gap: 8px;
     align-items: flex-start;
   }
+  /* 右上ブロック（印刷・保存） */
+  .controls-right {
+    margin-left: auto;
+    align-items: flex-end;
+  }
   .tb-row {
     display: flex;
     gap: 8px;
     align-items: center;
     flex-wrap: wrap;
   }
-  /* 曜日ボタン（大きく） */
+  /* ページ切替（曜日）ボタン */
   .btn-day {
-    font-size: 16px;
-    padding: 12px 24px;
+    font-size: 25px;
+    padding: 12px 26px;
   }
-  /* 印刷ボタン（表の右上あたりに配置） */
+  /* 印刷ボタン */
   .btn-print {
     font-size: 20px;
     padding: 12px 28px;
     border-radius: 12px;
-    margin-left: auto;       /* 右端へ */
-    align-self: flex-start;  /* 上へ */
   }
   .btn {
     background: var(--accent);
@@ -277,12 +280,16 @@
       <button class="btn secondary btn-day" id="day-holiday" onclick="setDay('holiday')">休日</button>
       <button class="btn secondary btn-day" id="day-bath" onclick="setDay('bath')">入浴日</button>
     </div>
+  </div>
+  <div class="controls-col controls-right">
     <div class="tb-row">
+      <button class="btn btn-print" onclick="window.print()">🖨 印刷</button>
       <button class="btn" onclick="saveStamp()">💾 保存</button>
+    </div>
+    <div class="tb-row">
       <span class="hint">保存を押すと更新日（月/日）が反映されます</span>
     </div>
   </div>
-  <button class="btn btn-print" onclick="window.print()">🖨 印刷</button>
 </div>
 
 <div class="sheets" id="sheets"></div>
