@@ -35,10 +35,28 @@
 
   .toolbar {
     display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+    padding: 12px 16px;
+  }
+  .tb-row {
+    display: flex;
     gap: 8px;
     align-items: center;
     flex-wrap: wrap;
-    padding: 12px 16px;
+  }
+  /* 印刷ボタン（フロア選択の下に大きく） */
+  .btn-print {
+    font-size: 18px;
+    padding: 14px 32px;
+    border-radius: 10px;
+  }
+  /* コピー操作は1かたまりで表示（離れないように） */
+  .copy-group {
+    background: var(--accent-light);
+    border-radius: 8px;
+    padding: 6px 8px;
   }
   .btn {
     background: var(--accent);
@@ -111,9 +129,9 @@
 
   .save-bar {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 8px;
-    flex-wrap: wrap;
     max-width: 194mm;
     margin: 0 auto 8px;
     padding: 0 16px;
@@ -250,28 +268,36 @@
 <body>
 
 <div class="toolbar">
-  <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
-  <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
-  <span style="width:1px;height:22px;background:var(--border);margin:0 4px;"></span>
-  <button class="btn secondary" id="day-weekday" onclick="setDay('weekday')">平日</button>
-  <button class="btn secondary" id="day-holiday" onclick="setDay('holiday')">休日</button>
-  <button class="btn secondary" id="day-bath" onclick="setDay('bath')">入浴日</button>
-  <button class="btn" onclick="window.print()">🖨 印刷</button>
-  <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（フロアは切替でき、最後に開いたフロアで開きます・A4縦向き）</span>
+  <div class="tb-row">
+    <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
+    <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
+  </div>
+  <div class="tb-row">
+    <button class="btn btn-print" onclick="window.print()">🖨 印刷</button>
+  </div>
+  <div class="tb-row">
+    <button class="btn secondary" id="day-weekday" onclick="setDay('weekday')">平日</button>
+    <button class="btn secondary" id="day-holiday" onclick="setDay('holiday')">休日</button>
+    <button class="btn secondary" id="day-bath" onclick="setDay('bath')">入浴日</button>
+  </div>
+  <div class="tb-row"><span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（A4縦向き）</span></div>
 </div>
 
 <div class="save-bar no-print">
-  <button class="btn" onclick="saveStamp()">💾 保存</button>
-  <span class="hint">保存を押すとタイトルに更新日（月/日）が反映されます</span>
-  <span style="width:1px;height:22px;background:var(--border);margin:0 4px;"></span>
-  <span class="hint">表示中の処置を→</span>
-  <select id="copy-target" style="font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--accent);border-radius:8px;">
-    <option value="" disabled selected>コピー先を選択</option>
-    <option value="weekday">平日</option>
-    <option value="holiday">休日</option>
-    <option value="bath">入浴日</option>
-  </select>
-  <button class="btn secondary" onclick="copyToDay()">📋 へコピー</button>
+  <div class="tb-row">
+    <button class="btn" onclick="saveStamp()">💾 保存</button>
+    <span class="hint">保存を押すとタイトルに更新日（月/日）が反映されます</span>
+  </div>
+  <div class="tb-row copy-group">
+    <span class="hint">表示中の処置を</span>
+    <select id="copy-target" style="font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--accent);border-radius:8px;">
+      <option value="" disabled selected>コピー先を選択</option>
+      <option value="weekday">平日</option>
+      <option value="holiday">休日</option>
+      <option value="bath">入浴日</option>
+    </select>
+    <button class="btn secondary" onclick="copyToDay()">📋 へコピー</button>
+  </div>
 </div>
 
 <div class="sheets" id="sheets"></div>
