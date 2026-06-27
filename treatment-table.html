@@ -94,7 +94,6 @@
     font-weight: 700;
     white-space: pre;        /* スペースをそのまま表示 */
   }
-  .head-day { font-size: 12px; font-weight: 700; }
   .head-center {
     text-align: center;
     font-size: 15px;
@@ -157,8 +156,8 @@
   .c-name { width: 18%; }   /* 約5文字 */
   .c-tx   { width: 73%; }   /* 残り（処置） */
 
-  /* 号室結合セル */
-  td.room-cell {
+  /* 号室結合セル（縦中央に表示。table.tx td より詳細度を高くする） */
+  table.tx td.room-cell {
     text-align: center;
     vertical-align: middle;
     font-size: 13px;
@@ -389,7 +388,7 @@ function sheetHtml(title, key, rooms) {
   const [left, right] = splitRooms(rooms);
   return `<div class="sheet"><div class="fit">
     <div class="sheet-head">
-      <div class="head-left">処置一覧　　${title}<span class="head-day">　${store.activeDay === 'holiday' ? '休日' : '平日'}</span></div>
+      <div class="head-left">処置一覧　　${title}</div>
       <div class="head-center">R　　年　　月　　日<span class="title-updated">（${labelFor(key)}）</span></div>
     </div>
     <div class="columns">
