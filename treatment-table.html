@@ -73,11 +73,15 @@
   /* 中身。内容が高いと render時に transform:scale で縮小して1ページに収める */
   .fit {
     width: 100%;
+    min-height: 100%;        /* ページ全体を埋める（余白を下まで伸ばす） */
     box-sizing: border-box;
     padding: 4mm;
     transform-origin: top center;
+    display: flex;
+    flex-direction: column;
   }
   .sheet-title {
+    flex: 0 0 auto;
     font-size: 15px;
     font-weight: 700;
     text-align: center;
@@ -105,9 +109,16 @@
   .columns {
     display: flex;
     gap: 0;
-    align-items: flex-start;
+    align-items: stretch;    /* 左右の列を同じ高さに */
+    flex: 1 0 auto;          /* タイトル下を埋める（短い時はページ下端まで） */
   }
-  .col { flex: 1; min-width: 0; }
+  .col {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;  /* テーブルの下に余白を積む */
+  }
+  .col > table.tx { flex: 0 0 auto; }   /* テーブルは内容なりの高さ */
 
   table.tx {
     width: 100%;
@@ -167,22 +178,16 @@
     display: block;
   }
 
-  .margin-row {
-    margin-top: 10px;
-    display: flex;
-    gap: 0;
-  }
-  .margin-cell {
-    flex: 1;
+  /* 各列のテーブル直下の余白（左右で高さが異なってよい・下端まで伸びる） */
+  .col-margin {
+    flex: 1 1 auto;
     border: 1px solid var(--line);
-    min-height: 40px;
-  }
-  .margin-label {
-    font-size: 10px;
-    color: var(--text-sub);
-    padding: 3px 5px 0;
+    border-top: none;        /* テーブル下罫線と地続きに */
+    min-height: 36px;
+    display: flex;
   }
   .margin-area {
+    flex: 1;
     width: 100%;
     border: none;
     outline: none;
@@ -192,8 +197,7 @@
     font-size: 12px;
     line-height: 1.5;
     background: transparent;
-    padding: 2px 5px 5px;
-    min-height: 52px;
+    padding: 2px 5px;
     display: block;
   }
 
@@ -375,15 +379,13 @@ function sheetHtml(title, key, rooms) {
   return `<div class="sheet"><div class="fit">
     <div class="sheet-title">利用者別処置表　${title}・${store.activeDay === 'holiday' ? '休日' : '平日'}<span class="title-updated">（${labelFor(key)}）</span></div>
     <div class="columns">
-      <div class="col">${colHtml(left)}</div>
-      <div class="col">${colHtml(right)}</div>
-    </div>
-    <div class="margin-row">
-      <div class="margin-cell">
-        <textarea class="margin-area" data-margin="${key}-L"></textarea>
+      <div class="col">
+        ${colHtml(left)}
+        <div class="col-margin"><textarea class="margin-area" data-margin="${key}-L"></textarea></div>
       </div>
-      <div class="margin-cell">
-        <textarea class="margin-area" data-margin="${key}-R"></textarea>
+      <div class="col">
+        ${colHtml(right)}
+        <div class="col-margin"><textarea class="margin-area" data-margin="${key}-R"></textarea></div>
       </div>
     </div>
   </div></div>`;
@@ -431,7 +433,6 @@ function render() {
   });
   container.querySelectorAll('.margin-area').forEach(el => {
     el.value = store.margins[marginKey(el)] || '';
-    autoGrow(el);
   });
 
   bindEvents(container);
@@ -450,8 +451,6 @@ function bindEvents(container) {
   container.querySelectorAll('.margin-area').forEach(el => {
     el.addEventListener('input', () => {
       store.margins[marginKey(el)] = el.value;
-      autoGrow(el);
-      fitToPage();
       save();
     });
   });
