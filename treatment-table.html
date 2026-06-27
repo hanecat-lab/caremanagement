@@ -52,6 +52,8 @@
     margin-left: auto;
     align-items: flex-end;
   }
+  /* 印刷と保存の間隔を空ける */
+  .print-save { gap: 24px; }
   .tb-row {
     display: flex;
     gap: 8px;
@@ -282,9 +284,9 @@
     </div>
   </div>
   <div class="controls-col controls-right">
-    <div class="tb-row">
+    <div class="tb-row print-save">
       <button class="btn btn-print" onclick="window.print()">🖨 印刷</button>
-      <button class="btn" onclick="saveStamp()">💾 保存</button>
+      <button class="btn btn-print" onclick="saveStamp()">💾 保存</button>
     </div>
     <div class="tb-row">
       <span class="hint">保存を押すと更新日（月/日）が反映されます</span>
