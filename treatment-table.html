@@ -281,7 +281,7 @@
 
 <div class="controls no-print">
   <div class="controls-col">
-    <div class="tb-row">
+    <div class="tb-row" id="floor-row">
       <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
       <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
     </div>
@@ -349,7 +349,18 @@ function load() {
   if (!store.margins) store.margins = {};
   if (!store.updated) store.updated = {};
   if (!FLOORS[store.activeFloor]) store.activeFloor = '200';
+  // URLで階を指定（各PCで別URL運用：?floor=2 / ?floor=3）。指定時は切替ボタンを隠す
+  const uf = floorFromURL();
+  if (uf) { store.activeFloor = uf; floorLocked = true; }
   if (!DAYS[store.activeDay]) store.activeDay = 'weekday';
+}
+
+let floorLocked = false;
+function floorFromURL() {
+  const p = new URLSearchParams(location.search).get('floor');
+  if (p === '2' || p === '200') return '200';
+  if (p === '3' || p === '300') return '300';
+  return null;
 }
 
 // 曜日タイプ（処置(tx)・余白・更新日は曜日別に管理。号室・名前は共有）
@@ -489,6 +500,8 @@ function updateDayButtons() {
 function render() {
   updateFloorButtons();
   updateDayButtons();
+  const floorRow = document.getElementById('floor-row');
+  if (floorRow) floorRow.style.display = floorLocked ? 'none' : '';
   const container = document.getElementById('sheets');
   const { title, rooms } = FLOORS[store.activeFloor];
   container.innerHTML = sheetHtml(title, store.activeFloor, rooms);
