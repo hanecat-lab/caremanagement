@@ -258,6 +258,7 @@
   <span style="width:1px;height:22px;background:var(--border);margin:0 4px;"></span>
   <button class="btn secondary" id="day-weekday" onclick="setDay('weekday')">平日</button>
   <button class="btn secondary" id="day-holiday" onclick="setDay('holiday')">休日</button>
+  <button class="btn secondary" id="day-bath" onclick="setDay('bath')">入浴日</button>
   <button class="btn" onclick="window.print()">🖨 印刷</button>
   <span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（フロアは切替でき、最後に開いたフロアで開きます・A4縦向き）</span>
 </div>
@@ -265,6 +266,14 @@
 <div class="save-bar no-print">
   <button class="btn" onclick="saveStamp()">💾 保存</button>
   <span class="hint">保存を押すとタイトルに更新日（月/日）が反映されます</span>
+  <span style="width:1px;height:22px;background:var(--border);margin:0 4px;"></span>
+  <select id="copy-target" style="font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--accent);border-radius:8px;">
+    <option value="weekday">平日</option>
+    <option value="holiday">休日</option>
+    <option value="bath">入浴日</option>
+  </select>
+  <button class="btn secondary" onclick="copyToDay()">📋 処置をコピー</button>
+  <span class="hint">表示中の処置を選んだ曜日へ上書きコピー</span>
 </div>
 
 <div class="sheets" id="sheets"></div>
@@ -313,12 +322,17 @@ function load() {
   if (!store.margins) store.margins = {};
   if (!store.updated) store.updated = {};
   if (!FLOORS[store.activeFloor]) store.activeFloor = '200';
-  if (store.activeDay !== 'holiday') store.activeDay = 'weekday';
+  if (!DAYS[store.activeDay]) store.activeDay = 'weekday';
 }
 
-// 処置(tx)・余白・更新日は平日/休日で別管理。号室・名前は共有。
-// 既存データは接尾辞なし＝平日として保持される。
-function daySuffix() { return store.activeDay === 'holiday' ? '#H' : ''; }
+// 曜日タイプ（処置(tx)・余白・更新日は曜日別に管理。号室・名前は共有）
+// 既存データ互換：weekdayは接尾辞なし、holidayは#H。
+const DAYS = {
+  weekday: { label: '平日', suffix: '' },
+  holiday: { label: '休日', suffix: '#H' },
+  bath:    { label: '入浴日', suffix: '#B' },
+};
+function daySuffix() { return DAYS[store.activeDay].suffix; }
 function cellKey(el) {
   const base = `${el.dataset.room}#${el.dataset.ri}#${el.dataset.field}`;
   return el.dataset.field === 'tx' ? base + daySuffix() : base;
@@ -432,17 +446,36 @@ function updateFloorButtons() {
 }
 
 function setDay(day) {
-  if (day !== 'weekday' && day !== 'holiday') return;
+  if (!DAYS[day]) return;
   store.activeDay = day;
   save();
   render();
 }
 
 function updateDayButtons() {
-  ['weekday', 'holiday'].forEach(day => {
+  Object.keys(DAYS).forEach(day => {
     const btn = document.getElementById('day-' + day);
     if (btn) btn.classList.toggle('secondary', day !== store.activeDay);
   });
+}
+
+// 表示中の階・曜日の処置(tx)を、選んだ曜日へ上書きコピー（処置欄のみ）
+function copyToDay() {
+  const target = document.getElementById('copy-target').value;
+  if (target === store.activeDay) { alert('表示中と同じ表です。'); return; }
+  if (!confirm(`表示中の処置を「${DAYS[target].label}」へ上書きコピーします。よろしいですか？`)) return;
+  const srcSuf = DAYS[store.activeDay].suffix;
+  const dstSuf = DAYS[target].suffix;
+  FLOORS[store.activeFloor].rooms.forEach(({ room, beds }) => {
+    for (let i = 0; i < beds; i++) {
+      const v = store.cells[`${room}#${i}#tx${srcSuf}`];
+      const dst = `${room}#${i}#tx${dstSuf}`;
+      if (v === undefined || v === '') delete store.cells[dst];
+      else store.cells[dst] = v;
+    }
+  });
+  save();
+  alert(`「${DAYS[target].label}」へコピーしました。`);
 }
 
 function render() {
