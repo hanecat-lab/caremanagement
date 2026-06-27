@@ -180,13 +180,19 @@
     background: transparent;
     padding: 4px 5px;
   }
-  /* 名前欄はセル全体をクリック可能にする（行が高くても中央で入力できる） */
+  /* 名前欄：セル全体をクリック可能（label）にしつつ縦中央に表示 */
   td.name-cell { position: relative; }
-  .cell-input {
+  .name-wrap {
     position: absolute;
     inset: 0;
+    display: flex;
+    align-items: center;       /* 縦中央 */
+    justify-content: center;
+    cursor: text;
+  }
+  .cell-input {
     width: 100%;
-    height: 100%;
+    height: auto;
     font-size: 15px;         /* 名前 */
     line-height: 1.3;
     text-align: center;      /* 横中央 */
@@ -380,7 +386,7 @@ function colHtml(rooms) {
         : '';
       body += `<tr${startCls}>
           ${roomTd}
-          <td class="name-cell"><textarea class="cell-input" rows="1" data-room="${room}" data-ri="${i}" data-field="name"></textarea></td>
+          <td class="name-cell"><label class="name-wrap"><textarea class="cell-input" rows="1" data-room="${room}" data-ri="${i}" data-field="name"></textarea></label></td>
           <td><textarea class="cell-area" rows="1" data-room="${room}" data-ri="${i}" data-field="tx"></textarea></td>
         </tr>`;
     }
@@ -449,7 +455,7 @@ function render() {
   // 値の流し込み（特殊文字対策で value は DOM 経由）＋高さ調整
   container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
     el.value = store.cells[cellKey(el)] || '';
-    if (el.classList.contains('cell-area')) autoGrow(el);
+    if (el.tagName === 'TEXTAREA') autoGrow(el);
   });
   container.querySelectorAll('.margin-area').forEach(el => {
     el.value = store.margins[marginKey(el)] || '';
@@ -463,7 +469,7 @@ function bindEvents(container) {
   container.querySelectorAll('.cell-input, .cell-area').forEach(el => {
     el.addEventListener('input', () => {
       store.cells[cellKey(el)] = el.value;
-      if (el.classList.contains('cell-area')) autoGrow(el);
+      if (el.tagName === 'TEXTAREA') autoGrow(el);
       fitToPage();
       save();
     });
