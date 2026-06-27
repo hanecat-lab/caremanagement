@@ -58,17 +58,13 @@
     font-size: 16px;
     padding: 12px 24px;
   }
-  /* 印刷ボタン（さらに大きく） */
+  /* 印刷ボタン（表の右上あたりに配置） */
   .btn-print {
-    font-size: 22px;
-    padding: 18px 44px;
+    font-size: 20px;
+    padding: 12px 28px;
     border-radius: 12px;
-  }
-  /* コピー操作は1かたまりで表示（離れないように） */
-  .copy-group {
-    background: var(--accent-light);
-    border-radius: 8px;
-    padding: 6px 8px;
+    margin-left: auto;       /* 右端へ */
+    align-self: flex-start;  /* 上へ */
   }
   .btn {
     background: var(--accent);
@@ -271,7 +267,6 @@
 <body>
 
 <div class="controls no-print">
-  <!-- 左：フロア／曜日／印刷 -->
   <div class="controls-col">
     <div class="tb-row">
       <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
@@ -283,26 +278,11 @@
       <button class="btn secondary btn-day" id="day-bath" onclick="setDay('bath')">入浴日</button>
     </div>
     <div class="tb-row">
-      <button class="btn btn-print" onclick="window.print()">🖨 印刷</button>
-    </div>
-  </div>
-  <!-- 右：保存／コピー -->
-  <div class="controls-col">
-    <div class="tb-row">
       <button class="btn" onclick="saveStamp()">💾 保存</button>
       <span class="hint">保存を押すと更新日（月/日）が反映されます</span>
     </div>
-    <div class="tb-row copy-group">
-      <span class="hint">表示中の処置を</span>
-      <select id="copy-target" style="font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--accent);border-radius:8px;">
-        <option value="" disabled selected>コピー先を選択</option>
-        <option value="weekday">平日</option>
-        <option value="holiday">休日</option>
-        <option value="bath">入浴日</option>
-      </select>
-      <button class="btn secondary" onclick="copyToDay()">📋 へコピー</button>
-    </div>
   </div>
+  <button class="btn btn-print" onclick="window.print()">🖨 印刷</button>
 </div>
 
 <div class="sheets" id="sheets"></div>
@@ -486,26 +466,6 @@ function updateDayButtons() {
     const btn = document.getElementById('day-' + day);
     if (btn) btn.classList.toggle('secondary', day !== store.activeDay);
   });
-}
-
-// 表示中の階・曜日の処置(tx)を、選んだ曜日へ上書きコピー（処置欄のみ）
-function copyToDay() {
-  const target = document.getElementById('copy-target').value;
-  if (!target) { alert('コピー先を選択してください。'); return; }
-  if (target === store.activeDay) { alert('表示中と同じ表です。'); return; }
-  if (!confirm(`表示中の処置を「${DAYS[target].label}」へ上書きコピーします。よろしいですか？`)) return;
-  const srcSuf = DAYS[store.activeDay].suffix;
-  const dstSuf = DAYS[target].suffix;
-  FLOORS[store.activeFloor].rooms.forEach(({ room, beds }) => {
-    for (let i = 0; i < beds; i++) {
-      const v = store.cells[`${room}#${i}#tx${srcSuf}`];
-      const dst = `${room}#${i}#tx${dstSuf}`;
-      if (v === undefined || v === '') delete store.cells[dst];
-      else store.cells[dst] = v;
-    }
-  });
-  save();
-  alert(`「${DAYS[target].label}」へコピーしました。`);
 }
 
 function render() {
