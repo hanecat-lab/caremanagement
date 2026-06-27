@@ -180,10 +180,15 @@
     background: transparent;
     padding: 4px 5px;
   }
+  /* 名前欄はセル全体をクリック可能にする（行が高くても中央で入力できる） */
+  td.name-cell { position: relative; }
   .cell-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
     font-size: 12px;
     text-align: center;
-    height: 100%;
   }
   .cell-area {
     font-size: 12px;
@@ -372,17 +377,13 @@ function colHtml(rooms) {
         : '';
       body += `<tr${startCls}>
           ${roomTd}
-          <td><input class="cell-input" type="text" data-room="${room}" data-ri="${i}" data-field="name"></td>
+          <td class="name-cell"><input class="cell-input" type="text" data-room="${room}" data-ri="${i}" data-field="name"></td>
           <td><textarea class="cell-area" rows="1" data-room="${room}" data-ri="${i}" data-field="tx"></textarea></td>
         </tr>`;
     }
   });
   return `<table class="tx">
-      <thead><tr>
-        <th class="c-room">号室</th>
-        <th class="c-name">名前</th>
-        <th class="c-tx">処置</th>
-      </tr></thead>
+      <colgroup><col class="c-room"><col class="c-name"><col class="c-tx"></colgroup>
       <tbody>${body}</tbody>
     </table>`;
 }
