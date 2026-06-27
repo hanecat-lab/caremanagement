@@ -33,12 +33,19 @@
   }
   .app-header h1 { margin: 0; font-size: 18px; font-weight: 700; }
 
-  .toolbar {
+  /* コントロール群：左右2ブロックを横並びにして高さを抑える */
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 32px;
+    align-items: flex-start;
+    padding: 12px 16px;
+  }
+  .controls-col {
     display: flex;
     flex-direction: column;
     gap: 8px;
     align-items: flex-start;
-    padding: 12px 16px;
   }
   .tb-row {
     display: flex;
@@ -46,11 +53,16 @@
     align-items: center;
     flex-wrap: wrap;
   }
-  /* 印刷ボタン（フロア選択の下に大きく） */
+  /* 曜日ボタン（大きく） */
+  .btn-day {
+    font-size: 16px;
+    padding: 12px 24px;
+  }
+  /* 印刷ボタン（さらに大きく） */
   .btn-print {
-    font-size: 18px;
-    padding: 14px 32px;
-    border-radius: 10px;
+    font-size: 22px;
+    padding: 18px 44px;
+    border-radius: 12px;
   }
   /* コピー操作は1かたまりで表示（離れないように） */
   .copy-group {
@@ -127,15 +139,6 @@
     white-space: nowrap;
   }
 
-  .save-bar {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    max-width: 194mm;
-    margin: 0 auto 8px;
-    padding: 0 16px;
-  }
   .no-print { }
 
   /* 左右で行の高さを独立させるため、左右を別テーブルにして横並びにする */
@@ -267,36 +270,38 @@
 </head>
 <body>
 
-<div class="toolbar">
-  <div class="tb-row">
-    <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
-    <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
+<div class="controls no-print">
+  <!-- 左：フロア／曜日／印刷 -->
+  <div class="controls-col">
+    <div class="tb-row">
+      <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
+      <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
+    </div>
+    <div class="tb-row">
+      <button class="btn secondary btn-day" id="day-weekday" onclick="setDay('weekday')">平日</button>
+      <button class="btn secondary btn-day" id="day-holiday" onclick="setDay('holiday')">休日</button>
+      <button class="btn secondary btn-day" id="day-bath" onclick="setDay('bath')">入浴日</button>
+    </div>
+    <div class="tb-row">
+      <button class="btn btn-print" onclick="window.print()">🖨 印刷</button>
+    </div>
   </div>
-  <div class="tb-row">
-    <button class="btn btn-print" onclick="window.print()">🖨 印刷</button>
-  </div>
-  <div class="tb-row">
-    <button class="btn secondary" id="day-weekday" onclick="setDay('weekday')">平日</button>
-    <button class="btn secondary" id="day-holiday" onclick="setDay('holiday')">休日</button>
-    <button class="btn secondary" id="day-bath" onclick="setDay('bath')">入浴日</button>
-  </div>
-  <div class="tb-row"><span class="hint">名前・処置はセルに直接入力でき、内容は自動保存されます（A4縦向き）</span></div>
-</div>
-
-<div class="save-bar no-print">
-  <div class="tb-row">
-    <button class="btn" onclick="saveStamp()">💾 保存</button>
-    <span class="hint">保存を押すとタイトルに更新日（月/日）が反映されます</span>
-  </div>
-  <div class="tb-row copy-group">
-    <span class="hint">表示中の処置を</span>
-    <select id="copy-target" style="font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--accent);border-radius:8px;">
-      <option value="" disabled selected>コピー先を選択</option>
-      <option value="weekday">平日</option>
-      <option value="holiday">休日</option>
-      <option value="bath">入浴日</option>
-    </select>
-    <button class="btn secondary" onclick="copyToDay()">📋 へコピー</button>
+  <!-- 右：保存／コピー -->
+  <div class="controls-col">
+    <div class="tb-row">
+      <button class="btn" onclick="saveStamp()">💾 保存</button>
+      <span class="hint">保存を押すと更新日（月/日）が反映されます</span>
+    </div>
+    <div class="tb-row copy-group">
+      <span class="hint">表示中の処置を</span>
+      <select id="copy-target" style="font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--accent);border-radius:8px;">
+        <option value="" disabled selected>コピー先を選択</option>
+        <option value="weekday">平日</option>
+        <option value="holiday">休日</option>
+        <option value="bath">入浴日</option>
+      </select>
+      <button class="btn secondary" onclick="copyToDay()">📋 へコピー</button>
+    </div>
   </div>
 </div>
 
