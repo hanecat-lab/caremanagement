@@ -61,6 +61,11 @@
     align-items: center;
     flex-wrap: wrap;
   }
+  .switch-label {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+  }
   /* ページ切替（曜日）ボタン（.btn より詳細度を高くして上書き） */
   .btn.btn-day {
     font-size: 25px;
@@ -280,6 +285,7 @@
       <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
       <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
     </div>
+    <div class="switch-label">ページ切り替えボタン</div>
     <div class="tb-row">
       <button class="btn secondary btn-day" id="day-weekday" onclick="setDay('weekday')">平日</button>
       <button class="btn secondary btn-day" id="day-holiday" onclick="setDay('holiday')">休日</button>
