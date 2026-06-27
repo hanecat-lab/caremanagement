@@ -15,6 +15,7 @@
     --text-sub: #7a7568;
     --accent: #3d6b8a;
     --accent-light: #e8f0f5;
+    --save: #5a8a5a;         /* 保存ボタン（印刷と区別） */
   }
   * { box-sizing: border-box; }
   body {
@@ -71,6 +72,8 @@
     padding: 12px 28px;
     border-radius: 12px;
   }
+  /* 保存ボタン（印刷と色で区別：緑） */
+  .btn.btn-save { background: var(--save); }
   .btn {
     background: var(--accent);
     color: #fff;
@@ -286,7 +289,7 @@
   <div class="controls-col controls-right">
     <div class="tb-row print-save">
       <button class="btn btn-print" onclick="window.print()">🖨 印刷</button>
-      <button class="btn btn-print" onclick="saveStamp()">💾 保存</button>
+      <button class="btn btn-print btn-save" onclick="saveStamp()">💾 保存</button>
     </div>
     <div class="tb-row">
       <span class="hint">保存を押すと更新日（月/日）が反映されます</span>
