@@ -61,11 +61,14 @@
     align-items: center;
     flex-wrap: wrap;
   }
+  #day-wrap { display: flex; flex-direction: column; gap: 8px; }
   .switch-label {
     font-size: 17px;
     font-weight: 700;
     color: var(--text);
   }
+  /* 処置/点眼 切替ボタン */
+  .btn.btn-view { font-size: 16px; padding: 8px 18px; }
   /* ページ切替（曜日）ボタン（.btn より詳細度を高くして上書き） */
   .btn.btn-day {
     font-size: 25px;
@@ -281,15 +284,24 @@
 
 <div class="controls no-print">
   <div class="controls-col">
+    <div class="tb-row" id="view-row">
+      <button class="btn secondary btn-view" id="view-treatment" onclick="setView('treatment')">処置一覧</button>
+      <button class="btn secondary btn-view" id="view-eyedrops" onclick="setView('eyedrops')">点眼</button>
+    </div>
     <div class="tb-row" id="floor-row">
       <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
       <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
     </div>
-    <div class="switch-label">ページ切り替えボタン</div>
-    <div class="tb-row">
-      <button class="btn secondary btn-day" id="day-weekday" onclick="setDay('weekday')">平日</button>
-      <button class="btn secondary btn-day" id="day-holiday" onclick="setDay('holiday')">休日</button>
-      <button class="btn secondary btn-day" id="day-bath" onclick="setDay('bath')">入浴日</button>
+    <div id="day-wrap">
+      <div class="switch-label">ページ切り替えボタン</div>
+      <div class="tb-row">
+        <button class="btn secondary btn-day" id="day-weekday" onclick="setDay('weekday')">平日</button>
+        <button class="btn secondary btn-day" id="day-holiday" onclick="setDay('holiday')">休日</button>
+        <button class="btn secondary btn-day" id="day-bath" onclick="setDay('bath')">入浴日</button>
+      </div>
+    </div>
+    <div class="tb-row" id="eye-addrow" style="display:none;">
+      <button class="btn" onclick="addEyeRow()">＋ 行を追加</button>
     </div>
   </div>
   <div class="controls-col controls-right">
@@ -348,12 +360,16 @@ function load() {
   if (!store.cells) store.cells = {};
   if (!store.margins) store.margins = {};
   if (!store.updated) store.updated = {};
+  if (!store.eye) store.eye = {};          // 点眼データ（階別・行別）
+  if (!store.eyeRows) store.eyeRows = {};   // 点眼の行数（階別）
+  if (store.activeView !== 'eyedrops') store.activeView = 'treatment';
   if (!FLOORS[store.activeFloor]) store.activeFloor = '200';
   // URLで階を指定（各PCで別URL運用：?floor=2 / ?floor=3）。指定時は切替ボタンを隠す
   const uf = floorFromURL();
   if (uf) { store.activeFloor = uf; floorLocked = true; }
   if (!DAYS[store.activeDay]) store.activeDay = 'weekday';
 }
+const EYE_DEFAULT_ROWS = 8;
 
 let floorLocked = false;
 function floorFromURL() {
@@ -410,7 +426,10 @@ function labelFor(key) {
 }
 // 保存ボタン：更新日をスタンプ（データ自体は入力時に自動保存済み）
 function saveStamp() {
-  store.updated[store.activeFloor + daySuffix()] = todayMD();
+  const key = store.activeView === 'eyedrops'
+    ? ('eye-' + store.activeFloor)
+    : (store.activeFloor + daySuffix());
+  store.updated[key] = todayMD();
   save();
   render();
 }
@@ -497,11 +516,36 @@ function updateDayButtons() {
   });
 }
 
+function setView(v) {
+  if (v !== 'treatment' && v !== 'eyedrops') return;
+  store.activeView = v;
+  save();
+  render();
+}
+function updateViewButtons() {
+  ['treatment', 'eyedrops'].forEach(v => {
+    const btn = document.getElementById('view-' + v);
+    if (btn) btn.classList.toggle('secondary', v !== store.activeView);
+  });
+}
+
+// 表示の振り分け（処置一覧 / 点眼）
 function render() {
   updateFloorButtons();
-  updateDayButtons();
+  updateViewButtons();
   const floorRow = document.getElementById('floor-row');
   if (floorRow) floorRow.style.display = floorLocked ? 'none' : '';
+  const eye = store.activeView === 'eyedrops';
+  const dayWrap = document.getElementById('day-wrap');
+  if (dayWrap) dayWrap.style.display = eye ? 'none' : '';
+  const eyeAdd = document.getElementById('eye-addrow');
+  if (eyeAdd) eyeAdd.style.display = eye ? '' : 'none';
+  if (eye) renderEyedrops();
+  else renderTreatment();
+}
+
+function renderTreatment() {
+  updateDayButtons();
   const container = document.getElementById('sheets');
   const { title, rooms } = FLOORS[store.activeFloor];
   container.innerHTML = sheetHtml(title, store.activeFloor, rooms);
@@ -517,6 +561,55 @@ function render() {
 
   bindEvents(container);
   fitToPage();
+}
+
+// ===== 点眼一覧（居室番号｜名前｜点眼の種類／階別・行追加可） =====
+function eyeRowCount() { return store.eyeRows[store.activeFloor] || EYE_DEFAULT_ROWS; }
+function eyeKey(el) { return `${store.activeFloor}#${el.dataset.ri}#${el.dataset.eye}`; }
+
+function renderEyedrops() {
+  const container = document.getElementById('sheets');
+  const floorTitle = FLOORS[store.activeFloor].title;
+  const u = store.updated['eye-' + store.activeFloor];
+  const label = u ? (u + ' 更新') : '未更新';
+
+  let rows = '';
+  for (let i = 0; i < eyeRowCount(); i++) {
+    rows += `<tr>
+        <td class="name-cell"><label class="name-wrap"><textarea class="cell-input" rows="1" data-eye="room" data-ri="${i}"></textarea></label></td>
+        <td class="name-cell"><label class="name-wrap"><textarea class="cell-input" rows="1" data-eye="name" data-ri="${i}"></textarea></label></td>
+        <td><textarea class="cell-area" rows="1" data-eye="type" data-ri="${i}"></textarea></td>
+      </tr>`;
+  }
+  container.innerHTML = `<div class="sheet"><div class="fit">
+    <div class="sheet-head">
+      <div class="head-left">点眼一覧　　${floorTitle}</div>
+      <div class="head-center">R　　年　　月　　日<span class="title-updated">（${label}）</span></div>
+    </div>
+    <table class="tx">
+      <colgroup><col class="c-room"><col class="c-name"><col class="c-tx"></colgroup>
+      <thead><tr><th>居室番号</th><th>名前</th><th>点眼の種類</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div></div>`;
+
+  container.querySelectorAll('[data-eye]').forEach(el => {
+    el.value = store.eye[eyeKey(el)] || '';
+    autoGrow(el);
+    el.addEventListener('input', () => {
+      store.eye[eyeKey(el)] = el.value;
+      autoGrow(el);
+      fitToPage();
+      save();
+    });
+  });
+  fitToPage();
+}
+
+function addEyeRow() {
+  store.eyeRows[store.activeFloor] = eyeRowCount() + 1;
+  save();
+  render();
 }
 
 function bindEvents(container) {
