@@ -180,14 +180,11 @@
     background: transparent;
     padding: 4px 5px;
   }
-  /* 名前欄：セル全体をクリック可能（label）にしつつ縦中央に表示 */
-  td.name-cell { position: relative; }
+  /* 名前欄：縦中央に表示しつつ、名前が複数行なら行を広げる（in-flow） */
+  table.tx td.name-cell { vertical-align: middle; }   /* 縦中央 */
   .name-wrap {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;       /* 縦中央 */
-    justify-content: center;
+    display: block;
+    width: 100%;
     cursor: text;
   }
   .cell-input {
@@ -267,13 +264,14 @@
   <button class="btn" onclick="saveStamp()">💾 保存</button>
   <span class="hint">保存を押すとタイトルに更新日（月/日）が反映されます</span>
   <span style="width:1px;height:22px;background:var(--border);margin:0 4px;"></span>
+  <span class="hint">表示中の処置を→</span>
   <select id="copy-target" style="font-family:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--accent);border-radius:8px;">
+    <option value="" disabled selected>コピー先を選択</option>
     <option value="weekday">平日</option>
     <option value="holiday">休日</option>
     <option value="bath">入浴日</option>
   </select>
-  <button class="btn secondary" onclick="copyToDay()">📋 処置をコピー</button>
-  <span class="hint">表示中の処置を選んだ曜日へ上書きコピー</span>
+  <button class="btn secondary" onclick="copyToDay()">📋 へコピー</button>
 </div>
 
 <div class="sheets" id="sheets"></div>
@@ -462,6 +460,7 @@ function updateDayButtons() {
 // 表示中の階・曜日の処置(tx)を、選んだ曜日へ上書きコピー（処置欄のみ）
 function copyToDay() {
   const target = document.getElementById('copy-target').value;
+  if (!target) { alert('コピー先を選択してください。'); return; }
   if (target === store.activeDay) { alert('表示中と同じ表です。'); return; }
   if (!confirm(`表示中の処置を「${DAYS[target].label}」へ上書きコピーします。よろしいですか？`)) return;
   const srcSuf = DAYS[store.activeDay].suffix;
