@@ -67,8 +67,6 @@
     font-weight: 700;
     color: var(--text);
   }
-  /* 処置/点眼 切替ボタン */
-  .btn.btn-view { font-size: 16px; padding: 8px 18px; }
   /* ページ切替（曜日）ボタン（.btn より詳細度を高くして上書き） */
   .btn.btn-day {
     font-size: 25px;
@@ -284,10 +282,6 @@
 
 <div class="controls no-print">
   <div class="controls-col">
-    <div class="tb-row" id="view-row">
-      <button class="btn secondary btn-view" id="view-treatment" onclick="setView('treatment')">処置一覧</button>
-      <button class="btn secondary btn-view" id="view-eyedrops" onclick="setView('eyedrops')">点眼</button>
-    </div>
     <div class="tb-row" id="floor-row">
       <button class="btn secondary" id="floor-200" onclick="setFloor('200')">2階</button>
       <button class="btn secondary" id="floor-300" onclick="setFloor('300')">3階</button>
@@ -298,6 +292,7 @@
         <button class="btn secondary btn-day" id="day-weekday" onclick="setDay('weekday')">平日</button>
         <button class="btn secondary btn-day" id="day-holiday" onclick="setDay('holiday')">休日</button>
         <button class="btn secondary btn-day" id="day-bath" onclick="setDay('bath')">入浴日</button>
+        <button class="btn secondary btn-day" id="view-eyedrops" onclick="setView('eyedrops')">点眼</button>
       </div>
     </div>
     <div class="tb-row" id="eye-addrow" style="display:none;">
@@ -505,6 +500,7 @@ function updateFloorButtons() {
 function setDay(day) {
   if (!DAYS[day]) return;
   store.activeDay = day;
+  store.activeView = 'treatment';   // 曜日を選んだら処置一覧へ
   save();
   render();
 }
@@ -512,8 +508,11 @@ function setDay(day) {
 function updateDayButtons() {
   Object.keys(DAYS).forEach(day => {
     const btn = document.getElementById('day-' + day);
-    if (btn) btn.classList.toggle('secondary', day !== store.activeDay);
+    const active = store.activeView === 'treatment' && day === store.activeDay;
+    if (btn) btn.classList.toggle('secondary', !active);
   });
+  const eyeBtn = document.getElementById('view-eyedrops');
+  if (eyeBtn) eyeBtn.classList.toggle('secondary', store.activeView !== 'eyedrops');
 }
 
 function setView(v) {
@@ -522,22 +521,14 @@ function setView(v) {
   save();
   render();
 }
-function updateViewButtons() {
-  ['treatment', 'eyedrops'].forEach(v => {
-    const btn = document.getElementById('view-' + v);
-    if (btn) btn.classList.toggle('secondary', v !== store.activeView);
-  });
-}
 
 // 表示の振り分け（処置一覧 / 点眼）
 function render() {
   updateFloorButtons();
-  updateViewButtons();
+  updateDayButtons();
   const floorRow = document.getElementById('floor-row');
   if (floorRow) floorRow.style.display = floorLocked ? 'none' : '';
   const eye = store.activeView === 'eyedrops';
-  const dayWrap = document.getElementById('day-wrap');
-  if (dayWrap) dayWrap.style.display = eye ? 'none' : '';
   const eyeAdd = document.getElementById('eye-addrow');
   if (eyeAdd) eyeAdd.style.display = eye ? '' : 'none';
   if (eye) renderEyedrops();
@@ -545,7 +536,6 @@ function render() {
 }
 
 function renderTreatment() {
-  updateDayButtons();
   const container = document.getElementById('sheets');
   const { title, rooms } = FLOORS[store.activeFloor];
   container.innerHTML = sheetHtml(title, store.activeFloor, rooms);
