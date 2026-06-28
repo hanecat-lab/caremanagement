@@ -820,12 +820,13 @@
           <button class="btn-sec" style="width:100%;margin-top:6px;" onclick="openGroupImport()">👥 グループ読み込み</button>
         </div>
       </div>
-      <div id="bandCatFilterWrap" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
-        <button class="filter-chip active" data-cat="all" onclick="setBandCatFilter('all')">すべて</button>
-        <button class="filter-chip" data-cat="バンド" onclick="setBandCatFilter('バンド')">バンド</button>
-        <button class="filter-chip" data-cat="アイドル" onclick="setBandCatFilter('アイドル')">アイドル</button>
-        <button class="filter-chip" data-cat="サブカル" onclick="setBandCatFilter('サブカル')">サブカル</button>
-        <button class="filter-chip" data-cat="弾き語り" onclick="setBandCatFilter('弾き語り')">弾き語り</button>
+      <div id="bandCatFilterWrap" style="margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="filter-chip active" id="bandCatAll" onclick="setBandCatFilter('all')">すべて</button>
+          <button class="filter-chip" id="bandCatPickerBtn" onclick="toggleBandCatPicker()">カテゴリー ▾</button>
+          <button class="icon-btn" style="margin-left:auto;font-size:15px;" onclick="openBandCatEdit()">⚙️</button>
+        </div>
+        <div id="bandCatPicker" style="display:none;flex-wrap:wrap;gap:6px;margin-top:6px;padding:8px;background:var(--card);border-radius:10px;border:1.5px solid var(--bd);"></div>
       </div>
       <div id="bandSearchWrap" style="margin-bottom:10px;">
         <input class="search-input" id="bandSearchInput" placeholder="バンド名を検索..." oninput="onBandSearch(this.value)">
@@ -1079,6 +1080,22 @@
   </div>
 </div>
 
+<!-- BAND CAT EDIT MODAL -->
+<div class="modal-overlay" id="bandCatEditModal" onclick="overlayClose(event,'bandCatEditModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title">カテゴリーを編集</span>
+      <button class="close-btn" onclick="closeModal('bandCatEditModal')">×</button>
+    </div>
+    <div id="bandCatEditList" style="padding:0 4px;"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;padding:0 4px;">
+      <input id="newBandCatInput" class="form-input" type="text" placeholder="新しいカテゴリー名" style="flex:1;">
+      <button class="btn-pri" onclick="addBandCat()">追加</button>
+    </div>
+  </div>
+</div>
+
 <!-- GROUP IMPORT MODAL -->
 <div class="modal-overlay" id="groupImportModal" onclick="overlayClose(event,'groupImportModal')">
   <div class="modal">
@@ -1193,6 +1210,7 @@ var bandMemberGroupFilter = 'all';
 var bandViewMode = 'bands';
 var bandSearchText = '';
 var bandCatFilter = 'all';
+var bandCatPickerOpen = false;
 var evTab = 'past';
 var workViewMode = 'card';
 var quickFilter = 'all';
@@ -1232,6 +1250,7 @@ function loadDB() {
       db.settings = db.settings || { theme: 'light' };
       db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
       db.groups = db.groups || ['家族','友人','仕事','趣味','その他'];
+      db.bandCats = db.bandCats || ['バンド','弾き語り','アイドル','グループ','サブカル','ユニット','ソロ','その他'];
       db.bands  = db.bands  || [];
       db.bands.forEach(function(b) {
         if (!Array.isArray(b.category)) b.category = b.category ? [b.category] : ['バンド'];
@@ -2677,7 +2696,7 @@ function openEditBand(id) {
 function renderBandCatChips() {
   var c = document.getElementById('bandCatRow');
   if (!c) return;
-  c.innerHTML = BAND_CATS.map(function(cat) {
+  c.innerHTML = (db.bandCats || BAND_CATS).map(function(cat) {
     var active = bandCatSel.indexOf(cat) >= 0;
     return '<button class="filter-chip' + (active ? ' active' : '') + '" onclick="pickBandCat(\'' + cat + '\')">' + cat + '</button>';
   }).join('');
@@ -2741,13 +2760,79 @@ function setEvTab(t) {
   renderEventList();
 }
 function onBandSearch(v) { bandSearchText = v; renderBandList(); }
+function renderBandCatFilterWrap() {
+  var allBtn = document.getElementById('bandCatAll');
+  var pickerBtn = document.getElementById('bandCatPickerBtn');
+  var picker = document.getElementById('bandCatPicker');
+  if (!allBtn) return;
+  allBtn.classList.toggle('active', bandCatFilter === 'all');
+  pickerBtn.classList.toggle('active', bandCatFilter !== 'all');
+  pickerBtn.textContent = (bandCatFilter !== 'all' ? bandCatFilter : 'カテゴリー') + (bandCatPickerOpen ? ' ▴' : ' ▾');
+  if (picker) {
+    picker.style.display = bandCatPickerOpen ? 'flex' : 'none';
+    if (bandCatPickerOpen) {
+      picker.innerHTML = (db.bandCats || []).map(function(cat) {
+        return '<button class="filter-chip' + (bandCatFilter === cat ? ' active' : '') + '" onclick="setBandCatFilter(\'' + esc(cat) + '\')">' + esc(cat) + '</button>';
+      }).join('');
+    }
+  }
+}
+function toggleBandCatPicker() {
+  bandCatPickerOpen = !bandCatPickerOpen;
+  renderBandCatFilterWrap();
+}
 function setBandCatFilter(cat) {
   bandCatFilter = cat;
-  document.querySelectorAll('#bandCatFilterWrap .filter-chip').forEach(function(el) {
-    el.classList.toggle('active', el.dataset.cat === cat);
-  });
+  bandCatPickerOpen = false;
+  renderBandCatFilterWrap();
   if (bandViewMode === 'events') renderEventList();
   else renderBandList();
+}
+function openBandCatEdit() {
+  renderBandCatEditList();
+  openModal('bandCatEditModal');
+}
+function renderBandCatEditList() {
+  var c = document.getElementById('bandCatEditList');
+  if (!c) return;
+  c.innerHTML = (db.bandCats || []).map(function(cat, i) {
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+      + '<input class="form-input" type="text" value="' + esc(cat) + '" style="flex:1;padding:10px 12px;" oninput="renameBandCat(' + i + ',this.value)">'
+      + '<button style="flex-shrink:0;width:34px;height:34px;border:none;background:rgba(180,40,40,.08);color:#B02828;font-size:16px;border-radius:8px;cursor:pointer;" onclick="deleteBandCat(' + i + ')">🗑</button>'
+      + '</div>';
+  }).join('');
+}
+function addBandCat() {
+  var inp = document.getElementById('newBandCatInput');
+  var name = inp.value.trim();
+  if (!name) { toast('カテゴリー名を入力してください'); return; }
+  if ((db.bandCats || []).indexOf(name) >= 0) { toast('同じ名前のカテゴリーがあります'); return; }
+  db.bandCats = db.bandCats || [];
+  db.bandCats.push(name);
+  inp.value = '';
+  saveDB(); renderBandCatEditList(); renderBandCatChips(); renderBandCatFilterWrap();
+}
+function renameBandCat(idx, newName) {
+  var oldName = db.bandCats[idx];
+  db.bandCats[idx] = newName;
+  db.bands.forEach(function(b) {
+    var cats = Array.isArray(b.category) ? b.category : [b.category || 'バンド'];
+    var i = cats.indexOf(oldName);
+    if (i >= 0) { cats[i] = newName; b.category = cats; }
+  });
+  if (bandCatFilter === oldName) bandCatFilter = newName;
+  saveDB(); renderBandCatFilterWrap(); renderBandCatChips();
+}
+function deleteBandCat(idx) {
+  var name = db.bandCats[idx];
+  var inUse = db.bands.some(function(b) {
+    var cats = Array.isArray(b.category) ? b.category : [b.category || 'バンド'];
+    return cats.indexOf(name) >= 0;
+  });
+  if (inUse) { toast(name + ' は使用中のため削除できません'); return; }
+  db.bandCats.splice(idx, 1);
+  if (bandCatFilter === name) bandCatFilter = 'all';
+  saveDB(); renderBandCatEditList(); renderBandCatFilterWrap(); renderBandCatChips();
 }
 function renderEventList() {
   var c = document.getElementById('eventListEl');
@@ -3229,7 +3314,7 @@ window.addEventListener('scroll', function(){
 });
 document.addEventListener('keydown', function(e){
   if (e.key === 'Escape') {
-    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal','bandTextImportModal','groupImportModal','workDetailModal'].forEach(closeModal);
+    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal','bandTextImportModal','groupImportModal','workDetailModal','bandCatEditModal'].forEach(closeModal);
     closeCtx();
   }
 });
