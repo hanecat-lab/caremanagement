@@ -809,9 +809,10 @@
         <button class="people-sub-tab active" id="bandViewTabBands" onclick="setBandViewMode('bands')">バンド一覧</button>
         <button class="people-sub-tab" id="bandViewTabEvents" onclick="setBandViewMode('events')">イベント一覧</button>
       </div>
-      <div id="bandImportButtons" style="display:flex;gap:8px;margin-bottom:12px;">
+      <div id="bandImportButtons" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
         <button class="btn-sec" style="flex:1;" onclick="pasteImportFromClipboard()">📋 クリップボードから取り込み</button>
         <button class="btn-sec" style="flex:1;" onclick="openBandTextImport()">✏️ 手動で入力</button>
+        <button class="btn-sec" style="width:100%;" onclick="openGroupImport()">👥 グループ読み込み</button>
       </div>
       <div id="bandSearchWrap" style="margin-bottom:10px;">
         <input class="search-input" id="bandSearchInput" placeholder="バンド名を検索..." oninput="onBandSearch(this.value)">
@@ -1057,6 +1058,27 @@
       <textarea class="form-textarea" id="bandImportText" rows="8" placeholder="The Quasars&#10;DRAW INTO DISORDER&#10;SEX addict&#10;..."></textarea>
     </div>
     <button class="btn-primary" onclick="executeBandTextImport()">✅ 追加する</button>
+  </div>
+</div>
+
+<!-- GROUP IMPORT MODAL -->
+<div class="modal-overlay" id="groupImportModal" onclick="overlayClose(event,'groupImportModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title">グループ読み込み</span>
+      <button class="close-btn" onclick="closeModal('groupImportModal')">×</button>
+    </div>
+    <div class="form-group">
+      <label class="form-label">グループ名</label>
+      <input class="form-input" id="groupImportName" placeholder="Luce Twinkle Wink☆">
+    </div>
+    <div class="form-group">
+      <label class="form-label">メンバー（|名前|@X名| 形式、1行1人）</label>
+      <textarea class="form-textarea" id="groupImportText" rows="8"
+        placeholder="|宇佐美幸乃|@usami_yukino|&#10;|板山紗織|@itayama_saori|"></textarea>
+    </div>
+    <button class="btn-primary" onclick="executeGroupImport()">✅ 読み込む</button>
   </div>
 </div>
 
@@ -2937,6 +2959,56 @@ function openBandTextImport() {
   document.getElementById('importEventVenue').value = '';
   openModal('bandTextImportModal');
 }
+function openGroupImport() {
+  document.getElementById('groupImportName').value = '';
+  document.getElementById('groupImportText').value = '';
+  openModal('groupImportModal');
+}
+function executeGroupImport() {
+  var groupName = document.getElementById('groupImportName').value.trim();
+  if (!groupName) { toast('グループ名を入力してください'); return; }
+  var text = document.getElementById('groupImportText').value;
+  var lines = text.split('\n').map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+  var members = [];
+  lines.forEach(function(line) {
+    var parts = line.split('|').map(function(p){ return p.trim(); }).filter(function(p){ return p.length > 0; });
+    if (parts.length >= 1 && parts[0]) {
+      members.push({ name: parts[0], xHandle: parts[1] ? parts[1].replace(/^@/, '') : '' });
+    }
+  });
+  if (!members.length) { toast('メンバーが見つかりません'); return; }
+  var now = new Date().toISOString();
+  var memberIds = [];
+  var addedPeople = 0;
+  members.forEach(function(m) {
+    var person = db.people.find(function(p){ return p.name === m.name; });
+    if (!person) {
+      person = { id: uid(), name: m.name, group: groupName, links: [], lastContactDate: '', createdAt: now };
+      db.people.push(person);
+      addedPeople++;
+    }
+    if (m.xHandle) {
+      person.links = person.links || [];
+      var xUrl = 'https://x.com/' + m.xHandle;
+      if (!person.links.some(function(lk){ return lk.url === xUrl; })) {
+        person.links.push({ label: 'X', url: xUrl });
+      }
+    }
+    memberIds.push(person.id);
+  });
+  var band = db.bands.find(function(b){ return b.name === groupName; });
+  if (!band) {
+    band = { id: uid(), name: groupName, yomi: '', category: ['グループ'], memo: '', memberIds: memberIds, links: [], liveHistory: [], createdAt: now };
+    db.bands.push(band);
+  } else {
+    memberIds.forEach(function(id){ if (band.memberIds.indexOf(id) < 0) band.memberIds.push(id); });
+    band.updatedAt = now;
+  }
+  saveDB();
+  closeModal('groupImportModal');
+  renderBandList();
+  toast(groupName + ' ' + members.length + '名を読み込みました');
+}
 function executeBandTextImport() {
   var names = document.getElementById('bandImportText').value
     .split('\n').map(function(s) { return s.trim(); }).filter(function(s) { return s.length; });
@@ -3057,7 +3129,7 @@ window.addEventListener('scroll', function(){
 });
 document.addEventListener('keydown', function(e){
   if (e.key === 'Escape') {
-    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal','bandTextImportModal','workDetailModal'].forEach(closeModal);
+    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal','bandTextImportModal','groupImportModal','workDetailModal'].forEach(closeModal);
     closeCtx();
   }
 });
