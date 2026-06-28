@@ -809,10 +809,14 @@
         <button class="people-sub-tab active" id="bandViewTabBands" onclick="setBandViewMode('bands')">バンド一覧</button>
         <button class="people-sub-tab" id="bandViewTabEvents" onclick="setBandViewMode('events')">イベント一覧</button>
       </div>
-      <div id="bandImportButtons" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-        <button class="btn-sec" style="flex:1;" onclick="pasteImportFromClipboard()">📋 クリップボードから取り込み</button>
-        <button class="btn-sec" style="flex:1;" onclick="openBandTextImport()">✏️ 手動で入力</button>
-        <button class="btn-sec" style="width:100%;" onclick="openGroupImport()">👥 グループ読み込み</button>
+      <div id="bandImportButtons" style="margin-bottom:12px;">
+        <div style="font-size:12px;font-weight:800;color:var(--txm);margin-bottom:4px;">🎸 フライヤー取り込み</div>
+        <div style="font-size:11px;color:var(--txm);margin-bottom:8px;">{"event":"イベント名","date":"2026-06-20","venue":"会場","bands":["バンドA","バンドB"]} の形式でコピーしてから取り込む</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-sec" style="flex:1;" onclick="pasteImportFromClipboard()">📋 クリップボードから取り込み</button>
+          <button class="btn-sec" style="flex:1;" onclick="openBandTextImport()">✏️ 手動で入力</button>
+          <button class="btn-sec" style="width:100%;margin-top:6px;" onclick="openGroupImport()">👥 グループ読み込み</button>
+        </div>
       </div>
       <div id="bandSearchWrap" style="margin-bottom:10px;">
         <input class="search-input" id="bandSearchInput" placeholder="バンド名を検索..." oninput="onBandSearch(this.value)">
