@@ -1077,12 +1077,13 @@
       <button class="close-btn" onclick="closeModal('dataModal')">×</button>
     </div>
     <div class="data-sec">
-      <div class="data-sec-title">📂 JSONファイル</div>
+      <div class="data-sec-title">💾 バックアップ</div>
+      <div class="data-note" style="margin-bottom:10px;font-size:12px;color:var(--txm);">アプリをホーム画面から削除する前に保存してください</div>
+      <button class="btn-pri" style="width:100%;margin-bottom:10px;" onclick="exportJSON()">📤 バックアップを保存</button>
       <div class="data-btn-row">
-        <button class="btn-sec" onclick="exportJSON()">📤 エクスポート</button>
-        <button class="btn-sec" onclick="document.getElementById('fileInput').click()">📥 インポート（上書き）</button>
+        <button class="btn-sec" onclick="document.getElementById('fileInput').click()">📥 復元（上書き）</button>
+        <button class="btn-sec" onclick="document.getElementById('mergeFileInput').click()">🔀 マージ（追記）</button>
       </div>
-      <button class="btn-sec" style="width:100%;margin-top:8px;" onclick="document.getElementById('mergeFileInput').click()">🔀 マージインポート（追記）</button>
     </div>
     <div class="data-sec">
       <div class="data-sec-title">📦 アーカイブ（期間指定エクスポート＋削除）</div>
@@ -1644,7 +1645,17 @@ function renderHome() {
   if (qft) qft.style.display = curMode === 'quick' ? 'flex' : 'none';
   var c = document.getElementById('timeline');
   if (!recs.length) {
-    c.innerHTML = '<div class="empty"><div class="empty-icon">📝</div><p>まだ記録がありません<br>＋ボタンから追加しましょう</p></div>';
+    var totalEmpty = db.records.length === 0 && db.people.length === 0;
+    if (totalEmpty) {
+      c.innerHTML = '<div class="empty">'
+        + '<div class="empty-icon">📱</div>'
+        + '<p>データがありません</p>'
+        + '<button class="btn-pri" style="margin-top:16px;width:100%;" onclick="document.getElementById(\'fileInput\').click()">📥 バックアップから復元</button>'
+        + '<button class="btn-sec" style="margin-top:8px;width:100%;" onclick="addSampleData();refresh()">サンプルデータで試す</button>'
+        + '</div>';
+    } else {
+      c.innerHTML = '<div class="empty"><div class="empty-icon">📝</div><p>まだ記録がありません<br>＋ボタンから追加しましょう</p></div>';
+    }
     return;
   }
   if (curMode === 'work' && workViewMode === 'list') {
@@ -3079,7 +3090,6 @@ curMode = (db.settings && db.settings.mode) || 'hobby';
   document.querySelectorAll('.mode-tab').forEach(function(el){el.classList.remove('active');});
   var el = document.getElementById(tabs[m]); if(el) el.classList.add('active');
 })(curMode);
-if (!db.records.length && !db.people.length) addSampleData();
 showView('home');
 checkBackupRestore();
 (function() {
