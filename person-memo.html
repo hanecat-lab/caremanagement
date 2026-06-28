@@ -2113,6 +2113,7 @@ function showPersonDetail(id) {
     + '<div class="pd-header">'
     + '<div class="pd-icon">' + (p.icon||'👤') + '</div>'
     + '<div class="pd-name">' + esc(p.name) + '</div>'
+    + '<div style="margin:4px 0;"><span class="p-group-badge">' + esc(p.group||'その他') + '</span></div>'
     + ((p.labels && p.labels.length) ? '<div class="p-labels-row" style="justify-content:center;margin-bottom:4px;">' + p.labels.map(function(l){ return '<span class="p-label-chip">' + esc(l) + '</span>'; }).join('') + '</div>' : '')
     + (p.memo ? '<div class="pd-memo">' + esc(p.memo) + '</div>' : '')
     + linksHTML
