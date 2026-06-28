@@ -955,6 +955,7 @@
     <div class="form-group">
       <label class="form-label">タグ（複数設定可）</label>
       <div class="tag-field" id="personLabelField" onclick="focusPersonLabelInput()"></div>
+      <div id="personLabelSuggest" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
     </div>
     <div class="form-group">
       <label class="form-label">性別</label>
@@ -2447,6 +2448,25 @@ function focusPersonLabelInput() {
   var inp = document.getElementById('personLabelInp');
   if (inp) inp.focus();
 }
+function allPersonLabels() {
+  var seen = {}, result = [];
+  db.people.forEach(function(p) {
+    (p.labels || []).forEach(function(l) {
+      if (!seen[l]) { seen[l] = true; result.push(l); }
+    });
+  });
+  return result;
+}
+function renderPersonLabelSuggest() {
+  var c = document.getElementById('personLabelSuggest');
+  if (!c) return;
+  var all = allPersonLabels();
+  if (!all.length) { c.innerHTML = ''; return; }
+  c.innerHTML = all.map(function(l) {
+    var used = selLabels.indexOf(l) >= 0;
+    return '<button class="tag-sug-chip' + (used ? ' used' : '') + '" onclick="addPersonLabel(\'' + esc(l) + '\')">' + esc(l) + '</button>';
+  }).join('');
+}
 function renderPersonLabels() {
   var c = document.getElementById('personLabelField');
   if (!c) return;
@@ -2471,6 +2491,7 @@ function renderPersonLabels() {
     }
   };
   c.appendChild(inp);
+  renderPersonLabelSuggest();
 }
 function addPersonLabel(lbl) {
   if (!lbl || selLabels.indexOf(lbl) >= 0) return;
