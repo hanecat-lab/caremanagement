@@ -728,6 +728,11 @@
         <button class="sort-btn active" id="workViewCard" onclick="setWorkViewMode('card')">カード</button>
         <button class="sort-btn" id="workViewList" onclick="setWorkViewMode('list')">一覧</button>
       </div>
+      <div id="quickFilterToggle" style="display:none;gap:4px;margin-left:4px;">
+        <button class="sort-btn active" id="quickFilterAll" onclick="setQuickFilter('all')">すべて</button>
+        <button class="sort-btn" id="quickFilterWork" onclick="setQuickFilter('仕事')">#仕事</button>
+        <button class="sort-btn" id="quickFilterOther" onclick="setQuickFilter('other')">仕事以外</button>
+      </div>
     </div>
     <div id="timeline"></div>
   </div>
@@ -1147,6 +1152,7 @@ var bandViewMode = 'bands';
 var bandSearchText = '';
 var evTab = 'past';
 var workViewMode = 'card';
+var quickFilter = 'all';
 var WORK_TYPE_ICON = { idea:'💡', memo:'📝', task:'✅', issue:'🤔' };
 var editingLiveKey = null;
 var editingEvKey = null;
@@ -1534,6 +1540,13 @@ function setWorkViewMode(m) {
   document.getElementById('workViewList').classList.toggle('active', m === 'list');
   renderHome();
 }
+function setQuickFilter(f) {
+  quickFilter = f;
+  document.getElementById('quickFilterAll').classList.toggle('active', f === 'all');
+  document.getElementById('quickFilterWork').classList.toggle('active', f === '仕事');
+  document.getElementById('quickFilterOther').classList.toggle('active', f === 'other');
+  renderHome();
+}
 function setMode(m) {
   curMode = m;
   db.settings.mode = m; saveDB();
@@ -1542,6 +1555,8 @@ function setMode(m) {
   document.getElementById(tabs[m]).classList.add('active');
   var wvt = document.getElementById('workViewToggle');
   if (wvt) wvt.style.display = m === 'work' ? 'flex' : 'none';
+  var qft = document.getElementById('quickFilterToggle');
+  if (qft) qft.style.display = m === 'quick' ? 'flex' : 'none';
   var prevKw = sf.kw;
   sf = { kw: prevKw, personIds: [], tags: [], from: '', to: '' };
   sfGroupFilter = 'all'; sfGenderFilter = 'all'; sfFiltersOpen = false; sfPeopleOpen = false;
@@ -1617,9 +1632,16 @@ function onTagChip(tag, e) {
 // ─── HOME ────────────────────────────────────────────────────
 function renderHome() {
   var recs = sorted(db.records.filter(function(r){ return (r.mode||'hobby') === curMode; }));
+  if (curMode === 'quick' && quickFilter === '仕事') {
+    recs = recs.filter(function(r){ return (r.tags||[]).indexOf('仕事') >= 0; });
+  } else if (curMode === 'quick' && quickFilter === 'other') {
+    recs = recs.filter(function(r){ return (r.tags||[]).indexOf('仕事') < 0; });
+  }
   document.getElementById('homeCount').textContent = recs.length + '件';
   var wvt = document.getElementById('workViewToggle');
   if (wvt) wvt.style.display = curMode === 'work' ? 'flex' : 'none';
+  var qft = document.getElementById('quickFilterToggle');
+  if (qft) qft.style.display = curMode === 'quick' ? 'flex' : 'none';
   var c = document.getElementById('timeline');
   if (!recs.length) {
     c.innerHTML = '<div class="empty"><div class="empty-icon">📝</div><p>まだ記録がありません<br>＋ボタンから追加しましょう</p></div>';
