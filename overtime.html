@@ -308,6 +308,24 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
   </button>
 </div>
 
+<div id="restoreBanner" class="hidden"
+  style="margin:10px 14px 0; background:#fff8e1; border:2px solid #f4c542;
+         border-radius:14px; padding:16px; text-align:center;">
+  <div style="font-size:14px; font-weight:700; color:#7a5c00; margin-bottom:4px;">📦 データが見つかりません</div>
+  <div style="font-size:12px; color:#a07800; margin-bottom:12px;" id="restoreBannerSub"></div>
+  <button id="restoreBannerBtn"
+    style="width:100%; padding:14px; background:#f4c542; border:none; border-radius:12px;
+           font-size:16px; font-weight:800; color:#5a4200; cursor:pointer;
+           touch-action:manipulation; letter-spacing:.02em;">
+    🔄 最新のバックアップから復元する
+  </button>
+  <button id="restoreBannerSkip"
+    style="margin-top:10px; background:none; border:none; font-size:12px;
+           color:#a07800; cursor:pointer; padding:4px;">
+    新規で始める（スキップ）
+  </button>
+</div>
+
 <main>
   <section id="secCal">
     <div id="todayCard"></div>
@@ -1015,6 +1033,32 @@ function restoreBackup(i){
 /* 起動時に1回バックアップ */
 saveBackup("起動時");
 renderBackupList();
+
+/* データ0件でバックアップがあればバナー表示 */
+(function checkRestoreBanner(){
+  const dayCount=Object.keys(state.days||{}).length;
+  let bks=[];
+  try{ bks=JSON.parse(localStorage.getItem(BK_KEY)||"[]"); }catch(e){}
+  /* 起動時バックアップ(index 0)は今作ったばかりなので index 1 以降を参照 */
+  const prev=bks.filter(b=>b.label!=="起動時"||bks.indexOf(b)>0);
+  if(dayCount===0 && prev.length>0){
+    const latest=prev[0];
+    const d=new Date(latest.ts);
+    const label=`${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())} （${latest.label}）`;
+    document.getElementById("restoreBannerSub").textContent="最終保存: "+label;
+    document.getElementById("restoreBanner").classList.remove("hidden");
+    document.getElementById("restoreBannerBtn").addEventListener("click",()=>{
+      try{
+        state=JSON.parse(prev[0].data);
+        saveRender(); renderBackupList();
+        document.getElementById("restoreBanner").classList.add("hidden");
+      }catch(e){ alert("復元に失敗しました"); }
+    });
+    document.getElementById("restoreBannerSkip").addEventListener("click",()=>{
+      document.getElementById("restoreBanner").classList.add("hidden");
+    });
+  }
+})();
 
 /* 30分ごとに自動バックアップ */
 setInterval(()=>{ saveBackup("自動"); renderBackupList(); }, 30*60*1000);
