@@ -818,6 +818,12 @@
           <button class="btn-sec" style="width:100%;margin-top:6px;" onclick="openGroupImport()">👥 グループ読み込み</button>
         </div>
       </div>
+      <div id="bandCatFilterWrap" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+        <button class="filter-chip active" data-cat="all" onclick="setBandCatFilter('all')">すべて</button>
+        <button class="filter-chip" data-cat="バンド" onclick="setBandCatFilter('バンド')">バンド</button>
+        <button class="filter-chip" data-cat="アイドル" onclick="setBandCatFilter('アイドル')">アイドル</button>
+        <button class="filter-chip" data-cat="サブカル" onclick="setBandCatFilter('サブカル')">サブカル</button>
+      </div>
       <div id="bandSearchWrap" style="margin-bottom:10px;">
         <input class="search-input" id="bandSearchInput" placeholder="バンド名を検索..." oninput="onBandSearch(this.value)">
       </div>
@@ -1177,6 +1183,7 @@ var bandCatSel   = ['バンド'];
 var bandMemberGroupFilter = 'all';
 var bandViewMode = 'bands';
 var bandSearchText = '';
+var bandCatFilter = 'all';
 var evTab = 'past';
 var workViewMode = 'card';
 var quickFilter = 'all';
@@ -1184,7 +1191,7 @@ var WORK_TYPE_ICON = { idea:'💡', memo:'📝', task:'✅', issue:'🤔' };
 var editingLiveKey = null;
 var editingEvKey = null;
 var selBandLinks = [];
-var BAND_CATS    = ['バンド','弾き語り','アイドル','グループ','ユニット','ソロ','その他'];
+var BAND_CATS    = ['バンド','弾き語り','アイドル','グループ','サブカル','ユニット','ソロ','その他'];
 var sfFiltersOpen    = false;
 var sfPeopleOpen     = false;
 
@@ -2496,6 +2503,12 @@ function renderBandList() {
   var c = document.getElementById('bandListEl');
   if (!c) return;
   var bands = db.bands;
+  if (bandCatFilter !== 'all') {
+    bands = bands.filter(function(b) {
+      var cats = Array.isArray(b.category) ? b.category : [b.category || 'バンド'];
+      return cats.indexOf(bandCatFilter) >= 0;
+    });
+  }
   if (bandSearchText.trim()) {
     var q = normalizeKana(bandSearchText.trim());
     bands = bands.filter(function(b) { return normalizeKana(b.name).indexOf(q) >= 0 || normalizeKana(b.yomi).indexOf(q) >= 0; });
@@ -2643,7 +2656,7 @@ function setBandViewMode(mode) {
   bandViewMode = mode;
   document.getElementById('bandViewTabBands').classList.toggle('active', mode === 'bands');
   document.getElementById('bandViewTabEvents').classList.toggle('active', mode === 'events');
-  document.getElementById('bandImportButtons').style.display = mode === 'bands' ? 'flex' : 'none';
+  document.getElementById('bandImportButtons').style.display = mode === 'bands' ? 'block' : 'none';
   document.getElementById('bandSearchWrap').style.display = mode === 'bands' ? '' : 'none';
   document.getElementById('bandListEl').style.display = mode === 'bands' ? '' : 'none';
   document.getElementById('eventListEl').style.display = mode === 'events' ? '' : 'none';
@@ -2657,12 +2670,24 @@ function setEvTab(t) {
   renderEventList();
 }
 function onBandSearch(v) { bandSearchText = v; renderBandList(); }
+function setBandCatFilter(cat) {
+  bandCatFilter = cat;
+  document.querySelectorAll('#bandCatFilterWrap .filter-chip').forEach(function(el) {
+    el.classList.toggle('active', el.dataset.cat === cat);
+  });
+  if (bandViewMode === 'events') renderEventList();
+  else renderBandList();
+}
 function renderEventList() {
   var c = document.getElementById('eventListEl');
   if (!c) return;
   var todayStr = today();
   var evMap = {};
   db.bands.forEach(function(band) {
+    if (bandCatFilter !== 'all') {
+      var cats = Array.isArray(band.category) ? band.category : [band.category || 'バンド'];
+      if (cats.indexOf(bandCatFilter) < 0) return;
+    }
     (band.liveHistory || []).forEach(function(lv) {
       var key = (lv.date || '') + '__' + (lv.title || '');
       if (!evMap[key]) evMap[key] = { title: lv.title || '(タイトル未設定)', date: lv.date || '', venue: lv.venue || '', bands: [] };
