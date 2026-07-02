@@ -1,0 +1,5 @@
+# 実データ(アプリからのエクスポート)はコミットしない
+careplan_*.json
+timecard*.json
+残業管理-*.json
+*.csv
