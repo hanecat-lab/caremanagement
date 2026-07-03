@@ -628,6 +628,7 @@
     }
     .tag-sug-chip:active{background:var(--primary-lt);color:var(--primary);border-color:var(--primary)}
     .tag-sug-chip.used{opacity:.35;pointer-events:none;}
+    .tag-cat-hd{font-size:11px;font-weight:800;color:var(--txm);margin:8px 0 4px;letter-spacing:.3px;}
 
     /* ===== DATE SEPARATOR ===== */
     .date-sep{
@@ -714,7 +715,7 @@
 
   <!-- MODE TABS -->
   <div class="mode-tabs" id="modeTabs">
-    <button class="mode-tab active" id="modeTabHobby" onclick="setMode('hobby')">趣味</button>
+    <button class="mode-tab active" id="modeTabHobby" onclick="setMode('hobby')">記録</button>
     <button class="mode-tab" id="modeTabQuick" onclick="setMode('quick')">一言メモ</button>
     <button class="mode-tab" id="modeTabWork" onclick="setMode('work')">仕事メモ</button>
     <button class="mode-tab" id="modeTabKotono" onclick="setMode('kotono')">言の葉</button>
@@ -752,8 +753,8 @@
       </div>
     </div>
     <div class="filter-card" id="tagFilterCard">
-      <div class="filter-title">🏷️ タグ</div>
-      <div class="chip-row" id="tagFilterChips"></div>
+      <div class="filter-title" style="display:flex;align-items:center;justify-content:space-between;">🏷️ タグ<button class="icon-btn" style="font-size:14px;padding:2px 6px;" onclick="openTagCatModal()" title="タグをカテゴリー分け">⚙️</button></div>
+      <div id="tagFilterChips"></div>
     </div>
     <div class="filter-card">
       <div class="filter-title">📅 日付範囲</div>
@@ -872,6 +873,13 @@
   <button onclick="dismissRestoreBanner()" style="background:rgba(255,255,255,.25);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;flex-shrink:0;">×</button>
 </div>
 
+<!-- UPDATE BANNER -->
+<div id="updateBanner" style="display:none;position:fixed;top:calc(56px + 8px);left:8px;right:8px;background:var(--primary);color:#fff;border-radius:14px;padding:12px 14px;z-index:600;align-items:center;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,.25);">
+  <div style="flex:1;font-size:12px;line-height:1.6;" id="updateBannerText"></div>
+  <button onclick="applyUpdate()" style="background:#fff;color:#4A6B8A;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;">更新</button>
+  <button onclick="dismissUpdateBanner()" style="background:rgba(255,255,255,.25);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:14px;cursor:pointer;flex-shrink:0;">×</button>
+</div>
+
 <!-- CONTEXT MENU -->
 <div class="ctx-menu" id="ctxMenu">
   <button class="ctx-item" onclick="ctxEdit()">✏️ 編集</button>
@@ -914,7 +922,11 @@
     <div class="form-group" id="recTagGroup">
       <label class="form-label">🏷️ タグ（Enter で追加）</label>
       <div class="tag-field" id="tagField" onclick="focusTagInput()"></div>
-      <button class="tag-suggest-toggle" id="tagSuggestToggle" onclick="toggleTagSuggest()">▸ 使用中のタグ</button>
+      <div class="tag-suggest-list" id="tagPredictList" style="display:none;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <button class="tag-suggest-toggle" id="tagSuggestToggle" onclick="toggleTagSuggest()">▸ 使用中のタグ</button>
+        <button class="tag-suggest-toggle" onclick="openTagCatModal()">⚙️ 分類</button>
+      </div>
       <div class="tag-suggest-list" id="tagSuggestList" style="display:none;"></div>
     </div>
     <div class="form-group">
@@ -1096,6 +1108,31 @@
   </div>
 </div>
 
+<!-- TAG CATEGORY MODAL -->
+<div class="modal-overlay" id="tagCatModal" onclick="overlayClose(event,'tagCatModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title">タグのカテゴリー分け</span>
+      <button class="close-btn" onclick="closeTagCatModal()">×</button>
+    </div>
+    <div class="data-note" style="margin-bottom:12px;">カテゴリーを選んでからタグをタップすると振り分けられます。もう一度タップで解除。</div>
+    <div class="form-group">
+      <label class="form-label">カテゴリー</label>
+      <div class="chip-row" id="tagCatSelRow"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <input id="newTagCatInput" class="form-input" type="text" placeholder="新しいカテゴリー名" style="flex:1;">
+        <button class="btn-pri" onclick="addTagCat()">追加</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;" id="tagCatActions"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">タグ</label>
+      <div id="tagCatAssignList"></div>
+    </div>
+  </div>
+</div>
+
 <!-- GROUP IMPORT MODAL -->
 <div class="modal-overlay" id="groupImportModal" onclick="overlayClose(event,'groupImportModal')">
   <div class="modal">
@@ -1163,6 +1200,7 @@
       <div class="data-sec-title">⚠️ 危険操作</div>
       <button class="btn-danger" style="margin-top:0;" onclick="clearAll()">全データを削除</button>
     </div>
+    <div style="text-align:center;font-size:11px;color:var(--txm);margin-top:4px;">バージョン: <span id="appVerLabel"></span></div>
   </div>
 </div>
 
@@ -1174,6 +1212,7 @@
 'use strict';
 
 // ─── STATE ───────────────────────────────────────────────────
+var APP_VERSION = '2026.07.02.4'; // デプロイごとに更新すること（自動更新の検知に使用）
 var db = { records: [], people: [], bands: [], settings: { theme: 'light' } };
 var curView    = 'home';
 var curMode    = 'hobby';
@@ -1242,32 +1281,39 @@ var ICONS = [
 ];
 
 // ─── STORAGE ─────────────────────────────────────────────────
+function migrateDB() {
+  db.settings = db.settings || { theme: 'light' };
+  db.records  = db.records  || [];
+  db.people   = db.people   || [];
+  db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
+  db.groups = db.groups || ['家族','友人','仕事','趣味','その他'];
+  db.bandCats = db.bandCats || ['バンド','弾き語り','アイドル','グループ','サブカル','ユニット','ソロ','その他'];
+  db.tagCats = db.tagCats || [];   // [{ name: 'カテゴリー名', tags: ['タグ',...] }]
+  db.bands  = db.bands  || [];
+  db.bands.forEach(function(b) {
+    if (!Array.isArray(b.category)) b.category = b.category ? [b.category] : ['バンド'];
+    b.liveHistory = b.liveHistory || [];
+    b.liveHistory.forEach(function(lv) { lv.venue = lv.venue || ''; });
+    b.yomi = b.yomi || '';
+  });
+  db.people.forEach(function(p){
+    if (!p.group) p.group = 'その他';
+    if (p.lastContactDate === undefined) p.lastContactDate = '';
+    if (!p.labels) p.labels = [];
+  });
+}
 function loadDB() {
   try {
     var s = localStorage.getItem('hanecat_memo_v1');
     if (s) {
       db = JSON.parse(s);
-      db.settings = db.settings || { theme: 'light' };
-      db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
-      db.groups = db.groups || ['家族','友人','仕事','趣味','その他'];
-      db.bandCats = db.bandCats || ['バンド','弾き語り','アイドル','グループ','サブカル','ユニット','ソロ','その他'];
-      db.bands  = db.bands  || [];
-      db.bands.forEach(function(b) {
-        if (!Array.isArray(b.category)) b.category = b.category ? [b.category] : ['バンド'];
-        b.liveHistory = b.liveHistory || [];
-        b.liveHistory.forEach(function(lv) { lv.venue = lv.venue || ''; });
-        b.yomi = b.yomi || '';
-      });
-      db.people.forEach(function(p){
-        if (!p.group) p.group = 'その他';
-        if (p.lastContactDate === undefined) p.lastContactDate = '';
-        if (!p.labels) p.labels = [];
-      });
+      migrateDB();
     }
   } catch(e) {}
 }
 function saveDB() {
-  try { localStorage.setItem('hanecat_memo_v1', JSON.stringify(db)); } catch(e) {}
+  try { localStorage.setItem('hanecat_memo_v1', JSON.stringify(db)); }
+  catch(e) { toast('⚠️ 保存に失敗しました（容量不足の可能性）'); }
 }
 
 // ─── JSON IO ─────────────────────────────────────────────────
@@ -1275,7 +1321,46 @@ function autoSave() {
   try { localStorage.setItem('hanecat_memo_backup', JSON.stringify({ data: db, savedAt: new Date().toISOString() })); } catch(e) {}
 }
 setInterval(autoSave, 30 * 60 * 1000);
-document.addEventListener('visibilitychange', function(){ if (document.visibilityState === 'hidden') autoSave(); });
+document.addEventListener('visibilitychange', function(){
+  if (document.visibilityState === 'hidden') autoSave();
+  else if (document.visibilityState === 'visible') checkForUpdate(false);
+});
+
+// ─── AUTO UPDATE ─────────────────────────────────────────────
+var lastUpdCheck = 0;
+function checkForUpdate(isLaunch) {
+  var now = Date.now();
+  if (!isLaunch && now - lastUpdCheck < 10 * 60 * 1000) return;
+  lastUpdCheck = now;
+  fetch(window.location.pathname + '?u=' + now, { cache: 'no-store' })
+    .then(function(res) { return res.ok ? res.text() : ''; })
+    .then(function(text) {
+      var m = text.match(/var APP_VERSION\s*=\s*'([^']+)'/);
+      if (!m || !m[1] || m[1] === APP_VERSION) return;
+      if (isLaunch && !sessionStorage.getItem('updReloaded')) {
+        // 起動直後なら編集中データがないので自動リロード（ループ防止に1セッション1回）
+        sessionStorage.setItem('updReloaded', '1');
+        autoSave();
+        window.location.replace(window.location.pathname + '?u=' + Date.now());
+      } else {
+        showUpdateBanner(m[1]);
+      }
+    })
+    .catch(function(){});
+}
+function showUpdateBanner(v) {
+  var el = document.getElementById('updateBanner');
+  if (!el) return;
+  document.getElementById('updateBannerText').textContent = '🔄 新しいバージョン（' + v + '）があります';
+  el.style.display = 'flex';
+}
+function applyUpdate() {
+  autoSave();
+  window.location.replace(window.location.pathname + '?u=' + Date.now());
+}
+function dismissUpdateBanner() {
+  document.getElementById('updateBanner').style.display = 'none';
+}
 
 function checkBackupRestore() {
   try {
@@ -1296,20 +1381,8 @@ function restoreBackup() {
   try {
     var bk = JSON.parse(localStorage.getItem('hanecat_memo_backup'));
     db = bk.data;
-    db.settings = db.settings || { theme: 'light' };
-    db.records.forEach(function(r){ if (!r.mode) r.mode = 'hobby'; });
-    db.groups = db.groups || ['家族','友人','仕事','趣味','その他'];
-    db.bands = db.bands || [];
-    db.bands.forEach(function(b) {
-      if (!Array.isArray(b.category)) b.category = b.category ? [b.category] : ['バンド'];
-      b.liveHistory = b.liveHistory || [];
-      b.liveHistory.forEach(function(lv){ lv.venue = lv.venue || ''; });
-      b.yomi = b.yomi || '';
-    });
-    db.people.forEach(function(p){
-      if (!p.group) p.group = 'その他';
-      if (p.lastContactDate === undefined) p.lastContactDate = '';
-    });
+    migrateDB();
+    recalcLastContact();
     saveDB(); applyTheme(); refresh();
     dismissRestoreBanner();
     toast('バックアップを復元しました');
@@ -1340,7 +1413,8 @@ function importJSON(e) {
       var d = JSON.parse(ev.target.result);
       if (d.records && d.people) {
         db = d;
-        db.settings = db.settings || { theme: 'light' };
+        migrateDB();
+        recalcLastContact();
         saveDB(); applyTheme(); refresh();
         toast('インポートしました');
         closeModal('dataModal');
@@ -1399,13 +1473,14 @@ function exportArchive() {
   URL.revokeObjectURL(url);
   db.records = db.records.filter(function(r){ return !(r.date >= from && r.date <= to); });
   recalcLastContact();
-  saveDB(); refresh();
+  saveDB(); autoSave(); refresh();
   toast(recs.length + '件をアーカイブしました');
   closeModal('dataModal');
 }
 function clearAll() {
   if (!confirm('全データを削除しますか？\nこの操作は取り消せません。')) return;
   db = { records: [], people: [], settings: db.settings };
+  migrateDB();
   saveDB(); refresh();
   toast('削除しました');
   closeModal('dataModal');
@@ -1456,8 +1531,35 @@ function allTags() {
     .forEach(function(r){ (r.tags||[]).forEach(function(t){ s[t]=1; }); });
   return Object.keys(s).sort();
 }
+function allTagsAllModes() {
+  var s = {};
+  db.records.forEach(function(r){ (r.tags||[]).forEach(function(t){ s[t]=1; }); });
+  return Object.keys(s).sort();
+}
+function tagCategoryOf(tag) {
+  var cats = db.tagCats || [];
+  for (var i = 0; i < cats.length; i++) {
+    if ((cats[i].tags||[]).indexOf(tag) >= 0) return cats[i].name;
+  }
+  return null;
+}
+function groupedAllTags() {
+  var tags = allTags();
+  var groups = [];
+  (db.tagCats || []).forEach(function(tc){
+    var t = tags.filter(function(x){ return (tc.tags||[]).indexOf(x) >= 0; });
+    if (t.length) groups.push({ name: tc.name, tags: t });
+  });
+  var un = tags.filter(function(x){ return !tagCategoryOf(x); });
+  if (un.length) groups.push({ name: groups.length ? '未分類' : '', tags: un });
+  return groups;
+}
 function esc(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+/* onclick="fn('...')" のようにJS文字列リテラルへ埋め込む値用 */
+function qesc(s) {
+  return esc(String(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"));
 }
 function toHiragana(str) {
   return (str||'').replace(/[ァ-ヶ]/g,function(ch){return String.fromCharCode(ch.charCodeAt(0)-0x60);});
@@ -1517,8 +1619,27 @@ function wrapMemoSel(id, before, after) {
   if (!el) return;
   var s = el.selectionStart, e = el.selectionEnd;
   var v = el.value;
-  el.value = v.slice(0,s) + before + v.slice(s,e) + after + v.slice(e);
-  el.setSelectionRange(s + before.length, e + before.length);
+  if (s === e) {
+    // 選択なし → カーソル行全体に適用（すでに装飾済みなら解除）
+    var ls = v.lastIndexOf('\n', s - 1) + 1;
+    var le = v.indexOf('\n', s);
+    if (le < 0) le = v.length;
+    var line = v.slice(ls, le);
+    if (line.length >= before.length + after.length
+        && line.slice(0, before.length) === before
+        && line.slice(line.length - after.length) === after) {
+      var inner = line.slice(before.length, line.length - after.length);
+      el.value = v.slice(0, ls) + inner + v.slice(le);
+      var pos = Math.min(Math.max(s - before.length, ls), ls + inner.length);
+      el.setSelectionRange(pos, pos);
+    } else {
+      el.value = v.slice(0, ls) + before + line + after + v.slice(le);
+      el.setSelectionRange(s + before.length, s + before.length);
+    }
+  } else {
+    el.value = v.slice(0,s) + before + v.slice(s,e) + after + v.slice(e);
+    el.setSelectionRange(s + before.length, e + before.length);
+  }
   el.focus();
 }
 function insertDivider(id) {
@@ -1661,7 +1782,7 @@ function cardHTML(rec, delay, hideDate) {
     return '<button class="memo-person-chip" onclick="onPersonChip(\'' + p.id + '\',event)">👤 ' + esc(p.name) + '</button>';
   }).join('');
   var tagsHTML = (rec.tags || []).map(function(t){
-    return '<button class="memo-tag-chip" onclick="onTagChip(\'' + esc(t) + '\',event)">' + hashIcon() + esc(t) + '</button>';
+    return '<button class="memo-tag-chip" onclick="onTagChip(\'' + qesc(t) + '\',event)">' + hashIcon() + esc(t) + '</button>';
   }).join('');
   var bodyParts = '';
   var isQuickLike = rec.mode === 'quick' || rec.mode === 'kotono' || rec.mode === 'work';
@@ -1761,7 +1882,7 @@ function renderPersonFilterRows() {
   var fc = document.getElementById('personFilterRows');
   if (!fc) return;
   var rows = '<div class="psel-filter-row" style="margin-bottom:6px;">' + ['all'].concat(db.groups).map(function(g){
-    return '<button class="psel-filter-chip' + (sfGroupFilter === g ? ' active' : '') + '" onclick="setSFGroupFilter(\'' + g + '\')">' + (g === 'all' ? '全て' : g) + '</button>';
+    return '<button class="psel-filter-chip' + (sfGroupFilter === g ? ' active' : '') + '" onclick="setSFGroupFilter(\'' + qesc(g) + '\')">' + (g === 'all' ? '全て' : esc(g)) + '</button>';
   }).join('') + '</div>';
   rows += '<div class="psel-filter-row" style="margin-bottom:8px;">' + [{ val:'all', label:'全て' }].concat(GENDERS).map(function(g){
     return '<button class="psel-filter-chip' + (sfGenderFilter === g.val ? ' active' : '') + '" onclick="setSFGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
@@ -1799,14 +1920,18 @@ function renderPersonFilterChips() {
 function toggleSFPeople() { sfPeopleOpen = !sfPeopleOpen; renderPersonFilterChips(); }
 function renderTagFilterChips() {
   var c = document.getElementById('tagFilterChips');
-  var tags = allTags();
-  if (!tags.length) {
+  var groups = groupedAllTags();
+  if (!groups.length) {
     c.innerHTML = '<span style="font-size:12px;color:var(--txm);">タグがありません</span>';
     return;
   }
-  c.innerHTML = tags.map(function(t){
-    var act = sf.tags.indexOf(t) >= 0 ? ' active' : '';
-    return '<button class="filter-chip' + act + '" onclick="toggleTF(\'' + esc(t) + '\')">' + hashIcon() + esc(t) + '</button>';
+  c.innerHTML = groups.map(function(g){
+    var chips = g.tags.map(function(t){
+      var act = sf.tags.indexOf(t) >= 0 ? ' active' : '';
+      return '<button class="filter-chip' + act + '" onclick="toggleTF(\'' + qesc(t) + '\')">' + hashIcon() + esc(t) + '</button>';
+    }).join('');
+    return (g.name ? '<div class="tag-cat-hd">' + esc(g.name) + '</div>' : '')
+      + '<div class="chip-row" style="margin-bottom:4px;">' + chips + '</div>';
   }).join('');
 }
 function togglePF(id) {
@@ -1979,7 +2104,7 @@ function renderGroupFilterChips() {
   c.innerHTML = opts.map(function(g){
     var label = labels[g] || g;
     var act = personFilter === g ? ' active' : '';
-    return '<button class="filter-chip' + act + '" onclick="setPersonFilter(\'' + g + '\')">' + label + '</button>';
+    return '<button class="filter-chip' + act + '" onclick="setPersonFilter(\'' + qesc(g) + '\')">' + esc(label) + '</button>';
   }).join('');
 }
 function renderGenderFilterChips() {
@@ -2264,7 +2389,7 @@ function renderPselFilters() {
   var fc = document.getElementById('pselFilters');
   if (!fc) return;
   var rows = '<div class="psel-filter-row">' + ['all'].concat(db.groups).map(function(g){
-    return '<button class="psel-filter-chip' + (pselGroupFilter === g ? ' active' : '') + '" onclick="setPselGroupFilter(\'' + g + '\')">' + (g === 'all' ? '全て' : g) + '</button>';
+    return '<button class="psel-filter-chip' + (pselGroupFilter === g ? ' active' : '') + '" onclick="setPselGroupFilter(\'' + qesc(g) + '\')">' + (g === 'all' ? '全て' : esc(g)) + '</button>';
   }).join('') + '</div>';
   rows += '<div class="psel-filter-row">' + [{ val:'all', label:'全て' }].concat(GENDERS).map(function(g){
     return '<button class="psel-filter-chip' + (pselGenderFilter === g.val ? ' active' : '') + '" onclick="setPselGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
@@ -2315,7 +2440,7 @@ function renderTagChips() {
   selTags.forEach(function(t){
     var span = document.createElement('span');
     span.className = 'ti-chip';
-    span.innerHTML = hashIcon() + esc(t) + ' <button onclick="removeTag(\'' + esc(t) + '\')">×</button>';
+    span.innerHTML = hashIcon() + esc(t) + ' <button onclick="removeTag(\'' + qesc(t) + '\')">×</button>';
     c.appendChild(span);
   });
   var inp = document.createElement('input');
@@ -2326,6 +2451,33 @@ function renderTagChips() {
   inp.oninput    = tagInputChange;
   c.appendChild(inp);
   renderTagSuggestions();
+  renderTagPredict();
+}
+function renderTagPredict() {
+  var c = document.getElementById('tagPredictList');
+  var inp = document.getElementById('tagInput');
+  if (!c) return;
+  var q = inp ? normalizeKana(inp.value.trim().replace(/^#/, '')) : '';
+  if (!q) { c.style.display = 'none'; c.innerHTML = ''; return; }
+  var matches = allTags().filter(function(t){
+    return selTags.indexOf(t) < 0 && normalizeKana(t).indexOf(q) >= 0;
+  });
+  matches.sort(function(a, b){
+    var ap = normalizeKana(a).indexOf(q) === 0 ? 0 : 1;
+    var bp = normalizeKana(b).indexOf(q) === 0 ? 0 : 1;
+    return ap - bp;
+  });
+  matches = matches.slice(0, 8);
+  if (!matches.length) { c.style.display = 'none'; c.innerHTML = ''; return; }
+  c.style.display = 'flex';
+  c.innerHTML = matches.map(function(t){
+    return '<button class="tag-sug-chip" onclick="pickPredictTag(\'' + qesc(t) + '\')">' + hashIcon() + esc(t) + '</button>';
+  }).join('');
+}
+function pickPredictTag(t) {
+  if (selTags.indexOf(t) < 0) selTags.push(t);
+  renderTagChips();
+  setTimeout(function(){ var el = document.getElementById('tagInput'); if (el) el.focus(); }, 0);
 }
 var tagSuggestOpen = false;
 function resetTagSuggest() {
@@ -2347,14 +2499,17 @@ function renderTagSuggestions() {
   if (!tagSuggestOpen) return;
   var c = document.getElementById('tagSuggestList');
   if (!c) return;
-  var tags = allTags();
-  if (!tags.length) {
+  var groups = groupedAllTags();
+  if (!groups.length) {
     c.innerHTML = '<span style="font-size:11px;color:var(--txm);">タグがありません</span>';
     return;
   }
-  c.innerHTML = tags.map(function(t){
-    var used = selTags.indexOf(t) >= 0;
-    return '<button class="tag-sug-chip' + (used ? ' used' : '') + '" onclick="quickAddTag(\'' + esc(t) + '\')">' + hashIcon() + esc(t) + '</button>';
+  c.innerHTML = groups.map(function(g){
+    var chips = g.tags.map(function(t){
+      var used = selTags.indexOf(t) >= 0;
+      return '<button class="tag-sug-chip' + (used ? ' used' : '') + '" onclick="quickAddTag(\'' + qesc(t) + '\')">' + hashIcon() + esc(t) + '</button>';
+    }).join('');
+    return (g.name ? '<div class="tag-cat-hd" style="width:100%;">' + esc(g.name) + '</div>' : '') + chips;
   }).join('');
 }
 function quickAddTag(t) {
@@ -2373,7 +2528,8 @@ function tagKeydown(e) {
 }
 function tagInputChange(e) {
   var v = e.target.value;
-  if (v.slice(-1) === ',' || v.slice(-1) === '、') flushTag(v.slice(0,-1));
+  if (v.slice(-1) === ',' || v.slice(-1) === '、') { flushTag(v.slice(0,-1)); return; }
+  renderTagPredict();
 }
 function flushTag(raw) {
   var t = raw.trim().replace(/^#/, '');
@@ -2461,7 +2617,7 @@ function renderGroupSel() {
   var c = document.getElementById('groupSelRow');
   if (!c) return;
   c.innerHTML = db.groups.map(function(g){
-    return '<button class="filter-chip' + (g === selGroup ? ' active' : '') + '" onclick="pickGroup(\'' + g + '\')">' + g + '</button>';
+    return '<button class="filter-chip' + (g === selGroup ? ' active' : '') + '" onclick="pickGroup(\'' + qesc(g) + '\')">' + esc(g) + '</button>';
   }).join('');
 }
 function pickGroup(g) { selGroup = g; renderGroupSel(); }
@@ -2485,7 +2641,7 @@ function renderPersonLabelSuggest() {
   if (!all.length) { c.innerHTML = ''; return; }
   c.innerHTML = all.map(function(l) {
     var used = selLabels.indexOf(l) >= 0;
-    return '<button class="tag-sug-chip' + (used ? ' used' : '') + '" onclick="addPersonLabel(\'' + esc(l) + '\')">' + esc(l) + '</button>';
+    return '<button class="tag-sug-chip' + (used ? ' used' : '') + '" onclick="addPersonLabel(\'' + qesc(l) + '\')">' + esc(l) + '</button>';
   }).join('');
 }
 function renderPersonLabels() {
@@ -2495,7 +2651,7 @@ function renderPersonLabels() {
   selLabels.forEach(function(t) {
     var span = document.createElement('span');
     span.className = 'ti-chip';
-    span.innerHTML = esc(t) + ' <button onclick="removePersonLabel(\'' + esc(t) + '\')">×</button>';
+    span.innerHTML = esc(t) + ' <button onclick="removePersonLabel(\'' + qesc(t) + '\')">×</button>';
     c.appendChild(span);
   });
   var inp = document.createElement('input');
@@ -2524,6 +2680,84 @@ function removePersonLabel(lbl) {
   renderPersonLabels();
 }
 
+
+// ─── TAG CATEGORY MANAGEMENT ─────────────────────────────────
+var selTagCat = null;
+function openTagCatModal() {
+  selTagCat = (db.tagCats && db.tagCats.length) ? db.tagCats[0].name : null;
+  renderTagCatModal();
+  openModal('tagCatModal');
+}
+function closeTagCatModal() {
+  closeModal('tagCatModal');
+  renderTagSuggestions();
+  if (curView === 'search') renderTagFilterChips();
+}
+function renderTagCatModal() {
+  var selRow = document.getElementById('tagCatSelRow');
+  var cats = db.tagCats || [];
+  selRow.innerHTML = cats.length
+    ? cats.map(function(tc){
+        return '<button class="filter-chip' + (selTagCat === tc.name ? ' active' : '') + '" onclick="pickTagCat(\'' + qesc(tc.name) + '\')">' + esc(tc.name) + '</button>';
+      }).join('')
+    : '<span style="font-size:12px;color:var(--txm);">カテゴリーがありません。下から追加してください。</span>';
+  var act = document.getElementById('tagCatActions');
+  act.innerHTML = selTagCat
+    ? '<button class="btn-sec" style="flex:1;" onclick="renameTagCatPrompt()">✏️ 名前変更</button>'
+      + '<button class="btn-sec" style="flex:1;color:#B02828;" onclick="deleteTagCat()">🗑 削除</button>'
+    : '';
+  var c = document.getElementById('tagCatAssignList');
+  var tags = allTagsAllModes();
+  if (!tags.length) {
+    c.innerHTML = '<span style="font-size:12px;color:var(--txm);">タグがまだありません</span>';
+    return;
+  }
+  c.innerHTML = '<div class="chip-row">' + tags.map(function(t){
+    var cat = tagCategoryOf(t);
+    var inSel = selTagCat && cat === selTagCat;
+    var otherCat = (cat && !inSel) ? ' <span style="opacity:.6;font-size:10px;">［' + esc(cat) + '］</span>' : '';
+    return '<button class="filter-chip' + (inSel ? ' active' : '') + '" onclick="toggleTagInCat(\'' + qesc(t) + '\')">' + hashIcon() + esc(t) + otherCat + '</button>';
+  }).join('') + '</div>';
+}
+function pickTagCat(name) { selTagCat = name; renderTagCatModal(); }
+function addTagCat() {
+  var inp = document.getElementById('newTagCatInput');
+  var name = inp.value.trim();
+  if (!name) { toast('カテゴリー名を入力してください'); return; }
+  db.tagCats = db.tagCats || [];
+  if (db.tagCats.some(function(tc){ return tc.name === name; })) { toast('同じ名前のカテゴリーがあります'); return; }
+  db.tagCats.push({ name: name, tags: [] });
+  inp.value = '';
+  selTagCat = name;
+  saveDB(); renderTagCatModal();
+}
+function renameTagCatPrompt() {
+  if (!selTagCat) return;
+  var nn = prompt('新しいカテゴリー名', selTagCat);
+  if (!nn) return;
+  nn = nn.trim();
+  if (!nn || nn === selTagCat) return;
+  if (db.tagCats.some(function(tc){ return tc.name === nn; })) { toast('同じ名前のカテゴリーがあります'); return; }
+  db.tagCats.forEach(function(tc){ if (tc.name === selTagCat) tc.name = nn; });
+  selTagCat = nn;
+  saveDB(); renderTagCatModal();
+}
+function deleteTagCat() {
+  if (!selTagCat) return;
+  if (!confirm('カテゴリー「' + selTagCat + '」を削除しますか？\n（タグ自体は消えません）')) return;
+  db.tagCats = db.tagCats.filter(function(tc){ return tc.name !== selTagCat; });
+  selTagCat = db.tagCats.length ? db.tagCats[0].name : null;
+  saveDB(); renderTagCatModal();
+}
+function toggleTagInCat(tag) {
+  if (!selTagCat) { toast('先にカテゴリーを選択してください'); return; }
+  var cur = tagCategoryOf(tag);
+  db.tagCats.forEach(function(tc){ tc.tags = (tc.tags||[]).filter(function(t){ return t !== tag; }); });
+  if (cur !== selTagCat) {
+    db.tagCats.forEach(function(tc){ if (tc.name === selTagCat) tc.tags.push(tag); });
+  }
+  saveDB(); renderTagCatModal();
+}
 
 // ─── GROUP MANAGEMENT ────────────────────────────────────────
 function renderGroupEditList() {
@@ -2698,7 +2932,7 @@ function renderBandCatChips() {
   if (!c) return;
   c.innerHTML = (db.bandCats || BAND_CATS).map(function(cat) {
     var active = bandCatSel.indexOf(cat) >= 0;
-    return '<button class="filter-chip' + (active ? ' active' : '') + '" onclick="pickBandCat(\'' + cat + '\')">' + cat + '</button>';
+    return '<button class="filter-chip' + (active ? ' active' : '') + '" onclick="pickBandCat(\'' + qesc(cat) + '\')">' + esc(cat) + '</button>';
   }).join('');
 }
 function pickBandCat(cat) {
@@ -2715,7 +2949,7 @@ function renderBandMemberGroupFilter() {
   c.innerHTML = groups.map(function(g) {
     var label = g === 'all' ? '全員' : g;
     var active = bandMemberGroupFilter === g;
-    return '<button class="filter-chip' + (active ? ' active' : '') + '" onclick="setBandMemberGroup(\'' + esc(g) + '\')">' + esc(label) + '</button>';
+    return '<button class="filter-chip' + (active ? ' active' : '') + '" onclick="setBandMemberGroup(\'' + qesc(g) + '\')">' + esc(label) + '</button>';
   }).join('');
 }
 function setBandMemberGroup(g) {
@@ -2772,7 +3006,7 @@ function renderBandCatFilterWrap() {
     picker.style.display = bandCatPickerOpen ? 'flex' : 'none';
     if (bandCatPickerOpen) {
       picker.innerHTML = (db.bandCats || []).map(function(cat) {
-        return '<button class="filter-chip' + (bandCatFilter === cat ? ' active' : '') + '" onclick="setBandCatFilter(\'' + esc(cat) + '\')">' + esc(cat) + '</button>';
+        return '<button class="filter-chip' + (bandCatFilter === cat ? ' active' : '') + '" onclick="setBandCatFilter(\'' + qesc(cat) + '\')">' + esc(cat) + '</button>';
       }).join('');
     }
   }
@@ -2886,7 +3120,7 @@ function renderEventList() {
         + '<input class="form-input" id="evEditVenue_' + idx + '" value="' + esc(ev.venue || '') + '" placeholder="会場" style="flex:2;">'
         + '</div>'
         + '<div style="display:flex;gap:8px;">'
-        + '<button class="btn-pri" style="flex:1;" onclick="saveEvEdit(\'' + esc(ekey) + '\',' + idx + ')">✓ 保存</button>'
+        + '<button class="btn-pri" style="flex:1;" onclick="saveEvEdit(\'' + qesc(ekey) + '\',' + idx + ')">✓ 保存</button>'
         + '<button class="btn-sec" style="flex:1;" onclick="cancelEvEdit()">✗ キャンセル</button>'
         + '</div>'
         + '</div>'
@@ -2903,7 +3137,7 @@ function renderEventList() {
       + venueHtml
       + '</div>'
       + '<span class="live-event-cnt">' + ev.bands.length + 'バンド</span>'
-      + '<span class="live-event-arrow" onclick="event.stopPropagation();startEvEdit(\'' + esc(ekey) + '\')">♬</span>'
+      + '<span class="live-event-arrow" onclick="event.stopPropagation();startEvEdit(\'' + qesc(ekey) + '\')">♬</span>'
       + '<span id="' + domId + '_arrow" class="live-event-arrow">▶</span>'
       + '</div>'
       + '<div id="' + domId + '" style="display:none">'
@@ -2979,6 +3213,8 @@ function saveBand() {
 }
 function deleteCurrentBand() {
   if (!editBandId) return;
+  var band = getBand(editBandId);
+  if (!confirm((band ? band.name : 'このバンド') + ' を削除しますか？\nライブ記録も削除されます。')) return;
   db.bands = db.bands.filter(function(b) { return b.id !== editBandId; });
   saveDB(); closeModal('bandModal'); renderBandList();
   toast('削除しました');
@@ -3314,7 +3550,7 @@ window.addEventListener('scroll', function(){
 });
 document.addEventListener('keydown', function(e){
   if (e.key === 'Escape') {
-    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal','bandTextImportModal','groupImportModal','workDetailModal','bandCatEditModal'].forEach(closeModal);
+    ['recordModal','personModal','personDetailModal','dataModal','groupEditModal','bandModal','bandDetailModal','bandTextImportModal','groupImportModal','workDetailModal','bandCatEditModal','tagCatModal'].forEach(closeModal);
     closeCtx();
   }
 });
@@ -3351,6 +3587,10 @@ showView('home');
 checkBackupRestore();
 (function() {
   var p = new URLSearchParams(window.location.search);
+  if (p.has('u')) {
+    p.delete('u');
+    history.replaceState(null, '', window.location.pathname + (p.toString() ? '?' + p.toString() : ''));
+  }
   var bands = p.get('bands');
   if (!bands) return;
   history.replaceState(null, '', window.location.pathname);
@@ -3361,6 +3601,8 @@ checkBackupRestore();
   document.getElementById('importEventDate').value = p.get('date') || '';
   openModal('bandTextImportModal');
 })();
+(function(){ var el = document.getElementById('appVerLabel'); if (el) el.textContent = APP_VERSION; })();
+checkForUpdate(true);
 </script>
 
 <!-- MEMO FULLSCREEN OVERLAY -->
