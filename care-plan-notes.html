@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ケアプラン記録</title>
+<style>
+  :root {
+    --primary: #3d6b8a;
+    --primary-dark: #2d5270;
+    --accent: #c4956a;
+    --bg: #f0ede8;
+    --card-bg: #ffffff;
+    --text: #333333;
+    --text-muted: #777777;
+    --border: #ddd;
+    --danger: #c0392b;
+    --success: #27ae60;
+    --tag-bg: #e8f0f7;
+    --tag-text: #3d6b8a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans JP', 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  header {
+    background: var(--primary);
+    color: white;
+    padding: 14px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  header h1 { font-size: 1.1rem; font-weight: bold; }
+  header .count { font-size: 0.85rem; opacity: 0.85; }
+  .tab-bar {
+    display: flex;
+    background: var(--primary-dark);
+    border-bottom: 2px solid var(--accent);
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 12px 6px;
+    border: none;
+    background: none;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .tab-btn.active {
+    color: white;
+    background: rgba(255,255,255,0.1);
+    border-bottom: 2px solid var(--accent);
+  }
+  .tab-panel { padding: 16px; }
+
+  /* フォーム */
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: 0.85rem; font-weight: bold; color: var(--primary); margin-bottom: 4px; }
+  textarea, input[type="text"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 16px;
+    font-family: inherit;
+    background: white;
+    color: var(--text);
+    -webkit-appearance: none;
+  }
+  textarea:focus, input:focus { outline: none; border-color: var(--primary); }
+  textarea { resize: vertical; }
+  .textarea-sm { height: 80px; }
+  .textarea-lg { height: 140px; }
+
+  .hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+  .btn {
+    display: inline-block;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    text-align: center;
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:active { background: var(--primary-dark); }
+  .btn-success { background: var(--success); color: white; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-outline {
+    background: none;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+  }
+  .btn-sm { padding: 8px 14px; font-size: 0.85rem; min-height: 40px; }
+  .btn-block { display: block; width: 100%; margin-top: 6px; }
+
+  /* 検索 */
+  .search-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .search-box input { flex: 1; }
+
+  /* カード */
+  .card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .card-date { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
+  .card-situation {
+    font-size: 0.9rem;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .tag {
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.78rem;
+    font-weight: bold;
+  }
+  .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 20px;
+    font-size: 0.9rem;
+  }
+
+  /* モーダル */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px;
+  }
+  .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+  .modal {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    width: 100%;
+    max-width: 600px;
+    margin: auto;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .modal-title { font-size: 1rem; font-weight: bold; color: var(--primary); }
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    line-height: 1;
+  }
+  .modal-section { margin-bottom: 14px; }
+  .modal-section h3 {
+    font-size: 0.85rem;
+    color: var(--primary);
+    font-weight: bold;
+    margin-bottom: 6px;
+    border-left: 3px solid var(--primary);
+    padding-left: 8px;
+  }
+  .modal-text {
+    background: #f8f8f8;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    line-height: 1.7;
+    max-height: 200px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* データ管理 */
+  .manage-card {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .manage-card h3 {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 10px;
+  }
+  .manage-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; }
+
+  /* Claudeプロンプトヒント */
+  .claude-hint {
+    background: #eef4fa;
+    border: 1px dashed var(--primary);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .claude-hint p { font-size: 0.82rem; color: var(--primary-dark); margin-bottom: 8px; }
+  .claude-hint .template {
+    background: white;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 0.8rem;
+    color: #555;
+    white-space: pre-wrap;
+    margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ケアプラン記録</h1>
+  <span class="count" id="totalCount">0件</span>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" id="btn-list">一覧・検索</button>
+  <button class="tab-btn" id="btn-new">新規登録</button>
+  <button class="tab-btn" id="btn-manage">データ管理</button>
+</div>
+
+<!-- 一覧タブ -->
+<div class="tab-panel" id="tab-list" style="display:block">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="キーワードで検索…" oninput="renderList()">
+  </div>
+  <div id="listArea"></div>
+</div>
+
+<!-- 新規登録タブ -->
+<div class="tab-panel" id="tab-new" style="display:none">
+  <div class="claude-hint">
+    <p>💡 Claudeに利用者状況を送ると、ケアプランを提案してもらえます。そのまま下に貼り付けて保存できます。</p>
+    <div class="template">例）80代女性。要介護2。独居。転倒リスクあり。ADL低下が見られ、調理・入浴に介助が必要。認知症なし。</div>
+  </div>
+
+  <div class="form-group">
+    <label>利用者状況</label>
+    <textarea id="fSituation" class="textarea-sm" placeholder="利用者の状況を入力（Claudeへの質問内容をここに）"></textarea>
+  </div>
+  <div class="form-group">
+    <label>長期目標</label>
+    <textarea id="fLongTerm" class="textarea-sm" placeholder="Claudeの回答から「長期目標」を貼り付けてください"></textarea>
+  </div>
+  <div class="form-group">
+    <label>短期目標</label>
+    <textarea id="fShortTerm" class="textarea-sm" placeholder="Claudeの回答から「短期目標」を貼り付けてください"></textarea>
+  </div>
+  <div class="form-group">
+    <label>支援内容</label>
+    <textarea id="fSupport" class="textarea-lg" placeholder="Claudeの回答から「支援内容」を貼り付けてください"></textarea>
+  </div>
+  <div class="form-group">
+    <label>タグ</label>
+    <input type="text" id="fTags" placeholder="例: 独居, 要介護2, 認知症（カンマ区切り）">
+    <p class="hint">カンマ区切りで複数入力できます</p>
+  </div>
+  <div class="form-group">
+    <label>備考</label>
+    <textarea id="fMemo" class="textarea-sm" placeholder="担当者メモなど（任意）"></textarea>
+  </div>
+  <button class="btn btn-primary btn-block" onclick="saveNew()">保存する</button>
+</div>
+
+<!-- データ管理タブ -->
+<div class="tab-panel" id="tab-manage" style="display:none">
+  <div class="manage-card">
+    <h3>JSONエクスポート</h3>
+    <p>すべてのケアプランをJSONファイルとして保存します。バックアップや別端末への引き継ぎに使用できます。</p>
+    <button class="btn btn-primary" onclick="exportJson()">JSONをダウンロード</button>
+  </div>
+  <div class="manage-card">
+    <h3>JSONインポート</h3>
+    <p>以前にエクスポートしたJSONファイルを読み込みます。既存のデータと統合されます。</p>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJson(event)">
+    <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">JSONを読み込む</button>
+  </div>
+  <div class="manage-card">
+    <h3>全データ削除</h3>
+    <p>すべてのケアプランを削除します。この操作は取り消せません。</p>
+    <button class="btn btn-danger" onclick="clearAll()">すべて削除</button>
+  </div>
+</div>
+
+<!-- 詳細モーダル -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalDate"></span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div id="modalTags" style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:4px;"></div>
+    <div class="modal-section">
+      <h3>利用者状況</h3>
+      <div class="modal-text" id="modalSituation"></div>
+    </div>
+    <div class="modal-section" id="modalLongTermSection">
+      <h3>長期目標</h3>
+      <div class="modal-text" id="modalLongTerm"></div>
+    </div>
+    <div class="modal-section" id="modalShortTermSection">
+      <h3>短期目標</h3>
+      <div class="modal-text" id="modalShortTerm"></div>
+    </div>
+    <div class="modal-section" id="modalSupportSection">
+      <h3>支援内容</h3>
+      <div class="modal-text" id="modalSupport"></div>
+    </div>
+    <div class="modal-section" id="modalPlanSection">
+      <h3>ケアプラン（旧形式）</h3>
+      <div class="modal-text" id="modalPlan"></div>
+    </div>
+    <div class="modal-section" id="modalMemoSection">
+      <h3>備考</h3>
+      <div class="modal-text" id="modalMemo"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-danger btn-sm" id="modalDeleteBtn">削除</button>
+      <button class="btn btn-outline btn-sm" onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'careplan_notes_v1';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+
+function save(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  updateCount(data.length);
+}
+
+function updateCount(n) {
+  document.getElementById('totalCount').textContent = n + '件';
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function switchTab(name) {
+  document.getElementById('tab-list').style.display   = name === 'list'   ? 'block' : 'none';
+  document.getElementById('tab-new').style.display    = name === 'new'    ? 'block' : 'none';
+  document.getElementById('tab-manage').style.display = name === 'manage' ? 'block' : 'none';
+  document.getElementById('btn-list').className   = 'tab-btn' + (name === 'list'   ? ' active' : '');
+  document.getElementById('btn-new').className    = 'tab-btn' + (name === 'new'    ? ' active' : '');
+  document.getElementById('btn-manage').className = 'tab-btn' + (name === 'manage' ? ' active' : '');
+  if (name === 'list') renderList();
+}
+
+function renderList() {
+  const data = load();
+  const kw = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filtered = kw
+    ? data.filter(d =>
+        d.situation.toLowerCase().includes(kw) ||
+        (d.longTermGoal || '').toLowerCase().includes(kw) ||
+        (d.shortTermGoal || '').toLowerCase().includes(kw) ||
+        (d.support || '').toLowerCase().includes(kw) ||
+        (d.plan || '').toLowerCase().includes(kw) ||
+        (d.tags || []).join(' ').toLowerCase().includes(kw) ||
+        (d.memo || '').toLowerCase().includes(kw)
+      )
+    : data;
+
+  const area = document.getElementById('listArea');
+  if (filtered.length === 0) {
+    area.innerHTML = '<div class="empty-state">' +
+      (kw ? '「' + kw + '」に一致するケアプランはありません' : 'まだケアプランが登録されていません') +
+      '</div>';
+    return;
+  }
+
+  const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
+  area.innerHTML = sorted.map(d => {
+    const tags = (d.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+    return `
+      <div class="card">
+        <div class="card-date">${formatDate(d.date)}</div>
+        <div class="card-situation">${escHtml(d.situation)}</div>
+        ${tags ? '<div class="card-tags">' + tags + '</div>' : ''}
+        <div class="card-actions">
+          <button class="btn btn-primary btn-sm" onclick="openDetail('${d.id}')">詳細</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteItem('${d.id}')">削除</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function saveNew() {
+  const situation = document.getElementById('fSituation').value.trim();
+  const longTermGoal = document.getElementById('fLongTerm').value.trim();
+  const shortTermGoal = document.getElementById('fShortTerm').value.trim();
+  const support = document.getElementById('fSupport').value.trim();
+  if (!situation || (!longTermGoal && !shortTermGoal && !support)) {
+    alert('利用者状況と、ケアプランのいずれか1つ以上は必須です。');
+    return;
+  }
+  const tags = document.getElementById('fTags').value
+    .split(',').map(t => t.trim()).filter(Boolean);
+  const memo = document.getElementById('fMemo').value.trim();
+
+  const data = load();
+  data.unshift({
+    id: genId(),
+    date: new Date().toISOString().slice(0, 10),
+    situation, longTermGoal, shortTermGoal, support, tags, memo
+  });
+  save(data);
+
+  document.getElementById('fSituation').value = '';
+  document.getElementById('fLongTerm').value = '';
+  document.getElementById('fShortTerm').value = '';
+  document.getElementById('fSupport').value = '';
+  document.getElementById('fTags').value = '';
+  document.getElementById('fMemo').value = '';
+
+  alert('保存しました！');
+  switchTab('list');
+}
+
+function openDetail(id) {
+  const data = load();
+  const d = data.find(x => x.id === id);
+  if (!d) return;
+
+  document.getElementById('modalDate').textContent = formatDate(d.date);
+  document.getElementById('modalSituation').textContent = d.situation;
+  document.getElementById('modalTags').innerHTML =
+    (d.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+
+  function showSection(sectionId, textId, value) {
+    const section = document.getElementById(sectionId);
+    if (value) {
+      document.getElementById(textId).textContent = value;
+      section.style.display = 'block';
+    } else {
+      section.style.display = 'none';
+    }
+  }
+
+  showSection('modalLongTermSection', 'modalLongTerm', d.longTermGoal);
+  showSection('modalShortTermSection', 'modalShortTerm', d.shortTermGoal);
+  showSection('modalSupportSection', 'modalSupport', d.support);
+  showSection('modalPlanSection', 'modalPlan', d.plan);
+
+  const memoSection = document.getElementById('modalMemoSection');
+  if (d.memo) {
+    document.getElementById('modalMemo').textContent = d.memo;
+    memoSection.style.display = 'block';
+  } else {
+    memoSection.style.display = 'none';
+  }
+
+  document.getElementById('modalDeleteBtn').onclick = () => {
+    if (confirm('このケアプランを削除しますか？')) {
+      deleteItem(id);
+      closeModal();
+    }
+  };
+
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('open');
+}
+
+function deleteItem(id) {
+  if (!confirm('削除しますか？')) return;
+  const data = load().filter(d => d.id !== id);
+  save(data);
+  renderList();
+}
+
+function exportJson() {
+  const data = load();
+  if (data.length === 0) { alert('データがありません。'); return; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'careplan-notes-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJson(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error();
+      const existing = load();
+      const existingIds = new Set(existing.map(d => d.id));
+      const merged = [...existing, ...imported.filter(d => !existingIds.has(d.id))];
+      save(merged);
+      renderList();
+      alert(imported.length + '件のデータを読み込みました（重複除外済み）。');
+    } catch {
+      alert('JSONファイルの形式が正しくありません。');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function clearAll() {
+  if (!confirm('すべてのデータを削除します。この操作は取り消せません。よろしいですか？')) return;
+  save([]);
+  renderList();
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// タブボタンのイベント登録（touchend + click 両対応）
+['list', 'new', 'manage'].forEach(function(name) {
+  var btn = document.getElementById('btn-' + name);
+  btn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    switchTab(name);
+  });
+  btn.addEventListener('click', function(e) {
+    switchTab(name);
+  });
+});
+
+// 初期化
+updateCount(load().length);
+renderList();
+
+// モーダル外タップで閉じる
+document.getElementById('detailModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+</script>
+</body>
+</html>
