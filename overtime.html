@@ -221,9 +221,38 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 .cal-cell.selected{background:#e8eef7;}
 .cal-cell:not(.blank){cursor:pointer;}
 
+/* ===== 36協定バッジ ===== */
+#kyotei{display:flex; flex-direction:column; gap:4px; padding:8px 0 2px;}
+.ky-row{display:flex; align-items:center; gap:6px; font-size:11px; border-radius:8px; padding:5px 10px;}
+.ky-row.ok {background:#eaf4ea; color:#2a6a2a;}
+.ky-row.warn{background:#fff8e1; color:#7a5c00;}
+.ky-row.over{background:#fdecea; color:#b71c1c;}
+.ky-label{flex:1;}
+.ky-bar{flex:2; height:5px; background:#e0e0e0; border-radius:3px; overflow:hidden;}
+.ky-fill{height:100%; border-radius:3px;}
+.ky-fill.ok{background:#4caf50;}
+.ky-fill.warn{background:#f4c542;}
+.ky-fill.over{background:#e53935;}
+.ky-val{font-weight:700; white-space:nowrap;}
+.ky-limit{color:#aaa; font-weight:400;}
+
+/* ===== 棒グラフ ===== */
+.chart-wrap{padding:10px 0 4px;}
+.chart-row{display:flex; align-items:center; gap:6px; margin-bottom:5px;}
+.chart-lbl{font-size:10px; color:var(--sub); width:36px; text-align:right; flex-shrink:0;}
+.chart-bar{flex:1; height:16px; background:#eef0f4; border-radius:4px; position:relative; overflow:visible;}
+.chart-fill{height:100%; border-radius:4px; background:var(--accent); transition:width .3s;}
+.chart-fill.over{background:#e53935;}
+.chart-fill.warn{background:#f4c542;}
+.chart-45{position:absolute; top:-3px; height:22px; width:1px; background:#e53935; opacity:.5;}
+.chart-val{font-size:10px; color:var(--sub); width:38px; flex-shrink:0;}
+
+/* ===== 残業カテゴリ ===== */
+.ot-cat{font-size:13px; border:1.5px solid var(--line); border-radius:9px;
+  padding:5px 6px; background:#fff; color:var(--ink); flex:1; max-width:140px;}
+
 /* ===== night count ===== */
 .night-card{
-  background:var(--card); border-radius:var(--radius); margin-top:10px;
   padding:14px; box-shadow:0 1px 2px rgba(20,40,70,.05);
 }
 /* ── 今日のシフトウィジェット ── */
@@ -291,6 +320,7 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
     <div class="label">残業合計</div>
     <div class="val num" id="totalVal">0<small>時間</small>00<small>分</small></div>
     <div class="mins num" id="totalMins"></div>
+    <div id="kyotei"></div>
   </div>
 </header>
 
@@ -402,6 +432,52 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 
 <script>
 "use strict";
+/* ===== バージョン管理・自動更新 ===== */
+const APP_VERSION="20260702-001"; /* ビルドごとに更新 */
+
+async function checkForUpdate(){
+  try{
+    const res=await fetch(location.href.split("?")[0]+"?_v="+Date.now(),
+      {cache:"no-store"});
+    if(!res.ok) return;
+    const txt=await res.text();
+    const m=txt.match(/APP_VERSION="([^"]+)"/);
+    if(m && m[1] && m[1]!==APP_VERSION){
+      showUpdateBanner(m[1]);
+    }
+  }catch(e){}
+}
+function showUpdateBanner(newVer){
+  if(document.getElementById("updateBanner")) return; /* 重複防止 */
+  const b=document.createElement("div");
+  b.id="updateBanner";
+  b.style.cssText="position:fixed;top:0;left:0;right:0;z-index:9999;"
+    +"background:#1565c0;color:#fff;display:flex;align-items:center;"
+    +"padding:10px 14px;gap:10px;font-size:13px;";
+  b.innerHTML='<span style="flex:1;">🆕 新しいバージョンがあります</span>'
+    +'<button onclick="location.reload(true)" style="background:#fff;color:#1565c0;'
+    +'border:none;border-radius:8px;padding:6px 12px;font-weight:700;cursor:pointer;'
+    +'font-size:13px;">更新する</button>'
+    +'<button onclick="this.parentElement.remove()" style="background:none;border:none;'
+    +'color:#fff;font-size:18px;cursor:pointer;padding:0 4px;">×</button>';
+  document.body.prepend(b);
+}
+/* 起動時1回 + 60分ごとにチェック */
+setTimeout(checkForUpdate, 3000); /* 起動直後は3秒後 */
+setInterval(checkForUpdate, 60*60*1000);
+
+/* ===== バージョン表示（左下・印刷時非表示） ===== */
+(function(){
+  var st=document.createElement('style');
+  st.textContent='@media print{#appVerBadge{display:none!important}}';
+  document.head.appendChild(st);
+  var v=document.createElement('div');
+  v.id='appVerBadge';
+  v.textContent='ver.'+APP_VERSION;
+  v.style.cssText='position:fixed;bottom:4px;left:6px;font-size:10px;color:#888;opacity:.75;z-index:9998;pointer-events:none;';
+  document.body.appendChild(v);
+})();
+
 const KEY="overtime-app-v2";
 
 /* ---------- storage (localStorage + メモリfallback) ---------- */
@@ -556,6 +632,33 @@ function renderHeader(){
   document.getElementById("totalVal").innerHTML=
     `${h}<small>時間</small>${pad(mm)}<small>分</small>`;
   document.getElementById("totalMins").textContent= total>0?`（${total}分）`:"";
+
+  /* 36協定チェック */
+  const MON_LIMIT=45*60, MON_WARN=40*60;
+  const curYear=new Date().getFullYear();
+  let yearTotal=0;
+  for(const k in state.days){
+    if(!k.startsWith(curYear+"-")) continue; /* 今年分のみ */
+    const v=effOT(state.days[k]); if(v) yearTotal+=v;
+  }
+  const YEAR_LIMIT=360*60;
+  function kyRow(label, val, limit){
+    const pct=Math.min(100, Math.round(val/limit*100));
+    const cls=val>=limit?"over":val>=(MON_WARN/MON_LIMIT*limit)?"warn":"ok";
+    const icon=val>=limit?"⛔":val>=(MON_WARN/MON_LIMIT*limit)?"⚠️":"✅";
+    return '<div class="ky-row '+cls+'">'
+      +'<span class="ky-label">'+icon+' '+label+'</span>'
+      +'<span class="ky-bar"><span class="ky-fill '+cls+'" style="width:'+pct+'%"></span></span>'
+      +'<span class="ky-val">'+fmtMin(val)+'<span class="ky-limit">/'+Math.floor(limit/60)+'h</span></span>'
+      +'</div>';
+  }
+  if(total>0||yearTotal>0){
+    document.getElementById("kyotei").innerHTML=
+      kyRow("今月",total,MON_LIMIT)
+      +kyRow(curYear+"年計",yearTotal,YEAR_LIMIT);
+  } else {
+    document.getElementById("kyotei").innerHTML="";
+  }
 }
 
 /* ---------- render: day list ---------- */
@@ -618,8 +721,18 @@ function renderDays(){
           </div>
         </div>
         <div class="r2-row">
-          <label>メモ</label>
-          <input type="text" class="memo" data-k="${k}" value="${esc(day.memo||"")}" placeholder="残業理由など" maxlength="40"
+          <label>区分</label>
+          <select class="otcat" data-k="${k}">
+            <option value="">—</option>
+            <option value="会議"${day.otCategory==="会議"?" selected":""}>会議</option>
+            <option value="急変対応"${day.otCategory==="急変対応"?" selected":""}>急変対応</option>
+            <option value="申し送り"${day.otCategory==="申し送り"?" selected":""}>申し送り</option>
+            <option value="書類"${day.otCategory==="書類"?" selected":""}>書類</option>
+            <option value="研修"${day.otCategory==="研修"?" selected":""}>研修</option>
+            <option value="その他"${day.otCategory==="その他"?" selected":""}>その他</option>
+          </select>
+          <label style="margin-left:8px;">メモ</label>
+          <input type="text" class="memo" data-k="${k}" value="${esc(day.memo||"")}" placeholder="詳細など" maxlength="40"
             style="flex:1;border:1.5px solid var(--line);border-radius:9px;padding:5px 8px;font-size:14px;background:#fff;">
         </div>
       </div>`;
@@ -671,6 +784,12 @@ function renderDays(){
   bindTime("startE","startEnd");
   bindTime("endA","endActual", k=>shiftDefaultEnd(state.days[k]&&state.days[k].shift));
 
+  sec.querySelectorAll("select.otcat").forEach(s=>s.addEventListener("change",e=>{
+    const k=e.target.dataset.k;
+    if(!state.days[k]) state.days[k]={};
+    state.days[k].otCategory=e.target.value||undefined;
+    store.save(state);
+  }));
   sec.querySelectorAll("input.memo").forEach(i=>i.addEventListener("change",e=>{
     const k=e.target.dataset.k;
     if(!state.days[k]) state.days[k]={};
@@ -1069,7 +1188,7 @@ renderBackupList();
   });
 })();
 
-function bannerRestore(){}
+
 
 /* 30分ごとに自動バックアップ */
 setInterval(()=>{ saveBackup("自動"); renderBackupList(); }, 30*60*1000);
@@ -1128,6 +1247,28 @@ function renderHistory(){
     return;
   }
 
+  /* 棒グラフ（最新12ヶ月） */
+  const chartKeys=[...pKeys].sort().slice(-12);
+  const maxVal=Math.max(...chartKeys.map(k=>periods[k]),1);
+  const MON_LIMIT=45*60;
+  const ref45=Math.min(100, Math.round(MON_LIMIT/Math.max(maxVal,MON_LIMIT)*100));
+  let chart='<div class="chart-wrap">';
+  for(const pk of chartKeys.reverse()){
+    const [py,pm]=pk.split("-").map(Number);
+    const pct=Math.round(periods[pk]/Math.max(maxVal,1)*100);
+    const cls=periods[pk]>=MON_LIMIT?"over":periods[pk]>=40*60?"warn":"";
+    chart+='<div class="chart-row">'
+      +'<span class="chart-lbl">'+pm+'月</span>'
+      +'<div class="chart-bar">'
+      +'<div class="chart-fill '+cls+'" style="width:'+pct+'%"></div>'
+      +'<div class="chart-45" style="left:'+ref45+'%"></div>'
+      +'</div>'
+      +'<span class="chart-val">'+fmtMin(periods[pk])+'</span>'
+      +'</div>';
+  }
+  chart+='<div style="font-size:10px;color:#e53935;text-align:right;padding-right:44px;">— 45時間</div>';
+  chart+='</div>';
+
   // 年ごとにまとめる
   const years={};
   for(const pk of pKeys){
@@ -1136,7 +1277,7 @@ function renderHistory(){
     years[y].push(pk);
   }
 
-  let html="";
+  let html=chart;
   for(const y of Object.keys(years).sort().reverse()){
     let yearTotal=0;
     for(const pk of years[y]) yearTotal+=periods[pk];
