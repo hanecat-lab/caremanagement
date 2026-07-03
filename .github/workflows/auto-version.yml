@@ -1,0 +1,50 @@
+name: Auto Version Stamp
+# carestock / management の auto-version.yml と同じ仕組み。
+# 対象HTMLが push されたら APP_VERSION を自動更新する。
+# 新しいアプリに自動更新を追加したら paths と stamp 処理に1行追記する。
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'careplan-manager.html'
+      - 'overtime.html'
+      - 'person-memo.html'
+      - 'toromi-calc-v3.html'
+      - 'treatment-table.html'
+
+permissions:
+  contents: write
+
+jobs:
+  stamp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Stamp version
+        run: |
+          VER=$(date +%Y%m%d-%H%M%S)
+          CHANGED=$(git diff --name-only '${{ github.event.before }}' '${{ github.sha }}' 2>/dev/null || printf 'careplan-manager.html\novertime.html\nperson-memo.html\ntoromi-calc-v3.html\ntreatment-table.html\n')
+
+          # const APP_VERSION="..."; 形式（careplan-manager / overtime / toromi-calc-v3 / treatment-table）
+          for f in careplan-manager.html overtime.html toromi-calc-v3.html treatment-table.html; do
+            if echo "$CHANGED" | grep -qx "$f"; then
+              sed -i "s/const APP_VERSION=\"[^\"]*\"/const APP_VERSION=\"$VER\"/" "$f"
+            fi
+          done
+
+          # var APP_VERSION = '...'; 形式（person-memo.html）
+          if echo "$CHANGED" | grep -qx 'person-memo.html'; then
+            sed -i "s/var APP_VERSION = '[^']*'/var APP_VERSION = '$VER'/" person-memo.html
+          fi
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --staged --quiet || git commit -m "chore: auto-stamp version [skip ci]"
+          git push
