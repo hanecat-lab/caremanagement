@@ -1029,6 +1029,18 @@ function showUpdateBanner(newVer){
 setTimeout(checkForUpdate, 3000); /* 起動直後は3秒後 */
 setInterval(checkForUpdate, 60*60*1000);
 
+/* ===== バージョン表示（左下・印刷時非表示） ===== */
+(function(){
+  var st=document.createElement('style');
+  st.textContent='@media print{#appVerBadge{display:none!important}}';
+  document.head.appendChild(st);
+  var v=document.createElement('div');
+  v.id='appVerBadge';
+  v.textContent='ver.'+APP_VERSION;
+  v.style.cssText='position:fixed;bottom:4px;left:6px;font-size:10px;color:#888;opacity:.75;z-index:9998;pointer-events:none;';
+  document.body.appendChild(v);
+})();
+
 // ======== 状態管理 ========
 // floors: f2, f3
 // groups: u0(うすい9時), c0(中間9時), k0(濃い9時), u1(うすい15時), c1(中間15時), k1(濃い15時)
