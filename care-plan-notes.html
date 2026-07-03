@@ -328,7 +328,7 @@
   <div class="form-row">
     <div class="form-group">
       <label>年齢</label>
-      <input type="text" id="fAge" placeholder="例: 90歳／80代">
+      <input type="text" id="fAge" placeholder="例: 90歳">
     </div>
     <div class="form-group">
       <label>性別</label>
@@ -338,6 +338,20 @@
         <option value="男性">男性</option>
       </select>
     </div>
+    <div class="form-group">
+      <label>要介護度</label>
+      <select id="fCareLevel">
+        <option value="">未選択</option>
+        <option value="要支援1">要支援1</option>
+        <option value="要支援2">要支援2</option>
+        <option value="要介護1">要介護1</option>
+        <option value="要介護2">要介護2</option>
+        <option value="要介護3">要介護3</option>
+        <option value="要介護4">要介護4</option>
+        <option value="要介護5">要介護5</option>
+        <option value="申請中">申請中</option>
+      </select>
+    </div>
   </div>
   <div class="form-group">
     <label>疾患・既往歴</label>
@@ -345,7 +359,7 @@
   </div>
   <div class="form-group">
     <label>利用者状況</label>
-    <textarea id="fSituation" class="textarea-sm" placeholder="要介護度、居住形態、ADL、本人・家族の意向、リスクなど（氏名は書かない）"></textarea>
+    <textarea id="fSituation" class="textarea-sm" placeholder="居住形態、ADL、本人・家族の意向、リスクなど（氏名は書かない）"></textarea>
   </div>
   <button class="btn btn-outline btn-block" onclick="copyPrompt()">📋 Claudeへの依頼文をコピー</button>
   <div style="height:14px"></div>
@@ -478,6 +492,7 @@ function renderList() {
         d.situation.toLowerCase().includes(kw) ||
         (d.age || '').toLowerCase().includes(kw) ||
         (d.sex || '').toLowerCase().includes(kw) ||
+        (d.careLevel || '').toLowerCase().includes(kw) ||
         (d.disease || '').toLowerCase().includes(kw) ||
         (d.longTermGoal || '').toLowerCase().includes(kw) ||
         (d.shortTermGoal || '').toLowerCase().includes(kw) ||
@@ -515,13 +530,14 @@ function renderList() {
 }
 
 function metaText(d) {
-  return [d.age, d.sex, d.disease].filter(Boolean).join('・');
+  return [d.age, d.sex, d.careLevel, d.disease].filter(Boolean).join('・');
 }
 
 function readForm() {
   return {
     age: document.getElementById('fAge').value.trim(),
     sex: document.getElementById('fSex').value,
+    careLevel: document.getElementById('fCareLevel').value,
     disease: document.getElementById('fDisease').value.trim(),
     situation: document.getElementById('fSituation').value.trim(),
     longTermGoal: document.getElementById('fLongTerm').value.trim(),
@@ -536,6 +552,7 @@ function clearForm() {
   ['fAge','fDisease','fSituation','fLongTerm','fShortTerm','fSupport','fTags','fMemo']
     .forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('fSex').value = '';
+  document.getElementById('fCareLevel').value = '';
 }
 
 function saveNew() {
@@ -573,6 +590,7 @@ function startEdit(id) {
   editingId = id;
   document.getElementById('fAge').value = d.age || '';
   document.getElementById('fSex').value = d.sex || '';
+  document.getElementById('fCareLevel').value = d.careLevel || '';
   document.getElementById('fDisease').value = d.disease || '';
   document.getElementById('fSituation').value = d.situation || '';
   document.getElementById('fLongTerm').value = d.longTermGoal || '';
@@ -600,6 +618,7 @@ function buildPrompt() {
   const lines = [];
   if (f.age) lines.push('【年齢】' + f.age);
   if (f.sex) lines.push('【性別】' + f.sex);
+  if (f.careLevel) lines.push('【要介護度】' + f.careLevel);
   if (f.disease) lines.push('【疾患・既往歴】' + f.disease);
   lines.push('【状況】' + f.situation);
   return 'あなたは熟練のケアマネジャーです。以下の利用者情報を分析し、ケアプランの「長期目標」「短期目標」「支援内容」を提案してください。' +
