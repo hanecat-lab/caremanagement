@@ -1238,6 +1238,7 @@ var selLabels      = [];
 var pselGroupFilter  = 'all';
 var pselGenderFilter = 'all';
 var pselLabelFilter  = [];
+var pselLabelOpen    = false;
 var pselFiltersOpen  = false;
 var pselOpen         = false;
 var sfGroupFilter    = 'all';
@@ -2292,7 +2293,7 @@ function deletePersonById(id) {
 // ─── RECORD FORM ─────────────────────────────────────────────
 function openAddRecord() {
   editRecId = null; selPeople = []; selTags = []; selWorkType = '';
-  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselLabelFilter = []; pselFiltersOpen = false; pselOpen = false;
+  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselLabelFilter = []; pselLabelOpen = false; pselFiltersOpen = false; pselOpen = false;
   resetTagSuggest();
   var titles = { hobby: '記録を追加', work: '仕事メモを追加', quick: '一言メモを追加', kotono: '言の葉を追加' };
   document.getElementById('recModalTitle').textContent = titles[curMode] || '記録を追加';
@@ -2337,7 +2338,7 @@ function openEditRecord(id) {
   selPeople = (r.peopleIds||[]).slice();
   selTags   = (r.tags||[]).slice();
   selWorkType = r.workType || '';
-  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselLabelFilter = []; pselFiltersOpen = false; pselOpen = false;
+  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselLabelFilter = []; pselLabelOpen = false; pselFiltersOpen = false; pselOpen = false;
   resetTagSuggest();
   var em = r.mode || 'hobby';
   var titles = { hobby: '記録を編集', work: '仕事メモを編集', quick: '一言メモを編集', kotono: '言の葉を編集' };
@@ -2397,15 +2398,21 @@ function renderPselFilters() {
   }).join('') + '</div>';
   var labels = allPersonLabels().slice().sort();
   if (labels.length) {
-    rows += '<div class="psel-filter-row">' + labels.map(function(l){
-      var act = pselLabelFilter.indexOf(l) >= 0;
-      return '<button class="psel-filter-chip' + (act ? ' active' : '') + '" onclick="togglePselLabelFilter(\'' + qesc(l) + '\')">' + esc(l) + '</button>';
-    }).join('') + '</div>';
+    var selLabelCount = pselLabelFilter.length;
+    var labelLbl = pselLabelOpen ? '▾ サブタグで絞る' : ('▸ サブタグで絞る' + (selLabelCount ? '（' + selLabelCount + '件選択中）' : ''));
+    rows += '<button class="psel-filter-toggle' + (selLabelCount ? ' on' : '') + '" onclick="togglePselLabelOpen()">' + labelLbl + '</button>';
+    if (pselLabelOpen) {
+      rows += '<div class="psel-filter-row" style="margin-top:4px;">' + labels.map(function(l){
+        var act = pselLabelFilter.indexOf(l) >= 0;
+        return '<button class="psel-filter-chip' + (act ? ' active' : '') + '" onclick="togglePselLabelFilter(\'' + qesc(l) + '\')">' + esc(l) + '</button>';
+      }).join('') + '</div>';
+    }
   }
   fc.innerHTML = rows;
 }
 function setPselGroupFilter(g) { pselGroupFilter = g; pselOpen = true; renderPselGrid(); }
 function setPselGenderFilter(v) { pselGenderFilter = v; pselOpen = true; renderPselGrid(); }
+function togglePselLabelOpen() { pselLabelOpen = !pselLabelOpen; renderPselFilters(); }
 function togglePselLabelFilter(l) {
   var i = pselLabelFilter.indexOf(l);
   if (i >= 0) pselLabelFilter.splice(i, 1); else pselLabelFilter.push(l);
