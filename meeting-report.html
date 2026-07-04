@@ -273,18 +273,52 @@
     margin-bottom: 8px;
   }
 
-  /* 階フィルタ */
-  .floor-bar { display: flex; gap: 8px; margin-bottom: 12px; }
-  .floor-btn {
+  /* 階フィルタ / ビュー切替 */
+  .floor-bar, .view-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+  .floor-btn, .view-btn {
     flex: 1;
     background: none;
     border: 1px solid var(--primary);
     color: var(--primary);
   }
-  .floor-btn.active {
+  .floor-btn.active, .view-btn.active {
     background: var(--primary);
     color: white;
   }
+  .archive-badge {
+    display: inline-block;
+    background: #e5e5e5;
+    color: #666;
+    border-radius: 10px;
+    padding: 1px 8px;
+    font-size: 0.72rem;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  .manage-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid #eee;
+    font-size: 0.85rem;
+  }
+  .manage-row .mr-main { flex: 1; min-width: 0; }
+  .manage-row .mr-sub { color: var(--text-muted); font-size: 0.78rem; }
+  .group-card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .group-card .gc-code { font-weight: bold; color: var(--primary); }
+  .group-card .gc-meta { margin-left: auto; text-align: right; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
 
   /* バックアップ注意バナー */
   .backup-notice {
@@ -337,6 +371,14 @@
     <button class="btn btn-sm floor-btn" data-floor="" onclick="setFloorFilter('')">すべて</button>
     <button class="btn btn-sm floor-btn" data-floor="2階" onclick="setFloorFilter('2階')">2階</button>
     <button class="btn btn-sm floor-btn" data-floor="3階" onclick="setFloorFilter('3階')">3階</button>
+  </div>
+  <div class="view-bar">
+    <button class="btn btn-sm view-btn" id="viewRecords" onclick="setListView('records')">📋 記録別</button>
+    <button class="btn btn-sm view-btn" id="viewByCode" onclick="setListView('byCode')">👤 利用者別</button>
+  </div>
+  <div class="view-bar">
+    <button class="btn btn-sm view-btn" id="archiveOff" onclick="setShowArchived(false)">現役のみ</button>
+    <button class="btn btn-sm view-btn" id="archiveOn" onclick="setShowArchived(true)">アーカイブも表示</button>
   </div>
   <div class="search-box">
     <input type="text" id="searchInput" placeholder="キーワードで検索…" oninput="renderList()">
@@ -460,20 +502,32 @@
 <!-- データ管理タブ -->
 <div class="tab-panel" id="tab-manage" style="display:none">
   <div class="manage-card">
-    <h3>JSONエクスポート</h3>
-    <p>すべての会議メモをJSONファイルとして保存します。バックアップや別端末への引き継ぎに使用できます。</p>
-    <button class="btn btn-primary" onclick="exportJson()">JSONをダウンロード</button>
+    <h3>両アプリまとめてバックアップ</h3>
+    <p>ケアプラン記録と担当者会議メモの両方を1つのJSONファイルにまとめて保存します。週1回のバックアップにおすすめです。</p>
+    <button class="btn btn-primary" onclick="exportAll()">まとめてダウンロード</button>
+    <input type="file" id="importAllFile" accept=".json" style="display:none" onchange="importAll(event)">
+    <button class="btn btn-outline btn-block" onclick="document.getElementById('importAllFile').click()">まとめて読み込む</button>
     <p class="backup-status" id="backupStatus"></p>
   </div>
   <div class="manage-card">
-    <h3>JSONインポート</h3>
-    <p>以前にエクスポートしたJSONファイルを読み込みます。既存のデータと統合されます。</p>
+    <h3>ゴミ箱 <span id="trashCount">0件</span></h3>
+    <p>削除した会議メモは30日間ここに保管され、復元できます。30日を過ぎると自動で完全に削除されます。</p>
+    <div id="trashArea"></div>
+  </div>
+  <div class="manage-card">
+    <h3>このアプリだけエクスポート</h3>
+    <p>担当者会議メモのみをJSONファイルとして保存します。</p>
+    <button class="btn btn-outline" onclick="exportJson()">JSONをダウンロード</button>
+  </div>
+  <div class="manage-card">
+    <h3>このアプリだけインポート</h3>
+    <p>担当者会議メモのJSONファイルを読み込みます。既存のデータと統合されます。</p>
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJson(event)">
     <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">JSONを読み込む</button>
   </div>
   <div class="manage-card">
     <h3>全データ削除</h3>
-    <p>すべての会議メモを削除します。この操作は取り消せません。</p>
+    <p>すべての会議メモ（ゴミ箱・アーカイブ含む）を削除します。この操作は取り消せません。</p>
     <button class="btn btn-danger" onclick="clearAll()">すべて削除</button>
   </div>
 </div>
@@ -506,6 +560,7 @@
     <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
       <button class="btn btn-primary btn-sm" id="modalDuplicateBtn">📄 これをもとに新規作成</button>
       <button class="btn btn-outline btn-sm" id="modalEditBtn">✏️ 編集</button>
+      <button class="btn btn-outline btn-sm" id="modalArchiveBtn">📦 アーカイブ</button>
       <button class="btn btn-danger btn-sm" id="modalDeleteBtn">削除</button>
       <button class="btn btn-outline btn-sm" onclick="closeModal()">閉じる</button>
     </div>
@@ -562,9 +617,17 @@ setInterval(checkForUpdate, 60*60*1000);
 const STORAGE_KEY = 'meeting_report_v1';
 const EXPORT_KEY = 'meeting_report_last_export';
 const FLOOR_FILTER_KEY = 'meeting_report_floor_filter';
+const LIST_VIEW_KEY = 'meeting_report_list_view';
+const SHOW_ARCHIVED_KEY = 'meeting_report_show_archived';
 const BACKUP_WARN_DAYS = 14;
+const TRASH_DAYS = 30;
+// 一括バックアップ用（両アプリのlocalStorageキー）
+const CP_KEY = 'careplan_notes_v1';
+const MR_KEY = 'meeting_report_v1';
 let editingId = null;
 let floorFilter = localStorage.getItem(FLOOR_FILTER_KEY) || '';
+let listView = localStorage.getItem(LIST_VIEW_KEY) || 'records';
+let showArchived = localStorage.getItem(SHOW_ARCHIVED_KEY) === '1';
 
 function setFloorFilter(v) {
   floorFilter = v;
@@ -573,8 +636,30 @@ function setFloorFilter(v) {
   renderList();
 }
 
+function setListView(v) {
+  listView = v;
+  localStorage.setItem(LIST_VIEW_KEY, v);
+  renderViewBar();
+  renderList();
+}
+
+function setShowArchived(b) {
+  showArchived = b;
+  localStorage.setItem(SHOW_ARCHIVED_KEY, b ? '1' : '');
+  renderViewBar();
+  renderList();
+}
+
 function filterByCode(code) {
   document.getElementById('searchInput').value = code;
+  renderList();
+}
+
+function jumpToCode(code) {
+  listView = 'records';
+  localStorage.setItem(LIST_VIEW_KEY, 'records');
+  document.getElementById('searchInput').value = code;
+  renderViewBar();
   renderList();
 }
 
@@ -582,6 +667,26 @@ function renderFloorBar() {
   document.querySelectorAll('.floor-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.floor === floorFilter);
   });
+}
+
+function renderViewBar() {
+  document.getElementById('viewRecords').classList.toggle('active', listView === 'records');
+  document.getElementById('viewByCode').classList.toggle('active', listView === 'byCode');
+  document.getElementById('archiveOff').classList.toggle('active', !showArchived);
+  document.getElementById('archiveOn').classList.toggle('active', showArchived);
+}
+
+// 現役（非削除）レコード
+function activeList() { return load().filter(d => !d.deletedAt); }
+// ゴミ箱（削除済み）レコード
+function trashList() { return load().filter(d => d.deletedAt); }
+
+// 30日を過ぎたゴミ箱を物理削除
+function purgeOldTrash() {
+  const cutoff = Date.now() - TRASH_DAYS * 86400000;
+  const data = load();
+  const kept = data.filter(d => !d.deletedAt || new Date(d.deletedAt).getTime() >= cutoff);
+  if (kept.length !== data.length) save(kept);
 }
 
 // 観察メモのカテゴリ定義
@@ -609,10 +714,11 @@ function load() {
 
 function save(data) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  updateCount(data.length);
+  updateCount();
 }
 
-function updateCount(n) {
+function updateCount() {
+  const n = load().filter(d => !d.deletedAt && !d.archived).length;
   document.getElementById('totalCount').textContent = n + '件';
 }
 
@@ -629,10 +735,15 @@ function switchTab(name) {
   document.getElementById('btn-manage').className = 'tab-btn' + (name === 'manage' ? ' active' : '');
   renderBackupNotice();
   if (name === 'list') renderList();
+  if (name === 'manage') renderTrash();
 }
 
 function renderList() {
-  let data = load();
+  renderViewBar();
+  if (listView === 'byCode') { renderByCode(); return; }
+
+  let data = activeList();
+  if (!showArchived) data = data.filter(d => !d.archived);
   if (floorFilter) data = data.filter(d => d.floor === floorFilter);
   const kw = document.getElementById('searchInput').value.trim().toLowerCase();
   const filtered = kw
@@ -658,12 +769,17 @@ function renderList() {
     const tags = (d.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
     const meta = metaText(d);
     const preview = d.report || memosCombined(d) || d.direction || '';
+    const badge = d.archived ? '<div><span class="archive-badge">📦 アーカイブ</span></div>' : '';
     const codeChip = d.code
       ? `<div style="margin-bottom:4px;"><span class="tag" style="cursor:pointer" data-code="${escHtml(d.code).replace(/"/g, '&quot;')}" onclick="filterByCode(this.dataset.code)">👤 ${escHtml(d.code)}</span></div>`
       : '';
+    const archiveBtn = d.archived
+      ? `<button class="btn btn-outline btn-sm" onclick="unarchiveItem('${d.id}')">現役に戻す</button>`
+      : `<button class="btn btn-outline btn-sm" onclick="archiveItem('${d.id}')">📦 終了</button>`;
     return `
       <div class="card">
         <div class="card-date">${formatDate(d.date)}</div>
+        ${badge}
         ${codeChip}
         ${meta ? '<div class="card-meta">' + escHtml(meta) + '</div>' : ''}
         <div class="card-situation">${escHtml(preview)}</div>
@@ -671,8 +787,42 @@ function renderList() {
         <div class="card-actions">
           <button class="btn btn-primary btn-sm" onclick="openDetail('${d.id}')">詳細</button>
           <button class="btn btn-outline btn-sm" onclick="duplicateToNew('${d.id}')">📄 引き継ぎ</button>
+          ${archiveBtn}
           <button class="btn btn-danger btn-sm" onclick="deleteItem('${d.id}')">削除</button>
         </div>
+      </div>`;
+  }).join('');
+}
+
+function renderByCode() {
+  let data = activeList();
+  if (!showArchived) data = data.filter(d => !d.archived);
+  if (floorFilter) data = data.filter(d => d.floor === floorFilter);
+
+  const area = document.getElementById('listArea');
+  if (data.length === 0) {
+    area.innerHTML = '<div class="empty-state">記録がありません</div>';
+    return;
+  }
+
+  const groups = {};
+  data.forEach(d => {
+    const key = d.code || '（コードなし）';
+    if (!groups[key]) groups[key] = { count: 0, latest: '' };
+    groups[key].count++;
+    if (d.date > groups[key].latest) groups[key].latest = d.date;
+  });
+  const keys = Object.keys(groups).sort((a, b) => groups[b].latest.localeCompare(groups[a].latest));
+  area.innerHTML = keys.map(k => {
+    const g = groups[k];
+    const hasCode = k !== '（コードなし）';
+    const attr = hasCode
+      ? `data-code="${escHtml(k).replace(/"/g, '&quot;')}" onclick="jumpToCode(this.dataset.code)"`
+      : '';
+    return `
+      <div class="group-card" ${attr}>
+        <span class="gc-code">👤 ${escHtml(k)}</span>
+        <span class="gc-meta">${g.count}件<br>最新 ${formatDate(g.latest)}</span>
       </div>`;
   }).join('');
 }
@@ -965,8 +1115,15 @@ function openDetail(id) {
   document.getElementById('modalDuplicateBtn').onclick = () => duplicateToNew(id);
   document.getElementById('modalEditBtn').onclick = () => startEdit(id);
 
+  const archiveBtn = document.getElementById('modalArchiveBtn');
+  archiveBtn.textContent = d.archived ? '📦 現役に戻す' : '📦 アーカイブ';
+  archiveBtn.onclick = () => {
+    if (d.archived) { unarchiveItem(id); } else { archiveItem(id); }
+    closeModal();
+  };
+
   document.getElementById('modalDeleteBtn').onclick = () => {
-    if (confirm('この会議メモを削除しますか？')) {
+    if (confirm('この会議メモをゴミ箱に移動しますか？（30日後に自動で完全に削除されます）')) {
       deleteItem(id);
       closeModal();
     }
@@ -980,10 +1137,110 @@ function closeModal() {
 }
 
 function deleteItem(id) {
-  if (!confirm('削除しますか？')) return;
-  const data = load().filter(d => d.id !== id);
-  save(data);
+  if (!confirm('ゴミ箱に移動しますか？（30日後に自動で完全に削除されます）')) return;
+  const data = load();
+  const d = data.find(x => x.id === id);
+  if (d) { d.deletedAt = new Date().toISOString().slice(0, 10); save(data); }
   renderList();
+}
+
+function archiveItem(id) {
+  if (!confirm('この記録をアーカイブしますか？（一覧から隠れますが削除はされません）')) return;
+  const data = load();
+  const d = data.find(x => x.id === id);
+  if (d) { d.archived = true; save(data); }
+  renderList();
+}
+
+function unarchiveItem(id) {
+  const data = load();
+  const d = data.find(x => x.id === id);
+  if (d) { delete d.archived; save(data); }
+  renderList();
+}
+
+// ===== ゴミ箱 =====
+function renderTrash() {
+  const trash = trashList().sort((a, b) => (b.deletedAt || '').localeCompare(a.deletedAt || ''));
+  document.getElementById('trashCount').textContent = trash.length + '件';
+  const area = document.getElementById('trashArea');
+  if (trash.length === 0) {
+    area.innerHTML = '<p class="mr-sub">ゴミ箱は空です</p>';
+    return;
+  }
+  area.innerHTML = trash.map(d => {
+    const label = [d.code ? '👤' + d.code : '', formatDate(d.date)].filter(Boolean).join(' ');
+    return `
+      <div class="manage-row">
+        <div class="mr-main">${escHtml(label)}<div class="mr-sub">削除日 ${formatDate(d.deletedAt)}</div></div>
+        <button class="btn btn-outline btn-sm" onclick="restoreItem('${d.id}')">復元</button>
+        <button class="btn btn-danger btn-sm" onclick="purgeItem('${d.id}')">完全削除</button>
+      </div>`;
+  }).join('');
+}
+
+function restoreItem(id) {
+  const data = load();
+  const d = data.find(x => x.id === id);
+  if (d) { delete d.deletedAt; save(data); }
+  renderTrash();
+  renderList();
+}
+
+function purgeItem(id) {
+  if (!confirm('完全に削除しますか？元に戻せません。')) return;
+  save(load().filter(d => d.id !== id));
+  renderTrash();
+}
+
+// ===== 両アプリまとめてバックアップ =====
+function exportAll() {
+  const payload = {
+    format: 'caremanagement-backup',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    careplan_notes_v1: JSON.parse(localStorage.getItem(CP_KEY) || '[]'),
+    meeting_report_v1: JSON.parse(localStorage.getItem(MR_KEY) || '[]')
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'caremanagement-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  const today = new Date().toISOString().slice(0, 10);
+  localStorage.setItem('careplan_notes_last_export', today);
+  localStorage.setItem('meeting_report_last_export', today);
+  renderBackupNotice();
+  alert('両アプリのデータをバックアップしました。');
+}
+
+function importAll(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const obj = JSON.parse(e.target.result);
+      if (obj.format !== 'caremanagement-backup') throw new Error();
+      const msg = [];
+      [[CP_KEY, 'careplan_notes_v1', 'ケアプラン記録'], [MR_KEY, 'meeting_report_v1', '会議メモ']].forEach(([key, field, name]) => {
+        const incoming = Array.isArray(obj[field]) ? obj[field] : [];
+        const existing = JSON.parse(localStorage.getItem(key) || '[]');
+        const ids = new Set(existing.map(x => x.id));
+        const merged = [...existing, ...incoming.filter(x => !ids.has(x.id))];
+        localStorage.setItem(key, JSON.stringify(merged));
+        msg.push(name + '：' + incoming.filter(x => !ids.has(x.id)).length + '件を追加');
+      });
+      alert('復元しました（重複除外）。\n' + msg.join('\n'));
+      location.reload();
+    } catch {
+      alert('バックアップファイルの形式が正しくありません。');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
 }
 
 function exportJson() {
@@ -1056,9 +1313,11 @@ document.getElementById('fBulk').addEventListener('input', function() {
 });
 
 // 初期化
-updateCount(load().length);
+purgeOldTrash();
+updateCount();
 renderBackupNotice();
 renderFloorBar();
+renderViewBar();
 renderList();
 
 // モーダル外タップで閉じる
