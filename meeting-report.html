@@ -320,6 +320,10 @@
     <span>✏️ 編集中：保存すると元の内容が上書きされます</span>
     <button class="btn btn-outline btn-sm" onclick="cancelEdit()">キャンセル</button>
   </div>
+  <div class="edit-banner" id="copyBanner" style="display:none">
+    <span>📄 前回の内容を読み込みました。変わったカテゴリだけ書き直して、依頼文コピー→貼り付け→保存してください（新しい記録として保存されます）</span>
+    <button class="btn btn-outline btn-sm" onclick="cancelEdit()">クリア</button>
+  </div>
 
   <div class="claude-hint">
     <p>💡 ①観察メモを入力（氏名は書かない）→ ②「依頼文をコピー」してClaudeに貼り付け → ③回答をまるごとコピーして「一括貼り付け」欄へ → 自動で振り分けて保存</p>
@@ -454,8 +458,9 @@
       <h3>備考</h3>
       <div class="modal-text" id="modalMemo"></div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:16px;">
-      <button class="btn btn-primary btn-sm" id="modalEditBtn">✏️ 編集</button>
+    <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;">
+      <button class="btn btn-primary btn-sm" id="modalDuplicateBtn">📄 これをもとに新規作成</button>
+      <button class="btn btn-outline btn-sm" id="modalEditBtn">✏️ 編集</button>
       <button class="btn btn-danger btn-sm" id="modalDeleteBtn">削除</button>
       <button class="btn btn-outline btn-sm" onclick="closeModal()">閉じる</button>
     </div>
@@ -595,6 +600,7 @@ function renderList() {
         ${tags ? '<div class="card-tags">' + tags + '</div>' : ''}
         <div class="card-actions">
           <button class="btn btn-primary btn-sm" onclick="openDetail('${d.id}')">詳細</button>
+          <button class="btn btn-outline btn-sm" onclick="duplicateToNew('${d.id}')">📄 引き継ぎ</button>
           <button class="btn btn-danger btn-sm" onclick="deleteItem('${d.id}')">削除</button>
         </div>
       </div>`;
@@ -626,6 +632,8 @@ function clearForm() {
   document.getElementById('fSex').value = '';
   document.getElementById('fCareLevel').value = '';
   document.getElementById('bulkStatus').textContent = '';
+  document.getElementById('editBanner').style.display = 'none';
+  document.getElementById('copyBanner').style.display = 'none';
 }
 
 function saveNew() {
@@ -657,11 +665,8 @@ function saveNew() {
   switchTab('list');
 }
 
-// ===== 編集 =====
-function startEdit(id) {
-  const d = load().find(x => x.id === id);
-  if (!d) return;
-  editingId = id;
+// ===== フォームへの読み込み（編集・引き継ぎ共通） =====
+function loadIntoForm(d) {
   document.getElementById('fAge').value = d.age || '';
   document.getElementById('fSex').value = d.sex || '';
   document.getElementById('fCareLevel').value = d.careLevel || '';
@@ -670,8 +675,31 @@ function startEdit(id) {
   document.getElementById('fDirection').value = d.direction || '';
   document.getElementById('fTags').value = (d.tags || []).join(', ');
   document.getElementById('fMemo').value = d.memo || '';
+}
+
+// ===== 編集（元の記録を上書き） =====
+function startEdit(id) {
+  const d = load().find(x => x.id === id);
+  if (!d) return;
+  editingId = id;
+  loadIntoForm(d);
+  document.getElementById('copyBanner').style.display = 'none';
   document.getElementById('editBanner').style.display = 'flex';
   document.getElementById('saveBtn').textContent = '更新する';
+  closeModal();
+  switchTab('new');
+  window.scrollTo(0, 0);
+}
+
+// ===== 引き継ぎ（前回の内容をもとに新しい記録を作成） =====
+function duplicateToNew(id) {
+  const d = load().find(x => x.id === id);
+  if (!d) return;
+  editingId = null;
+  loadIntoForm(d);
+  document.getElementById('editBanner').style.display = 'none';
+  document.getElementById('copyBanner').style.display = 'flex';
+  document.getElementById('saveBtn').textContent = '保存する';
   closeModal();
   switchTab('new');
   window.scrollTo(0, 0);
@@ -681,6 +709,7 @@ function cancelEdit() {
   editingId = null;
   clearForm();
   document.getElementById('editBanner').style.display = 'none';
+  document.getElementById('copyBanner').style.display = 'none';
   document.getElementById('saveBtn').textContent = '保存する';
 }
 
@@ -857,6 +886,7 @@ function openDetail(id) {
     memoSection.style.display = 'none';
   }
 
+  document.getElementById('modalDuplicateBtn').onclick = () => duplicateToNew(id);
   document.getElementById('modalEditBtn').onclick = () => startEdit(id);
 
   document.getElementById('modalDeleteBtn').onclick = () => {
