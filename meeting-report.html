@@ -261,6 +261,19 @@
     margin-bottom: 8px;
   }
 
+  /* 階フィルタ */
+  .floor-bar { display: flex; gap: 8px; margin-bottom: 12px; }
+  .floor-btn {
+    flex: 1;
+    background: none;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+  }
+  .floor-btn.active {
+    background: var(--primary);
+    color: white;
+  }
+
   /* バックアップ注意バナー */
   .backup-notice {
     background: #fdf3e3;
@@ -308,6 +321,11 @@
 <!-- 一覧タブ -->
 <div class="tab-panel" id="tab-list" style="display:block">
   <div class="backup-notice" id="backupNotice" style="display:none" onclick="switchTab('manage')"></div>
+  <div class="floor-bar">
+    <button class="btn btn-sm floor-btn" data-floor="" onclick="setFloorFilter('')">すべて</button>
+    <button class="btn btn-sm floor-btn" data-floor="2階" onclick="setFloorFilter('2階')">2階</button>
+    <button class="btn btn-sm floor-btn" data-floor="3階" onclick="setFloorFilter('3階')">3階</button>
+  </div>
   <div class="search-box">
     <input type="text" id="searchInput" placeholder="キーワードで検索…" oninput="renderList()">
   </div>
@@ -331,9 +349,19 @@
 
   <div class="form-row">
     <div class="form-group">
+      <label>階</label>
+      <select id="fFloor">
+        <option value="">未選択</option>
+        <option value="2階">2階</option>
+        <option value="3階">3階</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label>年齢</label>
       <input type="text" id="fAge" placeholder="例: 90歳">
     </div>
+  </div>
+  <div class="form-row">
     <div class="form-group">
       <label>性別</label>
       <select id="fSex">
@@ -516,8 +544,23 @@ setInterval(checkForUpdate, 60*60*1000);
 
 const STORAGE_KEY = 'meeting_report_v1';
 const EXPORT_KEY = 'meeting_report_last_export';
+const FLOOR_FILTER_KEY = 'meeting_report_floor_filter';
 const BACKUP_WARN_DAYS = 14;
 let editingId = null;
+let floorFilter = localStorage.getItem(FLOOR_FILTER_KEY) || '';
+
+function setFloorFilter(v) {
+  floorFilter = v;
+  localStorage.setItem(FLOOR_FILTER_KEY, v);
+  renderFloorBar();
+  renderList();
+}
+
+function renderFloorBar() {
+  document.querySelectorAll('.floor-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.floor === floorFilter);
+  });
+}
 
 // 観察メモのカテゴリ定義
 const MEMO_CATS = [
@@ -567,11 +610,12 @@ function switchTab(name) {
 }
 
 function renderList() {
-  const data = load();
+  let data = load();
+  if (floorFilter) data = data.filter(d => d.floor === floorFilter);
   const kw = document.getElementById('searchInput').value.trim().toLowerCase();
   const filtered = kw
     ? data.filter(d => {
-        const hay = [d.age, d.sex, d.careLevel, d.report, d.direction,
+        const hay = [d.floor, d.age, d.sex, d.careLevel, d.report, d.direction,
             (d.tags || []).join(' '), d.memo]
           .concat(MEMO_CATS.map(c => d[c.field]))
           .filter(Boolean).join(' ').toLowerCase();
@@ -608,11 +652,12 @@ function renderList() {
 }
 
 function metaText(d) {
-  return [d.age, d.sex, d.careLevel].filter(Boolean).join('・');
+  return [d.floor, d.age, d.sex, d.careLevel].filter(Boolean).join('・');
 }
 
 function readForm() {
   const f = {
+    floor: document.getElementById('fFloor').value,
     age: document.getElementById('fAge').value.trim(),
     sex: document.getElementById('fSex').value,
     careLevel: document.getElementById('fCareLevel').value,
@@ -631,6 +676,7 @@ function clearForm() {
     .forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('fSex').value = '';
   document.getElementById('fCareLevel').value = '';
+  document.getElementById('fFloor').value = '';
   document.getElementById('bulkStatus').textContent = '';
   document.getElementById('editBanner').style.display = 'none';
   document.getElementById('copyBanner').style.display = 'none';
@@ -667,6 +713,7 @@ function saveNew() {
 
 // ===== フォームへの読み込み（編集・引き継ぎ共通） =====
 function loadIntoForm(d) {
+  document.getElementById('fFloor').value = d.floor || '';
   document.getElementById('fAge').value = d.age || '';
   document.getElementById('fSex').value = d.sex || '';
   document.getElementById('fCareLevel').value = d.careLevel || '';
@@ -982,6 +1029,7 @@ document.getElementById('fBulk').addEventListener('input', function() {
 // 初期化
 updateCount(load().length);
 renderBackupNotice();
+renderFloorBar();
 renderList();
 
 // モーダル外タップで閉じる
