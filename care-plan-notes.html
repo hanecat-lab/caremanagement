@@ -39,8 +39,21 @@
     justify-content: space-between;
     box-shadow: 0 2px 6px rgba(0,0,0,0.2);
   }
-  header h1 { font-size: 1.1rem; font-weight: bold; }
+  header h1 { font-size: 1.1rem; font-weight: bold; flex: 1; }
   header .count { font-size: 0.85rem; opacity: 0.85; }
+  .header-link {
+    display: inline-block;
+    color: white;
+    text-decoration: none;
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 14px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    margin-right: 10px;
+    white-space: nowrap;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
   .tab-bar {
     display: flex;
     background: var(--primary-dark);
@@ -309,6 +322,7 @@
 
 <header>
   <h1>ケアプラン記録</h1>
+  <a class="header-link" href="meeting-report.html">会議メモ →</a>
   <span class="count" id="totalCount">0件</span>
 </header>
 
