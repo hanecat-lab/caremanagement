@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>担当者会議メモ</title>
+<style>
+  :root {
+    --primary: #3d6b8a;
+    --primary-dark: #2d5270;
+    --accent: #c4956a;
+    --bg: #f0ede8;
+    --card-bg: #ffffff;
+    --text: #333333;
+    --text-muted: #777777;
+    --border: #ddd;
+    --danger: #c0392b;
+    --success: #27ae60;
+    --tag-bg: #e8f0f7;
+    --tag-text: #3d6b8a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Noto Sans JP', 'Hiragino Sans', 'Meiryo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  header {
+    background: var(--primary);
+    color: white;
+    padding: 14px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  }
+  header h1 { font-size: 1.1rem; font-weight: bold; }
+  header .count { font-size: 0.85rem; opacity: 0.85; }
+  .tab-bar {
+    display: flex;
+    background: var(--primary-dark);
+    border-bottom: 2px solid var(--accent);
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 12px 6px;
+    border: none;
+    background: none;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .tab-btn.active {
+    color: white;
+    background: rgba(255,255,255,0.1);
+    border-bottom: 2px solid var(--accent);
+  }
+  .tab-panel { padding: 16px; }
+
+  /* フォーム */
+  .form-group { margin-bottom: 14px; }
+  label { display: block; font-size: 0.85rem; font-weight: bold; color: var(--primary); margin-bottom: 4px; }
+  textarea, input[type="text"], select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 16px;
+    font-family: inherit;
+    background: white;
+    color: var(--text);
+    -webkit-appearance: none;
+  }
+  select {
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+  }
+  textarea:focus, input:focus, select:focus { outline: none; border-color: var(--primary); }
+  .form-row { display: flex; gap: 10px; }
+  .form-row .form-group { flex: 1; }
+  textarea { resize: vertical; }
+  .textarea-sm { height: 80px; }
+  .textarea-lg { height: 140px; }
+
+  .hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 3px;
+  }
+  .btn {
+    display: inline-block;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    text-align: center;
+    min-height: 44px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .btn-primary { background: var(--primary); color: white; }
+  .btn-primary:active { background: var(--primary-dark); }
+  .btn-success { background: var(--success); color: white; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-outline {
+    background: none;
+    border: 1px solid var(--primary);
+    color: var(--primary);
+  }
+  .btn-sm { padding: 8px 14px; font-size: 0.85rem; min-height: 40px; }
+  .btn-block { display: block; width: 100%; margin-top: 6px; }
+
+  /* 検索 */
+  .search-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .search-box input { flex: 1; }
+
+  /* カード */
+  .card {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .card-date { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px; }
+  .card-situation {
+    font-size: 0.9rem;
+    color: var(--text);
+    margin-bottom: 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  .tag {
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    border-radius: 12px;
+    padding: 2px 10px;
+    font-size: 0.78rem;
+    font-weight: bold;
+  }
+  .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 20px;
+    font-size: 0.9rem;
+  }
+
+  /* モーダル */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px;
+  }
+  .modal-overlay.open { display: flex; align-items: flex-start; justify-content: center; }
+  .modal {
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    width: 100%;
+    max-width: 600px;
+    margin: auto;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .modal-title { font-size: 1rem; font-weight: bold; color: var(--primary); }
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    line-height: 1;
+  }
+  .modal-section { margin-bottom: 14px; }
+  .modal-section h3 {
+    font-size: 0.85rem;
+    color: var(--primary);
+    font-weight: bold;
+    margin-bottom: 6px;
+    border-left: 3px solid var(--primary);
+    padding-left: 8px;
+  }
+  .modal-text {
+    background: #f8f8f8;
+    border-radius: 6px;
+    padding: 12px;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    line-height: 1.7;
+    max-height: 200px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* データ管理 */
+  .manage-card {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .manage-card h3 {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 10px;
+  }
+  .manage-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px; }
+
+  /* Claudeプロンプトヒント */
+  .claude-hint {
+    background: #eef4fa;
+    border: 1px dashed var(--primary);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+  .claude-hint p { font-size: 0.82rem; color: var(--primary-dark); margin-bottom: 8px; }
+  .claude-hint .template {
+    background: white;
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 0.8rem;
+    color: #555;
+    white-space: pre-wrap;
+    margin-bottom: 8px;
+  }
+
+  /* バックアップ注意バナー */
+  .backup-notice {
+    background: #fdf3e3;
+    border: 1px solid #e0b96a;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    color: #8a6420;
+    cursor: pointer;
+  }
+
+  /* 編集中バナー */
+  .edit-banner {
+    background: #e8f0f7;
+    border: 1px solid var(--primary);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+    font-size: 0.85rem;
+    color: var(--primary-dark);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-meta { font-size: 0.82rem; color: var(--primary); font-weight: bold; margin-bottom: 4px; }
+  .backup-status { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>担当者会議メモ</h1>
+  <span class="count" id="totalCount">0件</span>
+</header>
+
+<div class="tab-bar">
+  <button class="tab-btn active" id="btn-list">一覧・検索</button>
+  <button class="tab-btn" id="btn-new">新規作成</button>
+  <button class="tab-btn" id="btn-manage">データ管理</button>
+</div>
+
+<!-- 一覧タブ -->
+<div class="tab-panel" id="tab-list" style="display:block">
+  <div class="backup-notice" id="backupNotice" style="display:none" onclick="switchTab('manage')"></div>
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="キーワードで検索…" oninput="renderList()">
+  </div>
+  <div id="listArea"></div>
+</div>
+
+<!-- 新規登録タブ -->
+<div class="tab-panel" id="tab-new" style="display:none">
+  <div class="edit-banner" id="editBanner" style="display:none">
+    <span>✏️ 編集中：保存すると元の内容が上書きされます</span>
+    <button class="btn btn-outline btn-sm" onclick="cancelEdit()">キャンセル</button>
+  </div>
+
+  <div class="claude-hint">
+    <p>💡 ①観察メモを入力（氏名は書かない）→ ②「依頼文をコピー」してClaudeに貼り付け → ③回答をまるごとコピーして「一括貼り付け」欄へ → 自動で振り分けて保存</p>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label>年齢</label>
+      <input type="text" id="fAge" placeholder="例: 90歳">
+    </div>
+    <div class="form-group">
+      <label>性別</label>
+      <select id="fSex">
+        <option value="">未選択</option>
+        <option value="女性">女性</option>
+        <option value="男性">男性</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>要介護度</label>
+      <select id="fCareLevel">
+        <option value="">未選択</option>
+        <option value="要支援1">要支援1</option>
+        <option value="要支援2">要支援2</option>
+        <option value="要介護1">要介護1</option>
+        <option value="要介護2">要介護2</option>
+        <option value="要介護3">要介護3</option>
+        <option value="要介護4">要介護4</option>
+        <option value="要介護5">要介護5</option>
+        <option value="申請中">申請中</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-group">
+    <label>食事</label>
+    <textarea id="fMeal" class="textarea-sm" placeholder="例: 全粥・きざみ食を全量摂取。むせ込みが時々ある"></textarea>
+  </div>
+  <div class="form-group">
+    <label>排泄</label>
+    <textarea id="fExcretion" class="textarea-sm" placeholder="例: 日中はトイレ誘導、夜間はオムツ対応"></textarea>
+  </div>
+  <div class="form-group">
+    <label>入浴</label>
+    <textarea id="fBath" class="textarea-sm" placeholder="例: 週2回の一般浴。洗身は一部介助"></textarea>
+  </div>
+  <div class="form-group">
+    <label>移動・移乗</label>
+    <textarea id="fTransfer" class="textarea-sm" placeholder="例: 車いす移乗は2人介助。立位保持が短くなってきた"></textarea>
+  </div>
+  <div class="form-group">
+    <label>睡眠</label>
+    <textarea id="fSleep" class="textarea-sm" placeholder="例: 21時就寝。夜間に2〜3回目が覚める"></textarea>
+  </div>
+  <div class="form-group">
+    <label>認知・コミュニケーション</label>
+    <textarea id="fCognition" class="textarea-sm" placeholder="例: 短い言葉での声かけは伝わる。表情での反応あり"></textarea>
+  </div>
+  <div class="form-group">
+    <label>最近の変化・気になること</label>
+    <textarea id="fChanges" class="textarea-sm" placeholder="例: 食事量が減ってきた。左肩の痛みの訴えが増えた"></textarea>
+  </div>
+  <button class="btn btn-outline btn-block" onclick="copyPrompt()">📋 Claudeへの依頼文をコピー</button>
+  <div style="height:14px"></div>
+  <div class="form-group">
+    <label>Claudeの回答を一括貼り付け</label>
+    <textarea id="fBulk" class="textarea-sm" placeholder="Claudeの回答全文をここに貼り付けると、下の「現状報告」「介護の方向性」に自動で振り分けます"></textarea>
+    <p class="hint" id="bulkStatus"></p>
+  </div>
+  <div class="form-group">
+    <label>現状報告</label>
+    <textarea id="fReport" class="textarea-lg" placeholder="Claudeの回答から自動入力されます（手直しできます）"></textarea>
+  </div>
+  <div class="form-group">
+    <label>介護の方向性</label>
+    <textarea id="fDirection" class="textarea-lg" placeholder="Claudeの回答から自動入力されます（手直しできます）"></textarea>
+  </div>
+  <div class="form-group">
+    <label>タグ</label>
+    <input type="text" id="fTags" placeholder="例: 定期会議, 食事量低下（カンマ区切り）">
+    <p class="hint">カンマ区切りで複数入力できます</p>
+  </div>
+  <div class="form-group">
+    <label>備考</label>
+    <textarea id="fMemo" class="textarea-sm" placeholder="担当者メモなど（任意）"></textarea>
+  </div>
+  <button class="btn btn-primary btn-block" id="saveBtn" onclick="saveNew()">保存する</button>
+</div>
+
+<!-- データ管理タブ -->
+<div class="tab-panel" id="tab-manage" style="display:none">
+  <div class="manage-card">
+    <h3>JSONエクスポート</h3>
+    <p>すべての会議メモをJSONファイルとして保存します。バックアップや別端末への引き継ぎに使用できます。</p>
+    <button class="btn btn-primary" onclick="exportJson()">JSONをダウンロード</button>
+    <p class="backup-status" id="backupStatus"></p>
+  </div>
+  <div class="manage-card">
+    <h3>JSONインポート</h3>
+    <p>以前にエクスポートしたJSONファイルを読み込みます。既存のデータと統合されます。</p>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importJson(event)">
+    <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">JSONを読み込む</button>
+  </div>
+  <div class="manage-card">
+    <h3>全データ削除</h3>
+    <p>すべての会議メモを削除します。この操作は取り消せません。</p>
+    <button class="btn btn-danger" onclick="clearAll()">すべて削除</button>
+  </div>
+</div>
+
+<!-- 詳細モーダル -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modalDate"></span>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="card-meta" id="modalMeta" style="margin-bottom:8px;"></div>
+    <div id="modalTags" style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:4px;"></div>
+    <div class="modal-section" id="modalMemosSection">
+      <h3>観察メモ</h3>
+      <div class="modal-text" id="modalMemos"></div>
+    </div>
+    <div class="modal-section" id="modalReportSection">
+      <h3>現状報告</h3>
+      <div class="modal-text" id="modalReport"></div>
+    </div>
+    <div class="modal-section" id="modalDirectionSection">
+      <h3>介護の方向性</h3>
+      <div class="modal-text" id="modalDirection"></div>
+    </div>
+    <div class="modal-section" id="modalMemoSection">
+      <h3>備考</h3>
+      <div class="modal-text" id="modalMemo"></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-primary btn-sm" id="modalEditBtn">✏️ 編集</button>
+      <button class="btn btn-danger btn-sm" id="modalDeleteBtn">削除</button>
+      <button class="btn btn-outline btn-sm" onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'meeting_report_v1';
+const EXPORT_KEY = 'meeting_report_last_export';
+const BACKUP_WARN_DAYS = 14;
+let editingId = null;
+
+// 観察メモのカテゴリ定義
+const MEMO_CATS = [
+  { id: 'fMeal',      field: 'memoMeal',      label: '食事' },
+  { id: 'fExcretion', field: 'memoExcretion', label: '排泄' },
+  { id: 'fBath',      field: 'memoBath',      label: '入浴' },
+  { id: 'fTransfer',  field: 'memoTransfer',  label: '移動・移乗' },
+  { id: 'fSleep',     field: 'memoSleep',     label: '睡眠' },
+  { id: 'fCognition', field: 'memoCognition', label: '認知・コミュニケーション' },
+  { id: 'fChanges',   field: 'memoChanges',   label: '最近の変化・気になること' }
+];
+
+function memosCombined(d) {
+  return MEMO_CATS
+    .filter(c => d[c.field])
+    .map(c => '【' + c.label + '】\n' + d[c.field])
+    .join('\n\n');
+}
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+
+function save(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  updateCount(data.length);
+}
+
+function updateCount(n) {
+  document.getElementById('totalCount').textContent = n + '件';
+}
+
+function genId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function switchTab(name) {
+  document.getElementById('tab-list').style.display   = name === 'list'   ? 'block' : 'none';
+  document.getElementById('tab-new').style.display    = name === 'new'    ? 'block' : 'none';
+  document.getElementById('tab-manage').style.display = name === 'manage' ? 'block' : 'none';
+  document.getElementById('btn-list').className   = 'tab-btn' + (name === 'list'   ? ' active' : '');
+  document.getElementById('btn-new').className    = 'tab-btn' + (name === 'new'    ? ' active' : '');
+  document.getElementById('btn-manage').className = 'tab-btn' + (name === 'manage' ? ' active' : '');
+  renderBackupNotice();
+  if (name === 'list') renderList();
+}
+
+function renderList() {
+  const data = load();
+  const kw = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filtered = kw
+    ? data.filter(d => {
+        const hay = [d.age, d.sex, d.careLevel, d.report, d.direction,
+            (d.tags || []).join(' '), d.memo]
+          .concat(MEMO_CATS.map(c => d[c.field]))
+          .filter(Boolean).join(' ').toLowerCase();
+        return hay.includes(kw);
+      })
+    : data;
+
+  const area = document.getElementById('listArea');
+  if (filtered.length === 0) {
+    area.innerHTML = '<div class="empty-state">' +
+      (kw ? '「' + kw + '」に一致する会議メモはありません' : 'まだ会議メモが登録されていません') +
+      '</div>';
+    return;
+  }
+
+  const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
+  area.innerHTML = sorted.map(d => {
+    const tags = (d.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+    const meta = metaText(d);
+    const preview = d.report || memosCombined(d) || d.direction || '';
+    return `
+      <div class="card">
+        <div class="card-date">${formatDate(d.date)}</div>
+        ${meta ? '<div class="card-meta">' + escHtml(meta) + '</div>' : ''}
+        <div class="card-situation">${escHtml(preview)}</div>
+        ${tags ? '<div class="card-tags">' + tags + '</div>' : ''}
+        <div class="card-actions">
+          <button class="btn btn-primary btn-sm" onclick="openDetail('${d.id}')">詳細</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteItem('${d.id}')">削除</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function metaText(d) {
+  return [d.age, d.sex, d.careLevel].filter(Boolean).join('・');
+}
+
+function readForm() {
+  const f = {
+    age: document.getElementById('fAge').value.trim(),
+    sex: document.getElementById('fSex').value,
+    careLevel: document.getElementById('fCareLevel').value,
+    report: document.getElementById('fReport').value.trim(),
+    direction: document.getElementById('fDirection').value.trim(),
+    tags: document.getElementById('fTags').value.split(',').map(t => t.trim()).filter(Boolean),
+    memo: document.getElementById('fMemo').value.trim()
+  };
+  MEMO_CATS.forEach(c => { f[c.field] = document.getElementById(c.id).value.trim(); });
+  return f;
+}
+
+function clearForm() {
+  ['fAge','fBulk','fReport','fDirection','fTags','fMemo']
+    .concat(MEMO_CATS.map(c => c.id))
+    .forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('fSex').value = '';
+  document.getElementById('fCareLevel').value = '';
+  document.getElementById('bulkStatus').textContent = '';
+}
+
+function saveNew() {
+  const f = readForm();
+  const hasMemo = MEMO_CATS.some(c => f[c.field]);
+  if (!hasMemo && !f.report && !f.direction) {
+    alert('観察メモか、現状報告・介護の方向性のいずれかを入力してください。');
+    return;
+  }
+
+  const data = load();
+  if (editingId) {
+    const d = data.find(x => x.id === editingId);
+    if (d) {
+      Object.assign(d, f);
+      save(data);
+      alert('更新しました！');
+    }
+    cancelEdit();
+  } else {
+    data.unshift(Object.assign({
+      id: genId(),
+      date: new Date().toISOString().slice(0, 10)
+    }, f));
+    save(data);
+    clearForm();
+    alert('保存しました！');
+  }
+  switchTab('list');
+}
+
+// ===== 編集 =====
+function startEdit(id) {
+  const d = load().find(x => x.id === id);
+  if (!d) return;
+  editingId = id;
+  document.getElementById('fAge').value = d.age || '';
+  document.getElementById('fSex').value = d.sex || '';
+  document.getElementById('fCareLevel').value = d.careLevel || '';
+  MEMO_CATS.forEach(c => { document.getElementById(c.id).value = d[c.field] || ''; });
+  document.getElementById('fReport').value = d.report || '';
+  document.getElementById('fDirection').value = d.direction || '';
+  document.getElementById('fTags').value = (d.tags || []).join(', ');
+  document.getElementById('fMemo').value = d.memo || '';
+  document.getElementById('editBanner').style.display = 'flex';
+  document.getElementById('saveBtn').textContent = '更新する';
+  closeModal();
+  switchTab('new');
+  window.scrollTo(0, 0);
+}
+
+function cancelEdit() {
+  editingId = null;
+  clearForm();
+  document.getElementById('editBanner').style.display = 'none';
+  document.getElementById('saveBtn').textContent = '保存する';
+}
+
+// ===== 回答の一括貼り付け → 自動振り分け =====
+const BULK_SPECS = [
+  { key: '現状報告', id: 'fReport' },
+  { key: '介護の方向性', id: 'fDirection' }
+];
+
+function isHeaderLine(line, key) {
+  // 記号・数字・空白を除いた行が「長期目標（6ヶ月）」のような見出しかを判定
+  const plain = line.replace(/[#*_`>【】\[\]（）()■□●○◆◇▶・:：。\s\d０-９.\-]/g, '');
+  if (!plain.startsWith(key)) return false;
+  const rest = plain.slice(key.length);
+  // 見出しの後ろに助詞などの文が続く行（本文）は除外
+  return rest.length <= 10 && !/[ぁ-ん]/.test(rest);
+}
+
+function cleanSection(lines) {
+  const body = lines.filter(l => !/^\s*`{3,}/.test(l));
+  while (body.length && !body[0].trim()) body.shift();
+  while (body.length && !body[body.length - 1].trim()) body.pop();
+  return body.join('\n').trim();
+}
+
+function splitBulk() {
+  const bulk = document.getElementById('fBulk');
+  const status = document.getElementById('bulkStatus');
+  const text = bulk.value;
+  if (!text.trim()) { status.textContent = ''; return; }
+
+  const lines = text.split(/\r?\n/);
+  const headers = [];
+  const seen = new Set();
+  lines.forEach((line, i) => {
+    for (const spec of BULK_SPECS) {
+      if (!seen.has(spec.key) && isHeaderLine(line, spec.key)) {
+        headers.push({ i, spec });
+        seen.add(spec.key);
+        break;
+      }
+    }
+  });
+
+  if (headers.length === 0) {
+    status.textContent = '「現状報告」などの見出しが見つかりませんでした。各欄に直接貼り付けてください。';
+    return;
+  }
+
+  const filled = [];
+  headers.forEach((h, idx) => {
+    const end = idx + 1 < headers.length ? headers[idx + 1].i : lines.length;
+    const content = cleanSection(lines.slice(h.i + 1, end));
+    if (content) {
+      document.getElementById(h.spec.id).value = content;
+      filled.push(h.spec.key);
+    }
+  });
+
+  if (filled.length > 0) {
+    bulk.value = '';
+    status.textContent = '✓ 振り分けました：' + filled.join('・');
+  } else {
+    status.textContent = '見出しは見つかりましたが、内容が読み取れませんでした。各欄に直接貼り付けてください。';
+  }
+}
+
+let bulkTimer = null;
+
+// ===== Claudeへの依頼文コピー =====
+function buildPrompt() {
+  const f = readForm();
+  const lines = [];
+  if (f.age) lines.push('【年齢】' + f.age);
+  if (f.sex) lines.push('【性別】' + f.sex);
+  if (f.careLevel) lines.push('【要介護度】' + f.careLevel);
+  MEMO_CATS.forEach(c => {
+    if (f[c.field]) lines.push('【' + c.label + '】' + f[c.field]);
+  });
+  return 'あなたは介護施設の熟練介護職員です。以下の観察メモをもとに、サービス担当者会議で介護職から報告する「現状報告」と「介護の方向性」の文書を作成してください。' +
+    'メモにない事実は加えず、会議でそのまま読み上げられる丁寧な文章にしてください。' +
+    '回答は「現状報告」「介護の方向性」の2つの見出しを含めて、全体を1つのコードブロックにまとめて出力してください（前置きや締めの文は不要）。個人名は出さないでください。\n\n' +
+    lines.join('\n');
+}
+
+function copyPrompt() {
+  const f = readForm();
+  if (!MEMO_CATS.some(c => f[c.field])) {
+    alert('観察メモをいずれか1つ以上入力してください。');
+    return;
+  }
+  const text = buildPrompt();
+  const done = () => alert('依頼文をコピーしました。Claudeに貼り付けてください。');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
+function fallbackCopy(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  try {
+    document.execCommand('copy');
+    done();
+  } catch {
+    alert('コピーできませんでした。お使いのブラウザが対応していない可能性があります。');
+  }
+  document.body.removeChild(ta);
+}
+
+// ===== バックアップ注意 =====
+function daysSinceExport() {
+  const last = localStorage.getItem(EXPORT_KEY);
+  if (!last) return null;
+  return Math.floor((Date.now() - new Date(last).getTime()) / 86400000);
+}
+
+function renderBackupNotice() {
+  const notice = document.getElementById('backupNotice');
+  const count = load().length;
+  const days = daysSinceExport();
+  if (count > 0 && (days === null || days >= BACKUP_WARN_DAYS)) {
+    notice.textContent = days === null
+      ? '⚠️ まだ一度もバックアップしていません。タップしてJSONエクスポートへ'
+      : '⚠️ 最後のバックアップから' + days + '日経過しています。タップしてJSONエクスポートへ';
+    notice.style.display = 'block';
+  } else {
+    notice.style.display = 'none';
+  }
+
+  const status = document.getElementById('backupStatus');
+  const last = localStorage.getItem(EXPORT_KEY);
+  status.textContent = last
+    ? '最終バックアップ: ' + formatDate(last) + '（' + days + '日前）'
+    : '最終バックアップ: まだ実行されていません';
+}
+
+function openDetail(id) {
+  const data = load();
+  const d = data.find(x => x.id === id);
+  if (!d) return;
+
+  document.getElementById('modalDate').textContent = formatDate(d.date);
+  document.getElementById('modalMeta').textContent = metaText(d);
+  document.getElementById('modalTags').innerHTML =
+    (d.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
+
+  function showSection(sectionId, textId, value) {
+    const section = document.getElementById(sectionId);
+    if (value) {
+      document.getElementById(textId).textContent = value;
+      section.style.display = 'block';
+    } else {
+      section.style.display = 'none';
+    }
+  }
+
+  showSection('modalMemosSection', 'modalMemos', memosCombined(d));
+  showSection('modalReportSection', 'modalReport', d.report);
+  showSection('modalDirectionSection', 'modalDirection', d.direction);
+
+  const memoSection = document.getElementById('modalMemoSection');
+  if (d.memo) {
+    document.getElementById('modalMemo').textContent = d.memo;
+    memoSection.style.display = 'block';
+  } else {
+    memoSection.style.display = 'none';
+  }
+
+  document.getElementById('modalEditBtn').onclick = () => startEdit(id);
+
+  document.getElementById('modalDeleteBtn').onclick = () => {
+    if (confirm('この会議メモを削除しますか？')) {
+      deleteItem(id);
+      closeModal();
+    }
+  };
+
+  document.getElementById('detailModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('detailModal').classList.remove('open');
+}
+
+function deleteItem(id) {
+  if (!confirm('削除しますか？')) return;
+  const data = load().filter(d => d.id !== id);
+  save(data);
+  renderList();
+}
+
+function exportJson() {
+  const data = load();
+  if (data.length === 0) { alert('データがありません。'); return; }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'meeting-report-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  localStorage.setItem(EXPORT_KEY, new Date().toISOString().slice(0, 10));
+  renderBackupNotice();
+}
+
+function importJson(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!Array.isArray(imported)) throw new Error();
+      const existing = load();
+      const existingIds = new Set(existing.map(d => d.id));
+      const merged = [...existing, ...imported.filter(d => !existingIds.has(d.id))];
+      save(merged);
+      renderList();
+      alert(imported.length + '件のデータを読み込みました（重複除外済み）。');
+    } catch {
+      alert('JSONファイルの形式が正しくありません。');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function clearAll() {
+  if (!confirm('すべてのデータを削除します。この操作は取り消せません。よろしいですか？')) return;
+  save([]);
+  renderList();
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// 一括貼り付け欄：入力（貼り付け）があったら自動で振り分け
+document.getElementById('fBulk').addEventListener('input', function() {
+  clearTimeout(bulkTimer);
+  bulkTimer = setTimeout(splitBulk, 300);
+});
+
+// タブボタンのイベント登録（touchend + click 両対応）
+['list', 'new', 'manage'].forEach(function(name) {
+  var btn = document.getElementById('btn-' + name);
+  btn.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    switchTab(name);
+  });
+  btn.addEventListener('click', function(e) {
+    switchTab(name);
+  });
+});
+
+// 初期化
+updateCount(load().length);
+renderBackupNotice();
+renderList();
+
+// モーダル外タップで閉じる
+document.getElementById('detailModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+</script>
+</body>
+</html>
