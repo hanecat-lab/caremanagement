@@ -349,6 +349,10 @@
 
   <div class="form-row">
     <div class="form-group">
+      <label>利用者コード</label>
+      <input type="text" id="fCode" placeholder="例: A2（氏名・イニシャル以外）">
+    </div>
+    <div class="form-group">
       <label>階</label>
       <select id="fFloor">
         <option value="">未選択</option>
@@ -356,12 +360,13 @@
         <option value="3階">3階</option>
       </select>
     </div>
+  </div>
+  <p class="hint" style="margin-top:-8px;margin-bottom:12px;">自分だけが分かる記号で。Claudeへの依頼文には含まれません</p>
+  <div class="form-row">
     <div class="form-group">
       <label>年齢</label>
       <input type="text" id="fAge" placeholder="例: 90歳">
     </div>
-  </div>
-  <div class="form-row">
     <div class="form-group">
       <label>性別</label>
       <select id="fSex">
@@ -556,6 +561,11 @@ function setFloorFilter(v) {
   renderList();
 }
 
+function filterByCode(code) {
+  document.getElementById('searchInput').value = code;
+  renderList();
+}
+
 function renderFloorBar() {
   document.querySelectorAll('.floor-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.floor === floorFilter);
@@ -615,7 +625,7 @@ function renderList() {
   const kw = document.getElementById('searchInput').value.trim().toLowerCase();
   const filtered = kw
     ? data.filter(d => {
-        const hay = [d.floor, d.age, d.sex, d.careLevel, d.report, d.direction,
+        const hay = [d.code, d.floor, d.age, d.sex, d.careLevel, d.report, d.direction,
             (d.tags || []).join(' '), d.memo]
           .concat(MEMO_CATS.map(c => d[c.field]))
           .filter(Boolean).join(' ').toLowerCase();
@@ -636,9 +646,13 @@ function renderList() {
     const tags = (d.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
     const meta = metaText(d);
     const preview = d.report || memosCombined(d) || d.direction || '';
+    const codeChip = d.code
+      ? `<div style="margin-bottom:4px;"><span class="tag" style="cursor:pointer" data-code="${escHtml(d.code).replace(/"/g, '&quot;')}" onclick="filterByCode(this.dataset.code)">👤 ${escHtml(d.code)}</span></div>`
+      : '';
     return `
       <div class="card">
         <div class="card-date">${formatDate(d.date)}</div>
+        ${codeChip}
         ${meta ? '<div class="card-meta">' + escHtml(meta) + '</div>' : ''}
         <div class="card-situation">${escHtml(preview)}</div>
         ${tags ? '<div class="card-tags">' + tags + '</div>' : ''}
@@ -657,6 +671,7 @@ function metaText(d) {
 
 function readForm() {
   const f = {
+    code: document.getElementById('fCode').value.trim(),
     floor: document.getElementById('fFloor').value,
     age: document.getElementById('fAge').value.trim(),
     sex: document.getElementById('fSex').value,
@@ -671,7 +686,7 @@ function readForm() {
 }
 
 function clearForm() {
-  ['fAge','fBulk','fReport','fDirection','fTags','fMemo']
+  ['fCode','fAge','fBulk','fReport','fDirection','fTags','fMemo']
     .concat(MEMO_CATS.map(c => c.id))
     .forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('fSex').value = '';
@@ -713,6 +728,7 @@ function saveNew() {
 
 // ===== フォームへの読み込み（編集・引き継ぎ共通） =====
 function loadIntoForm(d) {
+  document.getElementById('fCode').value = d.code || '';
   document.getElementById('fFloor').value = d.floor || '';
   document.getElementById('fAge').value = d.age || '';
   document.getElementById('fSex').value = d.sex || '';
@@ -907,7 +923,8 @@ function openDetail(id) {
   if (!d) return;
 
   document.getElementById('modalDate').textContent = formatDate(d.date);
-  document.getElementById('modalMeta').textContent = metaText(d);
+  document.getElementById('modalMeta').textContent =
+    [d.code ? '👤 ' + d.code : '', metaText(d)].filter(Boolean).join('　');
   document.getElementById('modalTags').innerHTML =
     (d.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
 
