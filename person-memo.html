@@ -1237,6 +1237,7 @@ var selGroup       = 'その他';
 var selLabels      = [];
 var pselGroupFilter  = 'all';
 var pselGenderFilter = 'all';
+var pselLabelFilter  = [];
 var pselFiltersOpen  = false;
 var pselOpen         = false;
 var sfGroupFilter    = 'all';
@@ -2291,7 +2292,7 @@ function deletePersonById(id) {
 // ─── RECORD FORM ─────────────────────────────────────────────
 function openAddRecord() {
   editRecId = null; selPeople = []; selTags = []; selWorkType = '';
-  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false; pselOpen = false;
+  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselLabelFilter = []; pselFiltersOpen = false; pselOpen = false;
   resetTagSuggest();
   var titles = { hobby: '記録を追加', work: '仕事メモを追加', quick: '一言メモを追加', kotono: '言の葉を追加' };
   document.getElementById('recModalTitle').textContent = titles[curMode] || '記録を追加';
@@ -2336,7 +2337,7 @@ function openEditRecord(id) {
   selPeople = (r.peopleIds||[]).slice();
   selTags   = (r.tags||[]).slice();
   selWorkType = r.workType || '';
-  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselFiltersOpen = false; pselOpen = false;
+  pselGroupFilter = 'all'; pselGenderFilter = 'all'; pselLabelFilter = []; pselFiltersOpen = false; pselOpen = false;
   resetTagSuggest();
   var em = r.mode || 'hobby';
   var titles = { hobby: '記録を編集', work: '仕事メモを編集', quick: '一言メモを編集', kotono: '言の葉を編集' };
@@ -2394,10 +2395,23 @@ function renderPselFilters() {
   rows += '<div class="psel-filter-row">' + [{ val:'all', label:'全て' }].concat(GENDERS).map(function(g){
     return '<button class="psel-filter-chip' + (pselGenderFilter === g.val ? ' active' : '') + '" onclick="setPselGenderFilter(\'' + g.val + '\')">' + g.label + '</button>';
   }).join('') + '</div>';
+  var labels = allPersonLabels().slice().sort();
+  if (labels.length) {
+    rows += '<div class="psel-filter-row">' + labels.map(function(l){
+      var act = pselLabelFilter.indexOf(l) >= 0;
+      return '<button class="psel-filter-chip' + (act ? ' active' : '') + '" onclick="togglePselLabelFilter(\'' + qesc(l) + '\')">' + esc(l) + '</button>';
+    }).join('') + '</div>';
+  }
   fc.innerHTML = rows;
 }
 function setPselGroupFilter(g) { pselGroupFilter = g; pselOpen = true; renderPselGrid(); }
 function setPselGenderFilter(v) { pselGenderFilter = v; pselOpen = true; renderPselGrid(); }
+function togglePselLabelFilter(l) {
+  var i = pselLabelFilter.indexOf(l);
+  if (i >= 0) pselLabelFilter.splice(i, 1); else pselLabelFilter.push(l);
+  pselOpen = true;
+  renderPselGrid();
+}
 function renderPselGrid() {
   renderPselFilters();
   var wrap = document.getElementById('pselPeopleWrap');
@@ -2415,7 +2429,8 @@ function renderPselGrid() {
   var filtered = db.people.filter(function(p){
     var gok = pselGroupFilter === 'all' || (p.group||'その他') === pselGroupFilter;
     var sok = pselGenderFilter === 'all' || (p.gender||'') === pselGenderFilter;
-    return gok && sok;
+    var lok = !pselLabelFilter.length || (p.labels||[]).some(function(l){ return pselLabelFilter.indexOf(l) >= 0; });
+    return gok && sok && lok;
   });
   if (!filtered.length) {
     c.innerHTML = '<span style="font-size:13px;color:var(--txm);">該当する人物がいません</span>';
