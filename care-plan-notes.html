@@ -364,6 +364,11 @@
   <button class="btn btn-outline btn-block" onclick="copyPrompt()">📋 Claudeへの依頼文をコピー</button>
   <div style="height:14px"></div>
   <div class="form-group">
+    <label>Claudeの回答を一括貼り付け</label>
+    <textarea id="fBulk" class="textarea-sm" placeholder="Claudeの回答全文をここに貼り付けると、下の「長期目標」「短期目標」「支援内容」に自動で振り分けます"></textarea>
+    <p class="hint" id="bulkStatus"></p>
+  </div>
+  <div class="form-group">
     <label>長期目標</label>
     <textarea id="fLongTerm" class="textarea-sm" placeholder="Claudeの回答から「長期目標」を貼り付けてください"></textarea>
   </div>
@@ -549,10 +554,11 @@ function readForm() {
 }
 
 function clearForm() {
-  ['fAge','fDisease','fSituation','fLongTerm','fShortTerm','fSupport','fTags','fMemo']
+  ['fAge','fDisease','fSituation','fBulk','fLongTerm','fShortTerm','fSupport','fTags','fMemo']
     .forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('fSex').value = '';
   document.getElementById('fCareLevel').value = '';
+  document.getElementById('bulkStatus').textContent = '';
 }
 
 function saveNew() {
@@ -611,6 +617,73 @@ function cancelEdit() {
   document.getElementById('editBanner').style.display = 'none';
   document.getElementById('saveBtn').textContent = '保存する';
 }
+
+// ===== 回答の一括貼り付け → 自動振り分け =====
+const BULK_SPECS = [
+  { key: '長期目標', id: 'fLongTerm' },
+  { key: '短期目標', id: 'fShortTerm' },
+  { key: '支援内容', id: 'fSupport' }
+];
+
+function isHeaderLine(line, key) {
+  // 記号・数字・空白を除いた行が「長期目標（6ヶ月）」のような見出しかを判定
+  const plain = line.replace(/[#*_`>【】\[\]（）()■□●○◆◇▶・:：。\s\d０-９.\-]/g, '');
+  if (!plain.startsWith(key)) return false;
+  const rest = plain.slice(key.length);
+  // 見出しの後ろに助詞などの文が続く行（本文）は除外
+  return rest.length <= 10 && !/[ぁ-ん]/.test(rest);
+}
+
+function cleanSection(lines) {
+  const body = lines.filter(l => !/^\s*`{3,}/.test(l));
+  while (body.length && !body[0].trim()) body.shift();
+  while (body.length && !body[body.length - 1].trim()) body.pop();
+  return body.join('\n').trim();
+}
+
+function splitBulk() {
+  const bulk = document.getElementById('fBulk');
+  const status = document.getElementById('bulkStatus');
+  const text = bulk.value;
+  if (!text.trim()) { status.textContent = ''; return; }
+
+  const lines = text.split(/\r?\n/);
+  const headers = [];
+  const seen = new Set();
+  lines.forEach((line, i) => {
+    for (const spec of BULK_SPECS) {
+      if (!seen.has(spec.key) && isHeaderLine(line, spec.key)) {
+        headers.push({ i, spec });
+        seen.add(spec.key);
+        break;
+      }
+    }
+  });
+
+  if (headers.length === 0) {
+    status.textContent = '「長期目標」などの見出しが見つかりませんでした。各欄に直接貼り付けてください。';
+    return;
+  }
+
+  const filled = [];
+  headers.forEach((h, idx) => {
+    const end = idx + 1 < headers.length ? headers[idx + 1].i : lines.length;
+    const content = cleanSection(lines.slice(h.i + 1, end));
+    if (content) {
+      document.getElementById(h.spec.id).value = content;
+      filled.push(h.spec.key);
+    }
+  });
+
+  if (filled.length > 0) {
+    bulk.value = '';
+    status.textContent = '✓ 振り分けました：' + filled.join('・');
+  } else {
+    status.textContent = '見出しは見つかりましたが、内容が読み取れませんでした。各欄に直接貼り付けてください。';
+  }
+}
+
+let bulkTimer = null;
 
 // ===== Claudeへの依頼文コピー =====
 function buildPrompt() {
@@ -792,6 +865,12 @@ function formatDate(iso) {
 function escHtml(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+// 一括貼り付け欄：入力（貼り付け）があったら自動で振り分け
+document.getElementById('fBulk').addEventListener('input', function() {
+  clearTimeout(bulkTimer);
+  bulkTimer = setTimeout(splitBulk, 300);
+});
 
 // タブボタンのイベント登録（touchend + click 両対応）
 ['list', 'new', 'manage'].forEach(function(name) {
