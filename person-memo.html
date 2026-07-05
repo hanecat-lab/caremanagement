@@ -1197,6 +1197,15 @@
       </div>
     </div>
     <div class="data-sec">
+      <div class="data-sec-title" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;" onclick="toggleFormatPromptSec()">
+        <span>🖋️ 整形プロンプト</span><span id="formatPromptArrow">▸</span>
+      </div>
+      <div id="formatPromptBody" style="display:none;">
+        <div class="data-note">貼り付けた文章を見出し・太字・色付けなどのアプリの書式に整形してくれるAI用プロンプトです。コピーしてAIチャットに貼り付けて使ってください。</div>
+        <button class="btn-sec" style="width:100%;" onclick="copyFormatPrompt()">📋 プロンプトをコピー</button>
+      </div>
+    </div>
+    <div class="data-sec">
       <div class="data-sec-title">⚠️ 危険操作</div>
       <button class="btn-danger" style="margin-top:0;" onclick="clearAll()">全データを削除</button>
     </div>
@@ -1213,6 +1222,32 @@
 
 // ─── STATE ───────────────────────────────────────────────────
 var APP_VERSION = '20260704-133855'; // デプロイごとに更新すること（自動更新の検知に使用）
+var FORMAT_PROMPT = [
+  'あなたはメモ整形アシスタントです。渡された文章を、以下のルールに厳密に従って「記録アプリ」に貼り付けられる書式に変換してください。',
+  '',
+  '【最優先】元の文章にすでに含まれる装飾・記号（Markdownの**太字**、*斜体*、# 見出し、-や・などの箇条書き記号、> 引用、---の区切り線など）は、変換前に一旦すべてプレーンテキストに戻してください。元の記号をそのまま流用しないでください。',
+  '',
+  '【使ってよい装飾ルール（このルールだけを使う）】',
+  '・見出し：行の先頭に ## を付ける（例：##今日の出来事）',
+  '・太字（重要・強調したい語句）：@対象の文言@ で囲む',
+  '・赤字（注意・警告・ネガティブな内容）：！対象の文言！（全角！）で囲む',
+  '・紫字（疑問・気になった点・引用的な内容）：？対象の文言？（全角？）で囲む',
+  '・蛍光ペン（キーワード）：==対象の文言== で囲む',
+  '・下線（補足・注釈）：_対象の文言_ で囲む',
+  '・区切り線（話題の切れ目）：半角ハイフンをちょうど10個並べた行だけを独立させる（----------）',
+  '・空行はそのまま段落の区切りとして保持する',
+  '',
+  '【厳守事項】',
+  '・装飾記号は1行の中で完結させる（複数行にまたがる装飾はしない）',
+  '・同じ行の中で！や？を強調目的以外に2つ以上使わない（意図せずペアとして装飾されるのを防ぐため）',
+  '・装飾は本当に伝えたい要点だけに絞り、多用しすぎない',
+  '・出力はコードブロックで囲まず、そのままメモ欄に貼り付けられるプレーンテキストのみを返す',
+  '・見出し・区切り線以外の本文は改行をそのまま保持する',
+  '',
+  '以下が変換したい文章です。この下の内容を上記ルールで整形して出力してください：',
+  '',
+  '（ここに文章を貼り付け）'
+].join('\n');
 var db = { records: [], people: [], bands: [], settings: { theme: 'light' } };
 var curView    = 'home';
 var curMode    = 'hobby';
@@ -1669,6 +1704,19 @@ function toast(msg) {
   el.classList.add('show');
   clearTimeout(el._t);
   el._t = setTimeout(function(){ el.classList.remove('show'); }, 2400);
+}
+function toggleFormatPromptSec() {
+  var body = document.getElementById('formatPromptBody');
+  var arrow = document.getElementById('formatPromptArrow');
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  arrow.textContent = isOpen ? '▸' : '▾';
+}
+function copyFormatPrompt() {
+  if (!navigator.clipboard || !navigator.clipboard.writeText) { toast('このブラウザはコピーに対応していません'); return; }
+  navigator.clipboard.writeText(FORMAT_PROMPT)
+    .then(function(){ toast('プロンプトをコピーしました'); })
+    .catch(function(){ toast('コピーに失敗しました'); });
 }
 
 // ─── SNS ICON ────────────────────────────────────────────────
