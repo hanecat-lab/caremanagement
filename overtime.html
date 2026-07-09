@@ -221,20 +221,13 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 .cal-cell.selected{background:#e8eef7;}
 .cal-cell:not(.blank){cursor:pointer;}
 
-/* ===== 36協定バッジ ===== */
-#kyotei{display:flex; flex-direction:column; gap:4px; padding:8px 0 2px;}
-.ky-row{display:flex; align-items:center; gap:6px; font-size:11px; border-radius:8px; padding:5px 10px;}
-.ky-row.ok {background:#eaf4ea; color:#2a6a2a;}
-.ky-row.warn{background:#fff8e1; color:#7a5c00;}
-.ky-row.over{background:#fdecea; color:#b71c1c;}
-.ky-label{flex:1;}
-.ky-bar{flex:2; height:5px; background:#e0e0e0; border-radius:3px; overflow:hidden;}
-.ky-fill{height:100%; border-radius:3px;}
-.ky-fill.ok{background:#4caf50;}
-.ky-fill.warn{background:#f4c542;}
-.ky-fill.over{background:#e53935;}
-.ky-val{font-weight:700; white-space:nowrap;}
-.ky-limit{color:#aaa; font-weight:400;}
+/* ===== 36協定表示 ===== */
+#kyotei{display:flex; justify-content:center; gap:18px; padding:6px 0 0; font-size:12px; color:rgba(255,255,255,.75);}
+.ky-item{display:flex; align-items:center; gap:2px;}
+.ky-val{font-weight:700; color:#fff; margin-left:2px;}
+.ky-limit{opacity:.6; font-weight:400;}
+.ky-item.warn .ky-val{color:#ffd35c;}
+.ky-item.over .ky-val{color:#ff8a80;}
 
 /* ===== 棒グラフ ===== */
 .chart-wrap{padding:10px 0 4px;}
@@ -253,6 +246,7 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 
 /* ===== night count ===== */
 .night-card{
+  background:var(--card); border-radius:var(--radius); margin-top:10px;
   padding:14px; box-shadow:0 1px 2px rgba(20,40,70,.05);
 }
 /* ── 今日のシフトウィジェット ── */
@@ -433,7 +427,7 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 <script>
 "use strict";
 /* ===== バージョン管理・自動更新 ===== */
-const APP_VERSION="20260703-020823"; /* ビルドごとに更新 */
+const APP_VERSION="20260703-031500"; /* ビルドごとに更新 */
 
 async function checkForUpdate(){
   try{
@@ -465,19 +459,6 @@ function showUpdateBanner(newVer){
 /* 起動時1回 + 60分ごとにチェック */
 setTimeout(checkForUpdate, 3000); /* 起動直後は3秒後 */
 setInterval(checkForUpdate, 60*60*1000);
-
-/* ===== バージョン表示（左下・印刷時非表示） ===== */
-(function(){
-  var st=document.createElement('style');
-  st.textContent='@media print{#appVerBadge{display:none!important}}';
-  document.head.appendChild(st);
-  var v=document.createElement('div');
-  v.id='appVerBadge';
-  v.textContent='ver.'+APP_VERSION;
-  v.style.cssText='position:fixed;bottom:4px;left:6px;font-size:10px;color:#888;opacity:.75;z-index:9998;pointer-events:none;';
-  document.body.appendChild(v);
-})();
-
 const KEY="overtime-app-v2";
 
 /* ---------- storage (localStorage + メモリfallback) ---------- */
@@ -643,22 +624,15 @@ function renderHeader(){
   }
   const YEAR_LIMIT=360*60;
   function kyRow(label, val, limit){
-    const pct=Math.min(100, Math.round(val/limit*100));
     const cls=val>=limit?"over":val>=(MON_WARN/MON_LIMIT*limit)?"warn":"ok";
-    const icon=val>=limit?"⛔":val>=(MON_WARN/MON_LIMIT*limit)?"⚠️":"✅";
-    return '<div class="ky-row '+cls+'">'
-      +'<span class="ky-label">'+icon+' '+label+'</span>'
-      +'<span class="ky-bar"><span class="ky-fill '+cls+'" style="width:'+pct+'%"></span></span>'
-      +'<span class="ky-val">'+fmtMin(val)+'<span class="ky-limit">/'+Math.floor(limit/60)+'h</span></span>'
-      +'</div>';
+    const icon=val>=limit?"⛔ ":val>=(MON_WARN/MON_LIMIT*limit)?"⚠️ ":"";
+    return '<span class="ky-item '+cls+'">'
+      +icon+label+' <span class="ky-val">'+fmtMin(val)+'</span><span class="ky-limit">/'+Math.floor(limit/60)+'h</span>'
+      +'</span>';
   }
-  if(total>0||yearTotal>0){
-    document.getElementById("kyotei").innerHTML=
-      kyRow("今月",total,MON_LIMIT)
-      +kyRow(curYear+"年計",yearTotal,YEAR_LIMIT);
-  } else {
-    document.getElementById("kyotei").innerHTML="";
-  }
+  document.getElementById("kyotei").innerHTML=
+    kyRow("今月",total,MON_LIMIT)
+    +kyRow(curYear+"年計",yearTotal,YEAR_LIMIT);
 }
 
 /* ---------- render: day list ---------- */
