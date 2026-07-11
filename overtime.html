@@ -427,7 +427,7 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 <script>
 "use strict";
 /* ===== バージョン管理・自動更新 ===== */
-const APP_VERSION="20260709-234529"; /* ビルドごとに更新 */
+const APP_VERSION="20260703-040000"; /* ビルドごとに更新 */
 
 async function checkForUpdate(){
   try{
@@ -527,6 +527,7 @@ function periodDates(){
 
 function toMin(t){ if(!t) return null; const[a,b]=t.split(":").map(Number); return a*60+b; }
 function floor5(m){ return Math.floor(m/5)*5; }
+function ceil5(m){ return Math.ceil(m/5)*5; }
 
 function masterOf(label){ return state.master.find(m=>m.label===label); }
 
@@ -574,26 +575,28 @@ function autoOT(day){
   const m=masterOf(day.shift);
   if(!m||m.noWork) return null;
   let late=0, early=0;
-  /* 退勤残業 */
+  /* 退勤残業: 退勤時刻を5分未満切り捨ててから差分計算（例: 18:24→18:20） */
   if(day.endActual && m.end){
-    const d=toMin(day.endActual)-toMin(m.end);
+    const roundedEnd=floor5(toMin(day.endActual));
+    const d=roundedEnd-toMin(m.end);
     if(d>0) late=d;
   }
-  /* 早出残業:
-       startEnd あり → startEnd - startActual（PM・夜勤の午前作業など）
-       startEnd なし → m.start - startActual（定時より早く出勤した分）
+  /* 早出残業: 出社時刻を5分未満切り上げ、早出終了時刻を5分未満切り捨ててから差分計算
+       startEnd あり → startEnd(切り捨て) - 出社時刻(切り上げ)（PM・夜勤の午前作業など）
+       startEnd なし → m.start - 出社時刻(切り上げ)（定時より早く出勤した分）
   */
   if(day.startActual){
     const until = day.startEnd
-      ? toMin(day.startEnd)
+      ? floor5(toMin(day.startEnd))
       : (m.start ? toMin(m.start) : null);
     if(until != null){
-      const d = until - toMin(day.startActual);
+      const roundedStart=ceil5(toMin(day.startActual));
+      const d = until - roundedStart;
       if(d>0) early=d;
     }
   }
   if(late===0&&early===0&&!day.endActual&&!day.startActual) return null;
-  return floor5(late+early);
+  return late+early;
 }
 function effOT(day){
   if(!day) return null;
