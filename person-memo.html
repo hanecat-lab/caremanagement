@@ -970,7 +970,7 @@
       <div class="chip-row" id="groupSelRow"></div>
     </div>
     <div class="form-group">
-      <label class="form-label">タグ（複数設定可）</label>
+      <label class="form-label" style="display:flex;align-items:center;justify-content:space-between;">タグ（複数設定可）<button class="icon-btn" style="font-size:14px;padding:2px 6px;" onclick="openLabelEdit()" title="タグを一括編集">⚙️</button></label>
       <div class="tag-field" id="personLabelField" onclick="focusPersonLabelInput()"></div>
       <div id="personLabelSuggest" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;"></div>
     </div>
@@ -1017,6 +1017,19 @@
       <input id="newGroupInput" class="form-input" type="text" placeholder="新しいグループ名" style="flex:1;">
       <button class="btn-pri" onclick="addGroup()">追加</button>
     </div>
+  </div>
+</div>
+
+<!-- LABEL EDIT MODAL -->
+<div class="modal-overlay" id="labelEditModal" onclick="overlayClose(event,'labelEditModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-head">
+      <span class="modal-title">タグを一括編集</span>
+      <button class="close-btn" onclick="closeModal('labelEditModal')">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--txm);margin-bottom:10px;padding:0 4px;">名前を変更すると全人物に反映されます。既存のタグと同じ名前に変更すると統合されます。</div>
+    <div id="labelEditList" style="padding:0 4px;"></div>
   </div>
 </div>
 
@@ -2133,6 +2146,7 @@ function renderCalDayRecs() {
       + '</div>'
       + upcomingBadge
       + '<span class="live-event-cnt">' + ev.bands.length + 'バンド</span>'
+      + '<span class="live-event-arrow" title="この日の記録を書く" onclick="event.stopPropagation();openRecordForLive(\'' + qesc(calSelDate) + '\',\'' + qesc(ev.title) + '\',\'' + qesc(ev.venue) + '\')">📝</span>'
       + '<span id="' + domId + '_arrow" class="live-event-arrow">▶</span>'
       + '</div>'
       + '<div id="' + domId + '" style="display:none">'
@@ -2357,6 +2371,16 @@ function openAddRecord() {
   renderPselGrid(); renderTagChips();
   openModal('recordModal');
   setTimeout(function(){ var el = document.getElementById('recMemo'); if(el) el.focus(); }, 350);
+}
+function openRecordForLive(date, title, venue) {
+  if (curMode !== 'hobby') setMode('hobby');
+  openAddRecord();
+  if (date) document.getElementById('recDate').value = date;
+  document.getElementById('recMemo').value = '##' + (title || '') + (venue ? '\n📍 ' + venue : '') + '\n\n';
+  setTimeout(function(){
+    var el = document.getElementById('recMemo');
+    if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  }, 400);
 }
 function showWorkDetail(id) {
   var r = getRec(id); if (!r) return;
@@ -2874,6 +2898,73 @@ function deleteGroup(idx) {
   renderGroupSel();
 }
 
+// ─── LABEL (SUBTAG) MANAGEMENT ───────────────────────────────
+var labelEditNames = [];
+function labelUseCount(name) {
+  return db.people.filter(function(p){ return (p.labels||[]).indexOf(name) >= 0; }).length;
+}
+function openLabelEdit() {
+  labelEditNames = allPersonLabels().slice().sort();
+  renderLabelEditList();
+  openModal('labelEditModal');
+}
+function renderLabelEditList() {
+  var c = document.getElementById('labelEditList');
+  if (!c) return;
+  if (!labelEditNames.length) {
+    c.innerHTML = '<div style="font-size:13px;color:var(--txm);padding:8px 0;">使用中のタグはありません</div>';
+    return;
+  }
+  c.innerHTML = labelEditNames.map(function(l, i){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+      + '<input class="form-input" type="text" value="' + esc(l) + '" style="flex:1;padding:10px 12px;" onchange="renameLabel(' + i + ',this.value)">'
+      + '<span style="flex-shrink:0;font-size:12px;color:var(--txm);">' + labelUseCount(l) + '人</span>'
+      + '<button style="flex-shrink:0;width:34px;height:34px;border:none;background:rgba(180,40,40,.08);color:#B02828;font-size:16px;border-radius:8px;cursor:pointer;" onclick="deleteLabel(' + i + ')">🗑</button>'
+      + '</div>';
+  }).join('');
+}
+function renameLabel(idx, newName) {
+  var oldName = labelEditNames[idx];
+  newName = String(newName || '').trim();
+  if (!newName || newName === oldName) { renderLabelEditList(); return; }
+  var merged = labelEditNames.indexOf(newName) >= 0;
+  db.people.forEach(function(p){
+    var ls = p.labels || [];
+    var i = ls.indexOf(oldName);
+    if (i < 0) return;
+    if (ls.indexOf(newName) >= 0) ls.splice(i, 1);
+    else ls[i] = newName;
+  });
+  var si = selLabels.indexOf(oldName);
+  if (si >= 0) {
+    if (selLabels.indexOf(newName) >= 0) selLabels.splice(si, 1);
+    else selLabels[si] = newName;
+    renderPersonLabels();
+  }
+  saveDB();
+  labelEditNames = allPersonLabels().slice().sort();
+  renderLabelEditList();
+  renderPersonLabelSuggest();
+  toast(merged ? '「' + oldName + '」を「' + newName + '」に統合しました' : '「' + oldName + '」を「' + newName + '」に変更しました');
+}
+function deleteLabel(idx) {
+  var name = labelEditNames[idx];
+  var cnt = labelUseCount(name);
+  if (!confirm('タグ「' + name + '」を' + cnt + '人から削除しますか？')) return;
+  db.people.forEach(function(p){
+    var ls = p.labels || [];
+    var i = ls.indexOf(name);
+    if (i >= 0) ls.splice(i, 1);
+  });
+  var si = selLabels.indexOf(name);
+  if (si >= 0) { selLabels.splice(si, 1); renderPersonLabels(); }
+  saveDB();
+  labelEditNames = allPersonLabels().slice().sort();
+  renderLabelEditList();
+  renderPersonLabelSuggest();
+  toast('タグ「' + name + '」を削除しました');
+}
+
 // ─── BAND/GROUP MANAGEMENT ───────────────────────────────────
 function getBand(id) {
   for (var i = 0; i < db.bands.length; i++) { if (db.bands[i].id === id) return db.bands[i]; }
@@ -2974,6 +3065,30 @@ function showBandDetail(id) {
         return '<a href="' + esc(lk.url) + '" target="_blank" rel="noopener" style="display:block;color:var(--primary);font-size:14px;margin-bottom:4px;">' + esc(lk.label || lk.url) + '</a>';
       }).join('') + '</div>'
     : '';
+  var lvAll = band.liveHistory || [];
+  var statsHtml = '';
+  if (lvAll.length) {
+    var todayStr = today();
+    var lvDates = lvAll.map(function(lv){ return lv.date || ''; }).filter(Boolean).sort();
+    var lvPast = lvDates.filter(function(d){ return d <= todayStr; });
+    var lvFuture = lvDates.filter(function(d){ return d > todayStr; });
+    var venueCnt = {}, yearCnt = {};
+    lvAll.forEach(function(lv){
+      if (lv.venue) venueCnt[lv.venue] = (venueCnt[lv.venue]||0) + 1;
+      if (lv.date) { var y = lv.date.slice(0,4); yearCnt[y] = (yearCnt[y]||0) + 1; }
+    });
+    var venueStr = Object.keys(venueCnt).sort(function(a,b){ return venueCnt[b] - venueCnt[a]; })
+      .map(function(v){ return esc(v) + '×' + venueCnt[v]; }).join('　');
+    var yearStr = Object.keys(yearCnt).sort().map(function(y){ return y + '年×' + yearCnt[y]; }).join('　');
+    statsHtml = '<div class="form-group"><label class="form-label">📊 ライブ統計</label>'
+      + '<div style="font-size:13px;color:var(--tx2);padding:0 2px;line-height:1.9;">'
+      + '累計 <b>' + lvAll.length + '回</b>'
+      + (lvPast.length ? '　初参戦 ' + esc(lvPast[0]) + '　直近 ' + esc(lvPast[lvPast.length-1]) : '')
+      + (lvFuture.length ? '　次回 ' + esc(lvFuture[0]) : '')
+      + (venueStr ? '<br>📍 ' + venueStr : '')
+      + (yearStr ? '<br>🗓️ ' + yearStr : '')
+      + '</div></div>';
+  }
   document.getElementById('bandDetailContent').innerHTML =
     '<div class="modal-head">'
     + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">' + (Array.isArray(band.category) ? band.category : [band.category || 'バンド']).map(function(c) { return '<span class="band-cat-badge">' + esc(c) + '</span>'; }).join('') + '&nbsp;<span style="font-size:20px;font-weight:800;">' + esc(band.name) + '</span></div>'
@@ -2986,6 +3101,7 @@ function showBandDetail(id) {
     + (members.length
         ? '<div class="form-group"><label class="form-label">メンバー</label>' + members.join('') + '</div>'
         : '<div style="color:var(--txm);font-size:13px;padding:0 4px 12px;">メンバー未設定</div>')
+    + statsHtml
     + buildLiveSection(id);
   openModal('bandDetailModal');
 }
@@ -3224,6 +3340,7 @@ function renderEventList() {
       + venueHtml
       + '</div>'
       + '<span class="live-event-cnt">' + ev.bands.length + 'バンド</span>'
+      + '<span class="live-event-arrow" title="この日の記録を書く" onclick="event.stopPropagation();openRecordForLive(\'' + qesc(ev.date) + '\',\'' + qesc(ev.title) + '\',\'' + qesc(ev.venue) + '\')">📝</span>'
       + '<span class="live-event-arrow" onclick="event.stopPropagation();startEvEdit(\'' + qesc(ekey) + '\')">♬</span>'
       + '<span id="' + domId + '_arrow" class="live-event-arrow">▶</span>'
       + '</div>'
