@@ -832,6 +832,9 @@
       <div id="bandSearchWrap" style="margin-bottom:10px;">
         <input class="search-input" id="bandSearchInput" placeholder="バンド名を検索..." oninput="onBandSearch(this.value)">
       </div>
+      <div class="toolbar" style="margin-bottom:10px;">
+        <button class="sort-btn" id="bandSortCount" onclick="setBandSort()">回数↓</button>
+      </div>
       <div id="bandListEl"></div>
       <div id="eventListEl" style="display:none"></div>
     </div>
@@ -1283,6 +1286,7 @@ var bandViewMode = 'bands';
 var bandSearchText = '';
 var bandCatFilter = 'all';
 var bandCatPickerOpen = false;
+var bandSort = ''; // '' = 登録順, 'count_desc', 'count_asc'
 var evTab = 'past';
 var workViewMode = 'card';
 var quickFilter = 'all';
@@ -2889,10 +2893,19 @@ function setPeopleSub(s) {
   if (fab) fab.onclick = s === 'band' ? openAddBand : openAddPerson;
   if (s === 'band') renderBandList();
 }
+function setBandSort() {
+  bandSort = bandSort === 'count_desc' ? 'count_asc' : 'count_desc';
+  var btn = document.getElementById('bandSortCount');
+  if (btn) {
+    btn.classList.add('active');
+    btn.textContent = '回数' + (bandSort === 'count_desc' ? '↓' : '↑');
+  }
+  renderBandList();
+}
 function renderBandList() {
   var c = document.getElementById('bandListEl');
   if (!c) return;
-  var bands = db.bands;
+  var bands = db.bands.slice();
   if (bandCatFilter !== 'all') {
     bands = bands.filter(function(b) {
       var cats = Array.isArray(b.category) ? b.category : [b.category || 'バンド'];
@@ -2902,6 +2915,14 @@ function renderBandList() {
   if (bandSearchText.trim()) {
     var q = normalizeKana(bandSearchText.trim());
     bands = bands.filter(function(b) { return normalizeKana(b.name).indexOf(q) >= 0 || normalizeKana(b.yomi).indexOf(q) >= 0; });
+  }
+  if (bandSort === 'count_desc' || bandSort === 'count_asc') {
+    bands.sort(function(a, b) {
+      var ca = (a.liveHistory || []).length;
+      var cb = (b.liveHistory || []).length;
+      if (ca !== cb) return bandSort === 'count_desc' ? cb - ca : ca - cb;
+      return a.name.localeCompare(b.name, 'ja');
+    });
   }
   if (!bands.length) {
     c.innerHTML = bandSearchText.trim()
