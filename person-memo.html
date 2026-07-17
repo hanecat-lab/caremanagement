@@ -1305,6 +1305,7 @@ var workViewMode = 'card';
 var quickFilter = 'all';
 var WORK_TYPE_ICON = { idea:'💡', memo:'📝', task:'✅', issue:'🤔' };
 var editingLiveKey = null;
+var editingAbsentIds = []; // ライブ編集中の欠席メンバー（保存時に absentIds へ反映）
 var editingEvKey = null;
 var selBandLinks = [];
 var BAND_CATS    = ['バンド','弾き語り','アイドル','グループ','サブカル','ユニット','ソロ','その他'];
@@ -2649,7 +2650,8 @@ function forEachLiveContact(cb) {
     if (!mids.length) return;
     (band.liveHistory || []).forEach(function(lv){
       if (!lv.date || lv.date > todayStr) return;
-      mids.forEach(function(pid){ cb(pid, lv.date); });
+      var absent = lv.absentIds || [];
+      mids.forEach(function(pid){ if (absent.indexOf(pid) < 0) cb(pid, lv.date); });
     });
   });
 }
@@ -3472,10 +3474,25 @@ function buildLiveSection(id) {
     var isUpcoming = (lv.date || '') > todayStr;
     var isEditing = editingLiveKey === id + '~~' + lv.id;
     if (isEditing) {
+      var memberChips = (band.memberIds || []).map(function(mid){
+        var p = getPerson(mid);
+        if (!p) return '';
+        var absent = editingAbsentIds.indexOf(mid) >= 0;
+        return '<button class="psel-filter-chip' + (absent ? '' : ' active') + '"'
+          + (absent ? ' style="opacity:.55;text-decoration:line-through;"' : '')
+          + ' onclick="toggleEditAbsent(\'' + id + '\',\'' + mid + '\')">' + esc(p.name) + '</button>';
+      }).filter(Boolean).join('');
+      var attendHtml = memberChips
+        ? '<div style="width:100%;">'
+          + '<div style="font-size:11px;color:var(--txm);margin-bottom:4px;">出欠（タップで欠席⇔出席）</div>'
+          + '<div style="display:flex;flex-wrap:wrap;gap:5px;">' + memberChips + '</div>'
+          + '</div>'
+        : '';
       return '<div class="live-row" style="flex-wrap:wrap;gap:6px;align-items:center;">'
         + '<input class="form-input" type="date" id="liveEditDate_' + lv.id + '" value="' + esc(lv.date || '') + '" style="flex:1;min-width:100px;">'
         + '<input class="form-input" id="liveEditTitle_' + lv.id + '" value="' + esc(lv.title || '') + '" placeholder="イベント名" style="flex:2;min-width:120px;">'
         + '<input class="form-input" id="liveEditVenue_' + lv.id + '" value="' + esc(lv.venue || '') + '" placeholder="会場" style="flex:2;min-width:120px;">'
+        + attendHtml
         + '<button class="btn-pri" onclick="saveLiveEdit(\'' + id + '\',\'' + lv.id + '\')">✓</button>'
         + '<button class="btn-sec" onclick="cancelLiveEdit(\'' + id + '\')">✗</button>'
         + '</div>';
@@ -3496,6 +3513,10 @@ function buildLiveSection(id) {
         + '</div></div>'
       : '';
     var venueHtml = lv.venue ? '<span style="font-size:11px;color:var(--txm);">📍' + esc(lv.venue) + '</span>' : '';
+    var absentNames = (lv.absentIds || []).map(function(pid){ var p = getPerson(pid); return p ? p.name : ''; }).filter(Boolean);
+    var absentHtml = absentNames.length
+      ? '<div style="font-size:11px;color:#B02828;">欠席: ' + absentNames.map(function(n){ return esc(n); }).join('、') + '</div>'
+      : '';
     return '<div>'
       + '<div class="live-row">'
       + upBadge
@@ -3503,6 +3524,7 @@ function buildLiveSection(id) {
       + '<div style="flex:1;min-width:0;">'
       + '<div class="live-row-title">' + esc(lv.title || '') + '</div>'
       + venueHtml
+      + absentHtml
       + '</div>'
       + badge
       + '<span class="live-row-del" onclick="startEditLive(\'' + id + '\',\'' + lv.id + '\')">♬</span>'
@@ -3537,7 +3559,30 @@ function toggleBandLiveSection(id) {
 }
 function startEditLive(bandId, liveId) {
   editingLiveKey = bandId + '~~' + liveId;
+  var band = getBand(bandId);
+  var lv = band ? (band.liveHistory || []).filter(function(l) { return l.id === liveId; })[0] : null;
+  editingAbsentIds = (lv && lv.absentIds || []).slice();
   showBandDetail(bandId);
+}
+function toggleEditAbsent(bandId, pid) {
+  var i = editingAbsentIds.indexOf(pid);
+  if (i >= 0) editingAbsentIds.splice(i, 1); else editingAbsentIds.push(pid);
+  // 入力途中のテキストを失わないよう、チップだけ描き直すために入力値を退避
+  var band = getBand(bandId);
+  if (band && editingLiveKey) {
+    var liveId = editingLiveKey.split('~~')[1];
+    var d = document.getElementById('liveEditDate_' + liveId);
+    var t = document.getElementById('liveEditTitle_' + liveId);
+    var v = document.getElementById('liveEditVenue_' + liveId);
+    var dv = d ? d.value : '', tv = t ? t.value : '', vv = v ? v.value : '';
+    showBandDetail(bandId);
+    var d2 = document.getElementById('liveEditDate_' + liveId);
+    var t2 = document.getElementById('liveEditTitle_' + liveId);
+    var v2 = document.getElementById('liveEditVenue_' + liveId);
+    if (d2) d2.value = dv;
+    if (t2) t2.value = tv;
+    if (v2) v2.value = vv;
+  }
 }
 function saveLiveEdit(bandId, liveId) {
   var band = getBand(bandId); if (!band) return;
@@ -3546,6 +3591,7 @@ function saveLiveEdit(bandId, liveId) {
   lv.title = document.getElementById('liveEditTitle_' + liveId).value.trim();
   lv.date  = document.getElementById('liveEditDate_'  + liveId).value;
   lv.venue = document.getElementById('liveEditVenue_' + liveId).value.trim();
+  lv.absentIds = editingAbsentIds.slice();
   band.updatedAt = new Date().toISOString();
   editingLiveKey = null;
   saveDB();
