@@ -2117,7 +2117,8 @@ function getLiveEventsByDate(dateStr) {
   db.bands.forEach(function(band) {
     (band.liveHistory || []).forEach(function(lv) {
       if (lv.date !== dateStr) return;
-      var key = lv.title || '';
+      // タイトル未設定は同一イベントかどうか判定できないため、バンドごとに別イベント扱いにする
+      var key = lv.title ? lv.title : ('__untitled_' + band.id + '_' + lv.id);
       if (!events[key]) events[key] = {
         title: lv.title || '(タイトル未設定)',
         venue: lv.venue || '',
@@ -2362,6 +2363,14 @@ function showPersonDetail(id) {
 }
 
 // ─── DELETE PERSON (from detail) ─────────────────────────────
+function purgePersonFromBands(id) {
+  db.bands.forEach(function(b){
+    b.memberIds = (b.memberIds||[]).filter(function(mid){ return mid !== id; });
+    (b.liveHistory||[]).forEach(function(lv){
+      lv.absentIds = (lv.absentIds||[]).filter(function(pid){ return pid !== id; });
+    });
+  });
+}
 function deletePersonById(id) {
   var p = getPerson(id);
   if (!p) return;
@@ -2370,6 +2379,7 @@ function deletePersonById(id) {
   db.records.forEach(function(r){
     r.peopleIds = (r.peopleIds||[]).filter(function(pid){ return pid !== id; });
   });
+  purgePersonFromBands(id);
   saveDB();
   closeModal('personDetailModal');
   refresh();
@@ -3323,7 +3333,8 @@ function renderEventList() {
       if (cats.indexOf(bandCatFilter) < 0) return;
     }
     (band.liveHistory || []).forEach(function(lv) {
-      var key = (lv.date || '') + '__' + (lv.title || '');
+      // タイトル未設定は同一イベントかどうか判定できないため、バンドごとに別イベント扱いにする
+      var key = (lv.date || '') + '__' + (lv.title ? lv.title : ('__untitled_' + band.id + '_' + lv.id));
       if (!evMap[key]) evMap[key] = { title: lv.title || '(タイトル未設定)', date: lv.date || '', venue: lv.venue || '', bands: [] };
       evMap[key].bands.push({ id: band.id, name: band.name });
     });
@@ -3468,6 +3479,7 @@ function deleteCurrentBand() {
 
 // ─── LIVE HISTORY ────────────────────────────────────────────
 function getCoLiveBands(excludeId, title, date) {
+  if (!title) return []; // タイトル未設定は同一イベントかどうか判定できないため対バン扱いにしない
   var result = [];
   db.bands.forEach(function(b) {
     if (b.id === excludeId) return;
@@ -3611,14 +3623,19 @@ function saveLiveEdit(bandId, liveId) {
   var newTitle = document.getElementById('liveEditTitle_' + liveId).value.trim();
   var newDate  = document.getElementById('liveEditDate_'  + liveId).value;
   var newVenue = document.getElementById('liveEditVenue_' + liveId).value.trim();
-  // 同じイベント（旧タイトル＋旧日付が一致）を演じた他バンドの控えも一緒に更新して同期を保つ
-  db.bands.forEach(function(b) {
-    (b.liveHistory || []).forEach(function(l) {
-      if (l.date === oldDate && l.title === oldTitle) {
-        l.title = newTitle; l.date = newDate; l.venue = newVenue;
-      }
+  if (oldTitle) {
+    // 同じイベント（旧タイトル＋旧日付が一致）を演じた他バンドの控えも一緒に更新して同期を保つ
+    // タイトル未設定同士は同一イベントか判定できないため、このバンド自身の控えのみ更新する
+    db.bands.forEach(function(b) {
+      (b.liveHistory || []).forEach(function(l) {
+        if (l.date === oldDate && l.title === oldTitle) {
+          l.title = newTitle; l.date = newDate; l.venue = newVenue;
+        }
+      });
     });
-  });
+  } else {
+    lv.title = newTitle; lv.date = newDate; lv.venue = newVenue;
+  }
   lv.absentIds = editingAbsentIds.slice();
   band.updatedAt = new Date().toISOString();
   editingLiveKey = null;
@@ -3817,6 +3834,7 @@ function deleteCurrentPerson() {
   db.records.forEach(function(r){
     r.peopleIds = (r.peopleIds||[]).filter(function(id){ return id !== editPerId; });
   });
+  purgePersonFromBands(editPerId);
   saveDB(); closeModal('personModal'); closeModal('personDetailModal');
   refresh(); toast('削除しました');
 }
