@@ -1354,17 +1354,32 @@ function migrateDB() {
   });
 }
 function loadDB() {
+  var raw = null;
+  try { raw = localStorage.getItem('hanecat_memo_v1'); } catch(e) {}
+  if (!raw) return;
   try {
-    var s = localStorage.getItem('hanecat_memo_v1');
-    if (s) {
-      db = JSON.parse(s);
+    db = JSON.parse(raw);
+    migrateDB();
+  } catch(e) {
+    // 破損データを別キーに退避してから復旧を試みる（次の保存で上書きされて消えないように）
+    try { localStorage.setItem('hanecat_memo_corrupted_' + new Date().toISOString(), raw); } catch(e2) {}
+    var backup = null;
+    try {
+      var b = localStorage.getItem('hanecat_memo_backup');
+      if (b) backup = JSON.parse(b);
+    } catch(e3) {}
+    if (backup && backup.data) {
+      db = backup.data;
       migrateDB();
+      alert('保存データの読み込みに失敗したため、自動バックアップ（' + (backup.savedAt || '不明な時刻') + '時点）から復元しました。内容をご確認ください。');
+    } else {
+      alert('保存データの読み込みに失敗しました。データが破損している可能性があります。\n復元用のバックアップも見つからなかったため、空の状態で開始します。\n破損したデータはブラウザに残しています。復旧が必要な場合はご相談ください。');
     }
-  } catch(e) {}
+  }
 }
 function saveDB() {
-  try { localStorage.setItem('hanecat_memo_v1', JSON.stringify(db)); }
-  catch(e) { toast('⚠️ 保存に失敗しました（容量不足の可能性）'); }
+  try { localStorage.setItem('hanecat_memo_v1', JSON.stringify(db)); return true; }
+  catch(e) { toast('⚠️ 保存に失敗しました（容量不足の可能性）', true); return false; }
 }
 
 // ─── JSON IO ─────────────────────────────────────────────────
@@ -1712,8 +1727,11 @@ function hashIcon(size) {
     + '<line x1="1" y1="6.5" x2="9" y2="6.5"/>'
     + '</svg>';
 }
-function toast(msg) {
+function toast(msg, isError) {
   var el = document.getElementById('toast');
+  var now = Date.now();
+  if (!isError && el._errorUntil && now < el._errorUntil) return; // 直前のエラー表示を上書きしない
+  if (isError) el._errorUntil = now + 2400;
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(el._t);
@@ -3389,6 +3407,7 @@ function saveEvEdit(oldKey, idx) {
     });
   });
   editingEvKey = null;
+  recalcLastContact();
   saveDB(); renderEventList(); renderCalendar();
   toast('更新しました');
 }
@@ -3588,12 +3607,22 @@ function saveLiveEdit(bandId, liveId) {
   var band = getBand(bandId); if (!band) return;
   var lv = (band.liveHistory || []).filter(function(l) { return l.id === liveId; })[0];
   if (!lv) return;
-  lv.title = document.getElementById('liveEditTitle_' + liveId).value.trim();
-  lv.date  = document.getElementById('liveEditDate_'  + liveId).value;
-  lv.venue = document.getElementById('liveEditVenue_' + liveId).value.trim();
+  var oldTitle = lv.title || '', oldDate = lv.date || '';
+  var newTitle = document.getElementById('liveEditTitle_' + liveId).value.trim();
+  var newDate  = document.getElementById('liveEditDate_'  + liveId).value;
+  var newVenue = document.getElementById('liveEditVenue_' + liveId).value.trim();
+  // 同じイベント（旧タイトル＋旧日付が一致）を演じた他バンドの控えも一緒に更新して同期を保つ
+  db.bands.forEach(function(b) {
+    (b.liveHistory || []).forEach(function(l) {
+      if (l.date === oldDate && l.title === oldTitle) {
+        l.title = newTitle; l.date = newDate; l.venue = newVenue;
+      }
+    });
+  });
   lv.absentIds = editingAbsentIds.slice();
   band.updatedAt = new Date().toISOString();
   editingLiveKey = null;
+  recalcLastContact();
   saveDB();
   showBandDetail(bandId);
   toast('更新しました');
@@ -3609,8 +3638,9 @@ function addLiveRecord(bandId) {
   var venue = document.getElementById('liveAddVenue_' + bandId).value.trim();
   if (!title && !date) { toast('タイトルまたは日付を入力してください'); return; }
   band.liveHistory = band.liveHistory || [];
-  band.liveHistory.push({ id: uid(), title: title, date: date, venue: venue, memo: '' });
+  band.liveHistory.push({ id: uid(), title: title, date: date, venue: venue, memo: '', absentIds: [] });
   band.updatedAt = new Date().toISOString();
+  recalcLastContact();
   saveDB();
   showBandDetail(bandId);
   toast('追加しました');
@@ -3619,6 +3649,7 @@ function deleteLiveRecord(bandId, liveId) {
   var band = getBand(bandId); if (!band) return;
   band.liveHistory = (band.liveHistory || []).filter(function(l) { return l.id !== liveId; });
   band.updatedAt = new Date().toISOString();
+  recalcLastContact();
   saveDB();
   showBandDetail(bandId);
   toast('削除しました');
