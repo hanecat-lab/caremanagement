@@ -3335,7 +3335,10 @@ function renderEventList() {
     (band.liveHistory || []).forEach(function(lv) {
       // タイトル未設定は同一イベントかどうか判定できないため、バンドごとに別イベント扱いにする
       var key = (lv.date || '') + '__' + (lv.title ? lv.title : ('__untitled_' + band.id + '_' + lv.id));
-      if (!evMap[key]) evMap[key] = { title: lv.title || '(タイトル未設定)', date: lv.date || '', venue: lv.venue || '', bands: [] };
+      // ev.title は生の値（空文字もあり得る）を保持する。表示時のみ「(タイトル未設定)」に置き換える。
+      // ここでプレースホルダー文字列に置き換えてしまうと、ekey がバンド側の実データ（空文字）と
+      // 一致しなくなり、タイトル未設定イベントの編集保存が常に空振りする不具合が起きるため。
+      if (!evMap[key]) evMap[key] = { title: lv.title || '', date: lv.date || '', venue: lv.venue || '', bands: [], liveId: lv.id };
       evMap[key].bands.push({ id: band.id, name: band.name });
     });
   });
@@ -3359,7 +3362,12 @@ function renderEventList() {
   c.innerHTML = tabHtml + events.map(function(ev, idx) {
     var domId = 'evList_' + idx;
     var ekey = (ev.date || '') + '__' + (ev.title || '');
-    var isEditing = editingEvKey === ekey;
+    // タイトル未設定は複数バンドの同日イベントと衝突しうるため、このタブでの直接編集(♬)は
+    // 対応するバンドの詳細（既に対バンへ波及しない形で修正済みの編集UI）に迂回させる
+    var editUrl = ev.title
+      ? 'startEvEdit(\'' + qesc(ekey) + '\')'
+      : 'startEditLive(\'' + ev.bands[0].id + '\',\'' + ev.liveId + '\')';
+    var isEditing = ev.title && editingEvKey === ekey;
     var bandRows = ev.bands.map(function(b) {
       return '<div class="live-band-row" onclick="showBandDetail(\'' + b.id + '\')">'
         + '<span class="live-band-name">' + esc(b.name) + '</span>'
@@ -3387,13 +3395,13 @@ function renderEventList() {
       + '<div class="live-event-bar-hd" onclick="toggleLiveEventBands(\'' + domId + '\')">'
       + '<span class="live-event-icon">' + (evTab === 'upcoming' ? '🗓️' : '🎸') + '</span>'
       + '<div style="flex:1;">'
-      + '<div class="live-event-title-lg">' + esc(ev.title) + '</div>'
+      + '<div class="live-event-title-lg">' + esc(ev.title || '(タイトル未設定)') + '</div>'
       + '<div style="font-size:11px;color:var(--txm);margin-top:2px;">' + esc(ev.date || '---') + '</div>'
       + venueHtml
       + '</div>'
       + '<span class="live-event-cnt">' + ev.bands.length + 'バンド</span>'
-      + '<span class="live-event-arrow" title="この日の記録を書く" onclick="event.stopPropagation();openRecordForLive(\'' + qesc(ev.date) + '\',\'' + qesc(ev.title) + '\',\'' + qesc(ev.venue) + '\')">📝</span>'
-      + '<span class="live-event-arrow" onclick="event.stopPropagation();startEvEdit(\'' + qesc(ekey) + '\')">♬</span>'
+      + '<span class="live-event-arrow" title="この日の記録を書く" onclick="event.stopPropagation();openRecordForLive(\'' + qesc(ev.date) + '\',\'' + qesc(ev.title || '(タイトル未設定)') + '\',\'' + qesc(ev.venue) + '\')">📝</span>'
+      + '<span class="live-event-arrow" onclick="event.stopPropagation();' + editUrl + '">♬</span>'
       + '<span id="' + domId + '_arrow" class="live-event-arrow">▶</span>'
       + '</div>'
       + '<div id="' + domId + '" style="display:none">'
