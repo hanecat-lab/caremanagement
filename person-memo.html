@@ -803,6 +803,7 @@
         <button class="sort-btn active" id="pSortContact" onclick="setPersonSort('contact')">接触↓</button>
         <button class="sort-btn" id="pSortName" onclick="setPersonSort('name')">名前順</button>
         <button class="sort-btn" id="pSortCount" onclick="setPersonSort('count')">累計↓</button>
+        <button class="sort-btn" id="pStaleFilter" onclick="toggleStaleFilter()">⏰ ご無沙汰</button>
         <span class="count-badge" id="peopleCount"></span>
       </div>
       <div id="peopleList"></div>
@@ -1279,6 +1280,7 @@ var selGender  = '';
 var sf = { kw: '', personIds: [], tags: [], from: '', to: '' };
 var personFilter = 'all';
 var genderFilter = 'all';
+var staleFilter = false; // true: そろそろ会っていない人（90日以上未接触 or 接触記録なし）のみ表示
 var personSort   = 'lastContact_desc';
 var selGroup       = 'その他';
 var selLabels      = [];
@@ -2257,13 +2259,26 @@ function sortedPeople(arr, counts) {
     return da < db2 ? -1 : 1;
   });
 }
+var STALE_DAYS = 90; // これ以上未接触（または接触記録なし）で「ご無沙汰」扱い
+function daysSinceContact(p) {
+  if (!p.lastContactDate) return Infinity;
+  var ms = new Date(today()).getTime() - new Date(p.lastContactDate).getTime();
+  return Math.floor(ms / 86400000);
+}
+function toggleStaleFilter() {
+  staleFilter = !staleFilter;
+  renderPeopleList();
+}
 function renderPeopleList() {
   var c = document.getElementById('peopleList');
   recalcLastContact(); // ライブ出演分も含めて常に最新化（バンド側の編集では再計算されないため）
+  var staleBtn = document.getElementById('pStaleFilter');
+  if (staleBtn) staleBtn.classList.toggle('active', staleFilter);
   var people = db.people.filter(function(p){
     var groupOk = personFilter === 'all' || (p.group||'その他') === personFilter;
     var genOk   = genderFilter === 'all' || (p.gender||'') === genderFilter;
-    return groupOk && genOk;
+    var staleOk = !staleFilter || daysSinceContact(p) >= STALE_DAYS;
+    return groupOk && genOk && staleOk;
   });
   var cnt = document.getElementById('peopleCount');
   if (cnt) cnt.textContent = people.length + '人';
