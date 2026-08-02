@@ -77,6 +77,15 @@
       box-shadow:0 1px 8px rgba(0,0,0,.06);
     }
     .app-header h1{font-size:18px;font-weight:800;color:var(--primary);flex:1;letter-spacing:-.3px}
+    .mode-badge{
+      display:none;flex-shrink:0;font-size:11px;font-weight:800;
+      padding:3px 10px;border-radius:20px;border:1.5px solid var(--bd);
+      color:var(--tx2);background:var(--card);white-space:nowrap;margin-right:8px;
+    }
+    .mode-badge.show{display:inline-block;}
+    .mode-badge.m-hobby,.mode-badge.m-quick{border-color:var(--primary);background:var(--primary-lt);color:var(--primary);}
+    .mode-badge.m-work{border-color:#4A7B6F;background:#F0F5F3;color:#4A7B6F;}
+    .mode-badge.m-kotono{border-color:transparent;border-bottom:2.5px solid #B5922A;background:#FAF8F2;color:#B5922A;}
     .hdr-actions{display:flex;gap:8px}
     .icon-btn{
       width:36px;height:36px;border:none;background:var(--primary-lt);color:var(--primary);
@@ -704,6 +713,7 @@
 <!-- HEADER -->
 <header class="app-header" id="appHeader">
   <h1 id="headerTitle">📝 Linkage</h1>
+  <span class="mode-badge" id="modeBadge"></span>
   <div class="hdr-actions">
     <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="テーマ切替">🌙</button>
     <button class="icon-btn" onclick="openModal('dataModal')" title="データ管理">💾</button>
@@ -1784,6 +1794,13 @@ function overlayClose(e, id) { if (e.target.id === id) closeModal(id); }
 
 // ─── NAVIGATION ──────────────────────────────────────────────
 function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function updateModeBadge() {
+  var el = document.getElementById('modeBadge');
+  if (!el) return;
+  var labels = { hobby:'記録', quick:'一言メモ', work:'仕事メモ', kotono:'言の葉' };
+  el.textContent = labels[curMode] || '';
+  el.className = 'mode-badge m-' + curMode + (curView !== 'people' ? ' show' : '');
+}
 function showView(v) {
   document.querySelectorAll('.view').forEach(function(el){ el.classList.remove('active'); });
   document.querySelectorAll('.nav-item').forEach(function(el){ el.classList.remove('active'); });
@@ -1793,6 +1810,7 @@ function showView(v) {
 
   var titles = { home: '📝 Linkage', search: '🔍 検索', calendar: '📅 カレンダー', people: '👥 人物' };
   document.getElementById('headerTitle').textContent = titles[v] || '';
+  updateModeBadge();
 
   var fab = document.getElementById('fab');
   fab.style.display = 'flex';
@@ -1821,6 +1839,7 @@ function setMode(m) {
   var tabs = { hobby: 'modeTabHobby', quick: 'modeTabQuick', work: 'modeTabWork', kotono: 'modeTabKotono' };
   document.querySelectorAll('.mode-tab').forEach(function(el){ el.classList.remove('active'); });
   document.getElementById(tabs[m]).classList.add('active');
+  updateModeBadge();
   var wvt = document.getElementById('workViewToggle');
   if (wvt) wvt.style.display = m === 'work' ? 'flex' : 'none';
   var qft = document.getElementById('quickFilterToggle');
