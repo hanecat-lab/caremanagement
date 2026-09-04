@@ -1387,7 +1387,7 @@
 <script>
 "use strict";
 /* ===== バージョン管理・自動更新 ===== */
-const APP_VERSION="20260904-193150"; /* GitHub Actionsが自動更新するため手動で変更しない */
+const APP_VERSION="20260703-020823"; /* GitHub Actionsが自動更新するため手動で変更しない */
 
 async function checkForUpdate(){
   try{
@@ -1599,6 +1599,15 @@ function load() {
       if (r.initial === undefined) r.initial = '';
       if (r.infoOnly === undefined) r.infoOnly = false;
       if (r.infoOnlySince === undefined) r.infoOnlySince = '';
+      if (r.infoOnly && !r.infoOnlySince) {
+        var _n2 = new Date();
+        r.infoOnlySince = toYMD(_n2.getFullYear(), _n2.getMonth(), 1);
+      }
+      // 担当外なのに記録日がない既存データは、今月1日を基準にする
+      if (r.infoOnly && !r.infoOnlySince) {
+        var _n = new Date();
+        r.infoOnlySince = toYMD(_n.getFullYear(), _n.getMonth(), 1);
+      }
       if (r.assessmentDate === undefined) r.assessmentDate = '';
       // 旧データの短期目標をカードレベルから除去（会議レベルへ移行）
       r.meetings.forEach(m => {
@@ -1758,6 +1767,10 @@ function importData(event) {
         if (r.memo === undefined) r.memo = '';
         if (r.infoOnly === undefined) r.infoOnly = false;
       if (r.infoOnlySince === undefined) r.infoOnlySince = '';
+      if (r.infoOnly && !r.infoOnlySince) {
+        var _n2 = new Date();
+        r.infoOnlySince = toYMD(_n2.getFullYear(), _n2.getMonth(), 1);
+      }
         if (r.initial === undefined) r.initial = '';
         if (r.assessmentDate === undefined) r.assessmentDate = '';
         r.meetings.forEach(m => {
@@ -1834,6 +1847,10 @@ function quickRestore(idx) {
       if (r.memo === undefined) r.memo = '';
       if (r.infoOnly === undefined) r.infoOnly = false;
       if (r.infoOnlySince === undefined) r.infoOnlySince = '';
+      if (r.infoOnly && !r.infoOnlySince) {
+        var _n2 = new Date();
+        r.infoOnlySince = toYMD(_n2.getFullYear(), _n2.getMonth(), 1);
+      }
       if (r.initial === undefined) r.initial = '';
       if (r.assessmentDate === undefined) r.assessmentDate = '';
       r.meetings.forEach(m => {
@@ -2082,9 +2099,11 @@ function addResident() {
       // 会議日なしならスキップ
     } else {
       // 新規利用者を作成
+      const nowD = new Date();
       const r = {
         id: Date.now().toString() + i + Math.random().toString(36).slice(2),
         bed, memo, gender, careLevel, initial, infoOnly,
+        infoOnlySince: infoOnly ? toYMD(nowD.getFullYear(), nowD.getMonth(), 1) : '',
         meetingOffset: offset,
         longGoalStart: '', longGoalEnd: '',
         assessment, assessmentDate,
@@ -2195,6 +2214,8 @@ function takeCardSnapshot(id) {
   if (memoEl) snap.memo = memoEl.value;
   const assessEl = document.getElementById('assessment-' + id);
   if (assessEl) snap.assessment = assessEl.value;
+  const sinceEl = document.getElementById('infoonly-since-' + id);
+  if (sinceEl) snap.infoOnlySince = sinceEl.value;
   // 開いている会議のチェック状態
   snap.meetings = {};
   (r.meetings || []).forEach(function(m, mIdx) {
@@ -2230,6 +2251,8 @@ function hasUnsavedCardChanges(id) {
   if (memoEl && memoEl.value !== (snap.memo || '')) return true;
   const assessEl = document.getElementById('assessment-' + id);
   if (assessEl && assessEl.value !== (snap.assessment || '')) return true;
+  const sinceEl = document.getElementById('infoonly-since-' + id);
+  if (sinceEl && sinceEl.value !== (snap.infoOnlySince || '')) return true;
   // 会議のチェック状態
   var changed = false;
   (r.meetings || []).forEach(function(m, mIdx) {
@@ -2443,6 +2466,9 @@ function saveResident(id) {
       r.infoOnlySince = '';
     }
     r.infoOnly = newInfoOnly;
+    // 起点日を手動で編集していれば優先
+    const sinceEl = document.getElementById(`infoonly-since-${id}`);
+    if (sinceEl && newInfoOnly && sinceEl.value) r.infoOnlySince = sinceEl.value;
   }
   const assessmentDateEl = document.getElementById(`assessment-date-${id}`);
   if (assessmentDateEl) r.assessmentDate = assessmentDateEl.value;
@@ -3286,6 +3312,14 @@ function render() {
                 <span style="position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:${r.infoOnly ? '23px' : '3px'};transition:0.2s;" id="infoonly-thumb-${r.id}"></span>
               </label>
             </div>
+            ${r.infoOnly ? `
+            <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--text-sub);white-space:nowrap;">対象外の起点</span>
+                <input type="date" id="infoonly-since-${r.id}" value="${r.infoOnlySince || ''}" style="font-size:14px;flex:1;">
+              </div>
+              <div style="font-size:10px;color:var(--text-sub);margin-top:4px;">この日以降の会議が書類チェックの対象外になります</div>
+            </div>` : ''}
             <!-- 判定所見 -->
             <div class="assessment-box">
               <div class="section-label">判定所見${r.infoOnly ? '' : '（最新会議）'}</div>
