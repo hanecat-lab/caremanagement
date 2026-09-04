@@ -1387,7 +1387,7 @@
 <script>
 "use strict";
 /* ===== バージョン管理・自動更新 ===== */
-const APP_VERSION="20260904-185940"; /* GitHub Actionsが自動更新するため手動で変更しない */
+const APP_VERSION="20260703-020823"; /* GitHub Actionsが自動更新するため手動で変更しない */
 
 async function checkForUpdate(){
   try{
@@ -1598,6 +1598,7 @@ function load() {
       if (r.memo === undefined) r.memo = '';
       if (r.initial === undefined) r.initial = '';
       if (r.infoOnly === undefined) r.infoOnly = false;
+      if (r.infoOnlySince === undefined) r.infoOnlySince = '';
       if (r.assessmentDate === undefined) r.assessmentDate = '';
       // 旧データの短期目標をカードレベルから除去（会議レベルへ移行）
       r.meetings.forEach(m => {
@@ -1756,6 +1757,7 @@ function importData(event) {
         if (r.careLevel === undefined) r.careLevel = '';
         if (r.memo === undefined) r.memo = '';
         if (r.infoOnly === undefined) r.infoOnly = false;
+      if (r.infoOnlySince === undefined) r.infoOnlySince = '';
         if (r.initial === undefined) r.initial = '';
         if (r.assessmentDate === undefined) r.assessmentDate = '';
         r.meetings.forEach(m => {
@@ -1831,6 +1833,7 @@ function quickRestore(idx) {
       if (r.careLevel === undefined) r.careLevel = '';
       if (r.memo === undefined) r.memo = '';
       if (r.infoOnly === undefined) r.infoOnly = false;
+      if (r.infoOnlySince === undefined) r.infoOnlySince = '';
       if (r.initial === undefined) r.initial = '';
       if (r.assessmentDate === undefined) r.assessmentDate = '';
       r.meetings.forEach(m => {
@@ -2429,7 +2432,18 @@ function saveResident(id) {
   const initialEl = document.getElementById(`initial-${id}`);
   if (initialEl) r.initial = initialEl.value.trim();
   const infoOnlyEl = document.getElementById(`infoonly-${id}`);
-  if (infoOnlyEl) r.infoOnly = infoOnlyEl.checked;
+  if (infoOnlyEl) {
+    const newInfoOnly = infoOnlyEl.checked;
+    if (newInfoOnly && !r.infoOnly) {
+      // 担当外に切り替えたタイミング（その月の1日）を記録
+      const now = new Date();
+      r.infoOnlySince = toYMD(now.getFullYear(), now.getMonth(), 1);
+    } else if (!newInfoOnly) {
+      // 担当に戻したら記録をクリア
+      r.infoOnlySince = '';
+    }
+    r.infoOnly = newInfoOnly;
+  }
   const assessmentDateEl = document.getElementById(`assessment-date-${id}`);
   if (assessmentDateEl) r.assessmentDate = assessmentDateEl.value;
   r.longGoalStart  = document.getElementById(`lg-start-${id}`).value;
@@ -3137,27 +3151,32 @@ function render() {
           const dispNum = offset + origIdx;
           const mOpen = openMeetings[r.id] && openMeetings[r.id].has(origIdx);
           const mDots = m.docs.map(d => `<div class="meeting-dot${d.printed ? ' done' : ''}"></div>`).join('');
+          // 担当外に切り替えた月以降の会議は書類チェックを対象外にする
+          const isExcludedFromChecklist = r.infoOnly && r.infoOnlySince && m.date && m.date >= r.infoOnlySince;
 
           const sgSummary = (m.shortGoalStart || m.shortGoalEnd)
             ? `<span style="font-size:11px;color:var(--green);margin-left:4px;">📅 ${fmtDate(m.shortGoalStart)}〜${fmtDate(m.shortGoalEnd)}</span>`
             : '';
 
           const docsHtml = m.docs.map((doc, dIdx) => `
-            <tr>
+            <tr${isExcludedFromChecklist ? ' style="opacity:0.4;"' : ''}>
               <td><div class="doc-name">${doc.name}</div></td>
-              <td><input type="date" class="doc-date-input" id="dd-${r.id}-${origIdx}-${dIdx}" value="${doc.createdDate}"></td>
+              <td><input type="date" class="doc-date-input" id="dd-${r.id}-${origIdx}-${dIdx}" value="${doc.createdDate}"${isExcludedFromChecklist ? ' disabled' : ''}></td>
               <td>
                 <div class="print-check">
-                  <button class="print-toggle created-toggle${doc.created ? ' on' : ''}" id="dc-${r.id}-${origIdx}-${dIdx}" onclick="toggleCreated('${r.id}',${origIdx},${dIdx})"></button>
+                  <button class="print-toggle created-toggle${doc.created ? ' on' : ''}" id="dc-${r.id}-${origIdx}-${dIdx}" onclick="${isExcludedFromChecklist ? '' : `toggleCreated('${r.id}',${origIdx},${dIdx})`}"${isExcludedFromChecklist ? ' disabled' : ''}></button>
                 </div>
               </td>
               <td>
                 <div class="print-check">
-                  <button class="print-toggle${doc.printed ? ' on' : ''}" id="dp-${r.id}-${origIdx}-${dIdx}" onclick="togglePrint('${r.id}',${origIdx},${dIdx})"></button>
+                  <button class="print-toggle${doc.printed ? ' on' : ''}" id="dp-${r.id}-${origIdx}-${dIdx}" onclick="${isExcludedFromChecklist ? '' : `togglePrint('${r.id}',${origIdx},${dIdx})`}"${isExcludedFromChecklist ? ' disabled' : ''}></button>
                 </div>
               </td>
             </tr>
           `).join('');
+          const excludedNote = isExcludedFromChecklist
+            ? `<div style="font-size:11px;color:var(--text-sub);margin-bottom:6px;">📌 担当外のため、この回以降は書類チェックの対象外です</div>`
+            : '';
 
           return `
             <div class="meeting-item${isLatest ? ' latest' : ''}">
@@ -3193,6 +3212,7 @@ function render() {
                 </div>
                 <hr class="divider">
                 <div class="docs-label">書類記録</div>
+                ${excludedNote}
                 <table class="docs-table">
                   <thead>
                     <tr>
