@@ -2945,25 +2945,31 @@ function renderMonthCard(r, monthKey) {
 
   const meetingsHtml = monthMeetings.map(({ m, origIdx }) => {
     const dispNum = offset + origIdx;
+    // 担当外に切り替えた月以降の会議は書類チェックを対象外にする
+    const isExcludedFromChecklist = r.infoOnly && r.infoOnlySince && m.date && m.date >= r.infoOnlySince;
     const docsHtml = m.docs.map((doc, dIdx) => `
-      <tr>
+      <tr${isExcludedFromChecklist ? ' style="opacity:0.4;"' : ''}>
         <td><div class="doc-name">${doc.name}</div></td>
         <td>
           <div class="print-check">
-            <button class="print-toggle created-toggle${doc.created ? ' on' : ''}" onclick="toggleCreatedMonth('${r.id}',${origIdx},${dIdx})"></button>
+            <button class="print-toggle created-toggle${doc.created ? ' on' : ''}" onclick="${isExcludedFromChecklist ? '' : `toggleCreatedMonth('${r.id}',${origIdx},${dIdx})`}"${isExcludedFromChecklist ? ' disabled' : ''}></button>
           </div>
         </td>
         <td>
           <div class="print-check">
-            <button class="print-toggle${doc.printed ? ' on' : ''}" onclick="togglePrintMonth('${r.id}',${origIdx},${dIdx})"></button>
+            <button class="print-toggle${doc.printed ? ' on' : ''}" onclick="${isExcludedFromChecklist ? '' : `togglePrintMonth('${r.id}',${origIdx},${dIdx})`}"${isExcludedFromChecklist ? ' disabled' : ''}></button>
           </div>
         </td>
       </tr>
     `).join('');
+    const excludedNote = isExcludedFromChecklist
+      ? `<div style="font-size:11px;color:var(--text-sub);margin-bottom:6px;">📌 担当外のため、この回以降は書類チェックの対象外です</div>`
+      : '';
 
     return `
       <div style="padding:8px 0;border-top:1px solid var(--border);">
         <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:6px;">第${dispNum}回　${fmtDate(m.date)}</div>
+        ${excludedNote}
         <table class="docs-table">
           <thead>
             <tr>
