@@ -2613,6 +2613,8 @@ function getOverdueResidents() {
     const overdueMeetings = [];
     r.meetings.forEach((meeting, idx) => {
       if (!meeting.date) return;
+      // 担当外に切り替えた月以降の会議は対象外
+      if (r.infoOnly && r.infoOnlySince && meeting.date >= r.infoOnlySince) return;
       const [y, m, d] = meeting.date.split('-').map(Number);
       const meetingDate = new Date(y, m - 1, d);
       const diffDays = Math.floor((today - meetingDate) / (1000 * 60 * 60 * 24));
