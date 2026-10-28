@@ -297,6 +297,16 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 .nc-row .cnt{margin-left:auto; font-size:16px; font-weight:700;}
 .nc-row .cnt small{font-size:11px; font-weight:400; color:var(--sub);}
 .nc-note{font-size:11px; color:var(--sub); margin-top:10px; line-height:1.6;}
+
+#quickImportDialog{width:min(94vw,560px);max-height:88dvh;overflow:auto;border:0;border-radius:20px;padding:22px;color:var(--ink);box-shadow:0 18px 60px #10253b40;}
+#quickImportDialog::backdrop{background:#10253b88;}
+#quickImportDialog h2{margin:0 0 14px;font-size:21px;}
+#quickJson{display:block;width:100%;margin:8px 0;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:16px;resize:vertical;}
+#quickPreview{max-height:28dvh;overflow:auto;overflow-wrap:anywhere;}
+#quickPreview p{padding:10px;margin:0;border-bottom:1px solid var(--line);font-size:14px;}
+#quickImportStatus{line-height:1.6;overflow-wrap:anywhere;}
+#quickImportDialog button:disabled{opacity:.45;cursor:default;}
+[hidden]{display:none!important;}
 </style>
 </head>
 <body>
@@ -354,7 +364,12 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 
 <main>
   <section id="secCal">
-    <div id="todayCard"></div>
+    <div style="margin-bottom:14px;padding:14px;background:var(--card);border:1px solid var(--line);border-radius:14px;">
+<button class="big-btn" data-quick-import style="margin:0">コピーしたJSONを取り込む</button>
+<p class="hint" style="margin:8px 0 0">JSONアプリでコピー → ここで取り込み</p>
+<p id="quickResult" class="status" role="status" aria-live="polite"></p>
+<button class="big-btn sub" id="quickUndo" hidden>直前の取り込みを取り消す</button>
+</div><div id="todayCard"></div>
     <div class="cal-nav">
       <button id="calPrev" aria-label="前の月">‹</button>
       <div style="position:relative; display:flex; align-items:center;">
@@ -388,8 +403,9 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
     <div id="historyWrap"></div>
 
     <div class="sec-title" style="margin-top:22px;">シフト取込・タイムカード取込</div>
-    <p class="hint">勤務表やタイムカードの写真は、Claudeのチャット画面に画像を貼って「○行目を取り込んで」と伝えるとJSONファイルに変換してもらえます。そのJSONをこちらの「JSONを読み込む」で取り込んでください。</p>
+    <p class="hint">JSONアプリでコピーしたシフト・タイムカードを取り込めます。内容を確認してから反映します。</p>
 
+    <button class="big-btn" data-quick-import>コピーしたJSONを取り込む</button>
     <div class="sec-title" style="margin-top:22px;">カスタム休日</div>
     <p class="hint">正月2〜3日など法定外の休日を登録します。夜勤カウントの祝前日・祝日判定に反映されます。</p>
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
@@ -407,7 +423,7 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 
     <div class="sec-title" style="margin-top:22px;">バックアップ</div>
     <p class="hint">
-      <b>シフト取込（日付→JSON）</b>：Claude上でシフト画像を貼ると日付データのJSONを作ってもらえます。そのJSONを読み込むと既存の残業記録・対応表はそのままでシフトだけ追加されます。<br>
+      <b>シフト取込（日付→JSON）</b>：JSONアプリで作成したJSONを取り込むと既存の残業記録・対応表はそのままでシフトだけ追加されます。<br>
       <b>フルバックアップ</b>：書き出しで全データを保存。読み込むと全データを上書き復元します。
     </p>
     <button class="big-btn sub" id="exportBtn">⬇️ 書き出す（JSON）</button>
@@ -424,10 +440,20 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
   </section>
 </main>
 
+<dialog id="quickImportDialog" aria-labelledby="quickHeading">
+<h2 id="quickHeading">JSONを取り込む</h2>
+<p id="quickImportStatus" role="status" aria-live="polite"></p>
+<label for="quickJson">コピーしたJSON</label>
+<textarea id="quickJson" rows="5" spellcheck="false" placeholder="ここにJSONを貼り付け"></textarea>
+<button class="big-btn sub" id="quickPreviewBtn">内容を確認</button>
+<div id="quickPreview"></div>
+<p class="hint">JSONに含まれない日と項目は残ります。定時出は取り込み対象外です。</p>
+<div style="display:flex;gap:10px"><button class="big-btn sub" id="quickClose">閉じる</button><button class="big-btn" id="quickApply" disabled>取り込む</button></div>
+</dialog>
 <script>
 "use strict";
 /* ===== バージョン管理・自動更新 ===== */
-const APP_VERSION="20260711-181740"; /* ビルドごとに更新 */
+const APP_VERSION="20261028-json-paste-v2"; /* ビルドごとに更新 */
 
 async function checkForUpdate(){
   try{
@@ -883,6 +909,10 @@ document.getElementById("jsonFile").addEventListener("change",e=>{
   r.onload=()=>{
     try{
       const v=JSON.parse(r.result);
+      if(v && (v.type==="shift" || v.type==="timecard")){
+        showQuickImportText(r.result);
+        return;
+      }
 
       /* ── 新形式シフトJSON: {type:"shift", year, month, days:{"1":"2A'",...}} ── */
       if(v.type==="shift" && v.year && v.month && v.days){
@@ -1232,7 +1262,7 @@ function renderHistory(){
   let chart='<div class="chart-wrap">';
   for(const pk of chartKeys.reverse()){
     const [py,pm]=pk.split("-").map(Number);
-    const pct=Math.round(periods[pk]/Math.max(maxVal,1)*100);
+    const pct=Math.round(periods[pk]/Math.max(maxVal,MON_LIMIT)*100);
     const cls=periods[pk]>=MON_LIMIT?"over":periods[pk]>=40*60?"warn":"";
     chart+='<div class="chart-row">'
       +'<span class="chart-lbl">'+pm+'月</span>'
@@ -1474,8 +1504,111 @@ document.getElementById("calMonthPicker").addEventListener("change",e=>{
 });
 
 function saveRender(){ store.save(state); renderAll(); }
-function renderAll(){ renderHeader(); renderDays(); renderMaster(); renderHistory(); renderCal(); }
+function renderAll(){ renderHeader(); renderDays(); renderMaster(); renderHistory(); renderCal(); renderCustomHol(); }
 renderAll();
+</script>
+<script>
+/* コピーしたJSONの確認付き取り込み */
+const QUICK_UNDO_KEY='overtime-quick-import-undo-v1';
+let quickPending=null, quickReadToken=0;
+function prepareQuickImport(text, current){
+  if(!text.trim()) throw new Error('JSONを貼り付けてください。');
+  let v; try{v=JSON.parse(text.replace(/^\uFEFF/,''));}catch(e){throw new Error('JSONの末尾までコピーされているか確認してください。');}
+  if(!v || !['shift','timecard'].includes(v.type) || !v.days || typeof v.days!=='object' || Array.isArray(v.days)) throw new Error('JSONアプリのシフトまたはタイムカードを貼り付けてください。バックアップはファイルから復元できます。');
+  const y=v.type==='shift'?v.year:v.closeYear, m=v.type==='shift'?v.month:v.closeMonth;
+  if(!Number.isInteger(y)||y<1900||y>9999||!Number.isInteger(m)||m<1||m>12) throw new Error('対象の年・月が正しくありません。');
+  const next=JSON.parse(JSON.stringify(current)), changes=[]; let count=0;
+  const labels={shift:'シフト',endActual:'定時退',startActual:'時間外 出',startEnd:'時間外 退'};
+  for(const [day,val] of Object.entries(v.days)){
+    if(!/^(?:[1-9]|[12]\d|3[01])$/.test(day)) throw new Error('日付が正しくありません：'+day);
+    const d=Number(day); let yy=y,mm=m;
+    if(v.type==='timecard'&&d>=16){if(--mm===0){mm=12;yy--;}}
+    if(new Date(yy,mm-1,d).getMonth()!==mm-1) throw new Error('存在しない日付です：'+mm+'/'+d);
+    const key=`${yy}-${String(mm).padStart(2,'0')}-${String(d).padStart(2,'0')}`, patch={};
+    if(v.type==='shift'){
+      if(typeof val!=='string') throw new Error(day+'日のシフトが文字列ではありません。');
+      const label=val.trim(); if(!label)continue; patch.shift=label;
+      if(label!=='休み'&&!next.master.some(x=>x.label===label)) next.master.push({label,start:'',end:'',color:'#15426b',noWork:false,night:false});
+    }else{
+      if(!val||typeof val!=='object'||Array.isArray(val)) throw new Error(day+'日の打刻形式が正しくありません。');
+      for(const [from,to] of [['end','endActual'],['otStart','startActual'],['otEnd','startEnd']]){
+        if(val[from]==null||val[from]==='')continue;
+        if(typeof val[from]!=='string'||!/^([01]?\d|2[0-3]):[0-5]\d$/.test(val[from])) throw new Error(day+'日の時刻が正しくありません：'+from);
+        const [h,min]=val[from].split(':'); patch[to]=h.padStart(2,'0')+':'+min;
+      }
+      if(!Object.keys(patch).length)continue;
+    }
+    count++;
+    for(const [field,after] of Object.entries(patch)){
+      const before=next.days[key]?.[field];
+      if(before!==after)changes.push({date:key,field:labels[field],before:before||'未登録',after});
+    }
+    next.days[key]={...(next.days[key]||{}),...patch};
+  }
+  if(!count)throw new Error('取り込めるシフト・打刻がありません。');
+  return {next,changes,count,title:`${y}年${m}月${v.type==='shift'?'のシフト':'締めのタイムカード'}`};
+}
+const quickDialog=document.getElementById('quickImportDialog');
+function quickMessage(message){document.getElementById('quickImportStatus').textContent=message;}
+async function openQuickImport(){
+  const token=++quickReadToken;
+  quickPending=null; document.getElementById('quickJson').value='';
+  document.getElementById('quickPreview').replaceChildren(); document.getElementById('quickApply').disabled=true;
+  quickMessage('コピーしたJSONを読み込みます。取得できない場合は下の欄へ貼り付けてください。');
+  quickDialog.showModal();
+  try{
+    const text=await navigator.clipboard.readText();
+    if(token!==quickReadToken||!quickDialog.open)return;
+    document.getElementById('quickJson').value=text; previewQuickImport();
+  }catch(e){if(token!==quickReadToken||!quickDialog.open)return;quickMessage('下の欄を長押ししてJSONを貼り付け、「内容を確認」を押してください。');document.getElementById('quickJson').focus();}
+}
+function showQuickImportText(text){
+  ++quickReadToken;
+  if(!quickDialog.open)quickDialog.showModal();
+  document.getElementById('quickJson').value=text;
+  previewQuickImport();
+}
+function previewQuickImport(){
+  ++quickReadToken;
+  quickPending=null; document.getElementById('quickApply').disabled=true;
+  const preview=document.getElementById('quickPreview'); preview.replaceChildren();
+  try{
+    quickPending=prepareQuickImport(document.getElementById('quickJson').value,state);
+    quickPending.before=JSON.stringify(state);
+    const {title,count,changes}=quickPending;
+    quickMessage(`${title}・${count}日分。変更 ${changes.length}項目。`);
+    for(const change of changes){const row=document.createElement('p');row.textContent=`${change.date} ${change.field}：${change.before} → ${change.after}`;preview.append(row);}
+    if(!changes.length)quickMessage(`${title}・登録済みの内容と同じです。`);
+    document.getElementById('quickApply').disabled=!changes.length;
+  }catch(e){quickMessage(e.message);}
+}
+function applyQuickImport(){
+  if(!quickPending)return;
+  if(JSON.stringify(state)!==quickPending.before){previewQuickImport();quickMessage('登録内容が変わったため、確認内容を更新しました。');return;}
+  const {next,before,title,count}=quickPending;
+  saveBackup('JSON取り込み前');
+  const undo={before,after:JSON.stringify(next)};
+  quickUndo=undo;try{localStorage.setItem(QUICK_UNDO_KEY,JSON.stringify(undo));}catch(e){}
+  state=next;saveRender();renderBackupList();quickDialog.close();++quickReadToken;quickPending=null;
+  document.getElementById('quickResult').textContent=`${title}・${count}日分を取り込みました。`;
+  document.getElementById('quickUndo').hidden=false;
+}
+let quickUndo=null;try{quickUndo=JSON.parse(localStorage.getItem(QUICK_UNDO_KEY)||'null');}catch(e){}
+document.getElementById('quickUndo').hidden=!quickUndo;
+document.getElementById('quickUndo').addEventListener('click',()=>{
+  if(!quickUndo)return;
+  if(JSON.stringify(state)!==quickUndo.after){document.getElementById('quickResult').textContent='取り込み後に編集されているため、そのまま取り消せません。「データ」の自動保存の履歴から取り込み前を確認できます。';return;}
+  state=JSON.parse(quickUndo.before);saveRender();quickUndo=null;
+  try{localStorage.removeItem(QUICK_UNDO_KEY);}catch(e){}
+  document.getElementById('quickUndo').hidden=true;document.getElementById('quickResult').textContent='取り込み前の状態に戻しました。';
+});
+document.querySelectorAll('[data-quick-import]').forEach(b=>b.addEventListener('click',openQuickImport));
+document.getElementById('quickPreviewBtn').addEventListener('click',previewQuickImport);
+document.getElementById('quickApply').addEventListener('click',applyQuickImport);
+document.getElementById('quickClose').addEventListener('click',()=>quickDialog.close());
+quickDialog.addEventListener('close',()=>{++quickReadToken;});
+document.getElementById('quickJson').addEventListener('input',()=>{++quickReadToken;quickPending=null;document.getElementById('quickApply').disabled=true;document.getElementById('quickPreview').replaceChildren();quickMessage('「内容を確認」を押してください。');});
+
 </script>
 </body>
 </html>
