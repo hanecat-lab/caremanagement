@@ -399,6 +399,8 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
   </section>
 
   <section id="secData" class="hidden">
+    <div class="sec-title">残業の計算ルール</div>
+    <p class="hint">2026年11月15日以前：退勤・早出とも5分単位。2026年11月16日以降：定時からの退勤残業、または早出の対象時間が10分以上なら、その経過分を1分単位で計上します。手入力した残業分は手入力の値を優先します。</p>
     <div class="sec-title">残業履歴</div>
     <div id="historyWrap"></div>
 
@@ -453,7 +455,7 @@ main{padding:10px 14px calc(env(safe-area-inset-bottom) + 30px);}
 <script>
 "use strict";
 /* ===== バージョン管理・自動更新 ===== */
-const APP_VERSION="20261028-125502"; /* ビルドごとに更新 */
+const APP_VERSION="20261124-ot-rule-start"; /* ビルドごとに更新 */
 
 async function checkForUpdate(){
   try{
@@ -486,6 +488,7 @@ function showUpdateBanner(newVer){
 setTimeout(checkForUpdate, 3000); /* 起動直後は3秒後 */
 setInterval(checkForUpdate, 60*60*1000);
 const KEY="overtime-app-v2";
+const NEW_OT_RULE_START="2026-11-16"; /* この日から退勤・早出に新ルールを適用 */
 
 /* ---------- storage (localStorage + メモリfallback) ---------- */
 let memStore=null;
@@ -595,39 +598,38 @@ document.addEventListener("click", e=>{
   if(t && t.dataset.k) setDefaultEnd(t.dataset.k);
 }, true);
 
-/* その日の自動計算残業（分） null=計算不可 */
-function autoOT(day){
+/* その日の自動計算残業（分） null=計算不可。日付は YYYY-MM-DD */
+function autoOT(day, dateKey){
   if(!day||!day.shift) return null;
   const m=masterOf(day.shift);
   if(!m||m.noWork) return null;
+  const newRule=!!dateKey && dateKey>=NEW_OT_RULE_START;
   let late=0, early=0;
-  /* 退勤残業: 退勤時刻を5分未満切り捨ててから差分計算（例: 18:24→18:20） */
+  /* 退勤残業: 新ルールは10分以上なら全経過分。旧ルールは退勤時刻を5分単位で切り捨て */
   if(day.endActual && m.end){
-    const roundedEnd=floor5(toMin(day.endActual));
-    const d=roundedEnd-toMin(m.end);
-    if(d>0) late=d;
+    const end=toMin(day.endActual);
+    const d=(newRule?end:floor5(end))-toMin(m.end);
+    if(d>=(newRule?10:1)) late=d;
   }
-  /* 早出残業: 出社時刻を5分未満切り上げ、早出終了時刻を5分未満切り捨ててから差分計算
-       startEnd あり → startEnd(切り捨て) - 出社時刻(切り上げ)（PM・夜勤の午前作業など）
-       startEnd なし → m.start - 出社時刻(切り上げ)（定時より早く出勤した分）
-  */
+  /* 早出残業: 新ルールは早出の対象時間が10分以上なら全経過分。
+     旧ルールは出社時刻を5分単位で切り上げ、終了時刻を5分単位で切り捨て */
   if(day.startActual){
     const until = day.startEnd
-      ? floor5(toMin(day.startEnd))
+      ? (newRule?toMin(day.startEnd):floor5(toMin(day.startEnd)))
       : (m.start ? toMin(m.start) : null);
     if(until != null){
-      const roundedStart=ceil5(toMin(day.startActual));
-      const d = until - roundedStart;
-      if(d>0) early=d;
+      const start=toMin(day.startActual);
+      const d=until-(newRule?start:ceil5(start));
+      if(d>=(newRule?10:1)) early=d;
     }
   }
   if(late===0&&early===0&&!day.endActual&&!day.startActual) return null;
   return late+early;
 }
-function effOT(day){
+function effOT(day, dateKey){
   if(!day) return null;
   if(day.otOverride!=null) return day.otOverride;
-  return autoOT(day);
+  return autoOT(day,dateKey);
 }
 
 /* ---------- render: header ---------- */
@@ -637,7 +639,7 @@ function renderHeader(){
   document.getElementById("pRange").textContent=
     `${start.getMonth()+1}/${start.getDate()} 〜 ${end.getMonth()+1}/${end.getDate()}`;
   let total=0;
-  for(const d of arr){ const v=effOT(state.days[keyOf(d)]); if(v) total+=v; }
+  for(const d of arr){ const k=keyOf(d); const v=effOT(state.days[k],k); if(v) total+=v; }
   const h=Math.floor(total/60), mm=total%60;
   document.getElementById("totalVal").innerHTML=
     `${h}<small>時間</small>${pad(mm)}<small>分</small>`;
@@ -649,7 +651,7 @@ function renderHeader(){
   let yearTotal=0;
   for(const k in state.days){
     if(!k.startsWith(curYear+"-")) continue; /* 今年分のみ */
-    const v=effOT(state.days[k]); if(v) yearTotal+=v;
+    const v=effOT(state.days[k],k); if(v) yearTotal+=v;
   }
   const YEAR_LIMIT=360*60;
   function kyRow(label, val, limit){
@@ -683,8 +685,8 @@ function renderDays(){
     const opts=['<option value="">--</option>']
       .concat(state.master.map(s=>`<option value="${esc(s.label)}"${s.label===day.shift?" selected":""}>${esc(s.label)}</option>`))
       .join("");
-    const a=autoOT(day);
-    const eff=effOT(day);
+    const a=autoOT(day,k);
+    const eff=effOT(day,k);
     const isOv=day.otOverride!=null;
     /* 早出欄: 勤務なし以外は常に表示 */
     const showEarly = m && !m.noWork;
@@ -714,7 +716,7 @@ function renderDays(){
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px;">
               <div style="display:flex;align-items:center;gap:4px;">
                 <input type="number" class="ot num ${eff?"has-ot":""} ${isOv?"override":""}" data-k="${k}"
-                  inputmode="numeric" min="0" step="5"
+                  inputmode="numeric" min="0" step="1"
                   value="${eff!=null?eff:""}" placeholder="${a!=null?a:"--"}">
                 <span class="unit">分</span>
                 <button type="button" class="reset num ${isOv?"show":""}" data-k="${k}" title="自動計算に戻す">↺</button>
@@ -808,7 +810,7 @@ function renderDays(){
     if(v===""){ state.days[k].otOverride=null; }
     else{
       const n=Math.max(0,parseInt(v,10)||0);
-      state.days[k].otOverride=(n===autoOT(state.days[k]))?null:n;
+      state.days[k].otOverride=(n===autoOT(state.days[k],k))?null:n;
     }
     saveRender();
   }));
@@ -1245,7 +1247,7 @@ function renderHistory(){
     if(!day.shift) continue;
     const pk=dateToPeriod(k);
     if(!periods[pk]) periods[pk]=0;
-    const v=effOT(day); if(v) periods[pk]+=v;
+    const v=effOT(day,k); if(v) periods[pk]+=v;
   }
 
   const pKeys=Object.keys(periods).sort().reverse();
@@ -1401,7 +1403,7 @@ function renderWidget(){
 
   if(day&&day.shift&&m){
     const timeStr=m.start&&m.end?`${m.start} 〜 ${m.end}`:"";
-    const eff=effOT(day);
+    const eff=effOT(day,wk);
     const otStr=eff!=null?`残業 ${fmtMin(eff)}`:"";
     tcHTML+=`<div class="tc-main">
       <div class="tc-left">
